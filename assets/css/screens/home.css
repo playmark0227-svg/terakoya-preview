@@ -1,0 +1,193 @@
+/* ============================================================
+   ホーム（.scr-home）
+   上から「見出し → 今日やること（1つ）→ 短い一覧 → 2段組み」。
+   2段組みは、左に流れるもの（新着・イベント）、右に自分の記録（レベル・案件）。
+   ============================================================ */
+
+/* ---------- 見出し ---------- */
+.scr-home .home-head { margin-bottom: 18px; }
+.scr-home .home-date { font-size: 12.5px; color: var(--ink-3); letter-spacing: .06em; margin-bottom: 2px; }
+.scr-home .home-meta { display: flex; flex-wrap: wrap; gap: 2px 16px; margin-top: 6px; font-size: 13.5px; color: var(--ink-2); }
+.scr-home .home-streak { display: inline-flex; align-items: center; gap: 5px; }
+.scr-home .home-streak .ico { width: 16px; height: 16px; color: var(--gold); }
+.scr-home .home-streak.is-zero .ico { color: var(--ink-3); }
+
+/* ---------- ようこそ（入会したての人だけ） ---------- */
+.scr-home .home-welcome {
+  display: flex; gap: 16px; align-items: flex-start; margin-bottom: 14px;
+  padding: 18px 20px; border-radius: var(--r-l); background: var(--paper); border: 1px solid var(--line);
+}
+.scr-home .home-welcome__seal {
+  width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--ink); color: var(--on-deep);
+  display: grid; place-items: center; font-family: var(--font-serif); font-size: 21px; font-weight: 700;
+}
+.scr-home .home-welcome__body { min-width: 0; }
+.scr-home .home-welcome__ttl { font-family: var(--font-serif); font-size: 18px; font-weight: 700; line-height: 1.5; }
+.scr-home .home-welcome__ttl span { display: inline-block; }   /* 句の途中で折り返さない */
+.scr-home .home-welcome__txt { margin-top: 4px; font-size: 13.5px; color: var(--ink-2); }
+
+/* ---------- 今日やること ---------- */
+.scr-home .home-focus {
+  display: grid; grid-template-columns: minmax(180px, 30%) minmax(0, 1fr); overflow: hidden;
+}
+.scr-home .home-focus__media {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+  padding: 18px 20px; text-decoration: none; min-width: 0;
+}
+.scr-home .home-focus__media.is-lesson {
+  background: radial-gradient(130% 90% at 100% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 62%), var(--deep);
+  color: var(--on-deep);
+}
+.scr-home .home-focus__media.is-step { background: var(--paper); color: var(--ink); border-right: 1px solid var(--line); }
+.scr-home .home-focus__media.is-rest { background: var(--gold-weak); color: var(--ink); }
+.scr-home .home-focus__kicker { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; opacity: .72; }
+.scr-home .home-focus__big { font-family: var(--font-serif); font-size: 38px; font-weight: 700; line-height: 1.1; letter-spacing: .02em; }
+.scr-home .home-focus__big.num { font-family: var(--font-num); font-weight: 800; }
+.scr-home .home-focus__foot { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+.scr-home .home-focus__play {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.5px solid color-mix(in srgb, var(--on-deep) 55%, transparent);
+}
+.scr-home .home-focus__media.is-rest .home-focus__foot .ico { color: var(--ok); }
+
+/* スタートガイドの10個の点（済は墨、いまのは輪） */
+.scr-home .home-dots { display: flex; flex-wrap: wrap; gap: 6px; }
+.scr-home .home-dots i { width: 10px; height: 10px; border-radius: 50%; background: rgba(29, 27, 24, .12); }
+.scr-home .home-dots i.is-done { background: var(--ink); }
+.scr-home .home-dots i.is-cur { background: var(--surface); box-shadow: inset 0 0 0 2px var(--ink); }
+
+.scr-home .home-focus__body { padding: 22px 26px 24px; min-width: 0; }
+.scr-home .home-focus__eyebrow { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-3); margin-bottom: 8px; }
+.scr-home .home-focus__eyebrow .ico { width: 16px; height: 16px; color: var(--accent); }
+.scr-home .home-focus__eyebrow b { color: var(--accent-ink); font-weight: 800; letter-spacing: .04em; }
+.scr-home .home-focus__eyebrow span::before { content: "／"; margin-right: 6px; color: var(--line-2); }
+.scr-home .home-focus__course { font-size: 13px; color: var(--ink-3); }
+/* 行の中の小さなリンクなので、上下の余白で押せる範囲だけ広げる（行の高さは変えない） */
+.scr-home .home-focus__course a { color: var(--ink-2); font-weight: 600; text-decoration: none; padding: 12px 0; }
+.scr-home .home-focus__course a:hover { text-decoration: underline; }
+.scr-home .home-focus__ttl { font-size: 22px; font-weight: 800; line-height: 1.45; margin-top: 2px; }
+.scr-home .home-focus__desc { margin-top: 6px; font-size: 14px; color: var(--ink-2); }
+.scr-home .home-focus__meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 8px; font-size: 12.5px; color: var(--ink-3); }
+.scr-home .home-focus__meta span { display: inline-flex; align-items: center; gap: 4px; }
+.scr-home .home-focus__prog { display: flex; align-items: center; gap: 10px; margin-top: 12px; max-width: 360px; }
+.scr-home .home-focus__prog .bar { flex: 1; height: 5px; }
+.scr-home .home-focus__prog > span { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.scr-home .home-focus__hint {
+  display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; padding: 10px 12px;
+  border-radius: 10px; background: var(--gold-weak); color: var(--ink-2); font-size: 13px; line-height: 1.6;
+}
+.scr-home .home-focus__hint .ico { width: 16px; height: 16px; margin-top: 2px; color: var(--gold); }
+.scr-home .home-focus__hint b { color: var(--ink); margin: 0 1px; }
+.scr-home .home-focus__acts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 18px; }
+.scr-home .home-focus__acts .btn-primary { min-width: 200px; }
+
+/* 見出し右の小さなリンクは、見た目はそのままで押せる範囲だけ広げる（指で押しやすく） */
+.scr-home .sec-ttl a { padding: 10px 0 10px 12px; margin: -10px 0; }
+
+/* 行の題と補足は span で組むので、ここで段に分ける（app.css 側は display 指定なし） */
+.scr-home .li__ttl, .scr-home .li__sub { display: block; }
+
+/* ---------- 短い一覧 ---------- */
+.scr-home .home-quick { margin-top: 14px; }
+/* スタートガイドの輪は「できた分」なので緑（朱は上のボタンだけにする） */
+.scr-home .home-quick .ring { background: conic-gradient(var(--ok) calc(var(--p) * 1%), rgba(29, 27, 24, .08) 0); }
+.scr-home .home-quick .ring > span { font-size: 11px; font-weight: 800; }
+.scr-home .home-ico-indigo { color: var(--indigo); }
+.scr-home .home-1line { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scr-home .home-until { font-size: 12.5px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+
+/* ---------- 2段組み ---------- */
+.scr-home .home-cols {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; margin-top: 30px; align-items: start;
+}
+.scr-home .home-col { min-width: 0; }
+.scr-home .home-col > .home-sec + .home-sec { margin-top: 28px; }
+.scr-home .home-none { font-size: 13.5px; color: var(--ink-2); }
+
+/* 新着 */
+.scr-home .home-post { align-items: flex-start; gap: 12px; padding: 12px 16px; min-height: 0; }
+.scr-home .home-post + .home-post::before { left: 58px; }
+.scr-home .home-post .avatar { margin-top: 2px; }
+.scr-home .home-post .chev { align-self: center; flex: none; }
+.scr-home .home-post__by { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; color: var(--ink-3); }
+.scr-home .home-post__by b { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.scr-home .home-post__by .tag { height: 18px; padding: 0 6px; font-size: 10.5px; flex: none; }
+.scr-home .home-post__at { white-space: nowrap; flex: none; }
+.scr-home .home-post__txt {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  margin-top: 2px; font-size: 14px; line-height: 1.6; color: var(--ink);
+}
+
+/* これからのイベント */
+.scr-home .home-ev { gap: 14px; }
+.scr-home .home-ev + .home-ev::before { left: 76px; }
+.scr-home .home-ev__date {
+  width: 44px; flex: none; padding: 5px 0 4px; border-radius: 10px; text-align: center; line-height: 1.15;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.scr-home .home-ev__date small { display: block; font-size: 10.5px; color: var(--ink-3); }
+.scr-home .home-ev__date b { display: block; font-size: 19px; font-weight: 800; }
+.scr-home .home-ev .li__ttl { font-size: 14.5px; }
+
+/* 学びのレベル（面ごと押せる → レベルの説明） */
+.scr-home .home-lv { padding: 18px 20px 12px; cursor: pointer; }
+.scr-home .home-lv:hover { background: var(--surface-2); }
+.scr-home .home-lv .row-between { margin-bottom: 10px; }
+.scr-home .home-lv__xp { font-size: 13px; color: var(--ink-3); }
+.scr-home .home-lv__xp b { font-size: 17px; color: var(--ink); }
+.scr-home .home-lv__to { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+.scr-home .home-lv__h { margin: 16px 0 4px; font-size: 12px; font-weight: 700; color: var(--ink-3); letter-spacing: .04em; }
+.scr-home .home-lv__list li {
+  display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 14px; color: var(--ink-2);
+  border-top: 1px solid var(--line);
+}
+.scr-home .home-lv__list li:first-child { border-top: 0; }
+.scr-home .home-lv__list .ico { color: var(--ink-3); }
+.scr-home .home-lv__list span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scr-home .home-lv__list small { flex: none; font-size: 11.5px; color: var(--ink-3); }
+.scr-home .home-lv__foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 10px -20px 0; padding: 10px 20px 0; border-top: 1px solid var(--line);
+  font-size: 13px; font-weight: 600; color: var(--indigo);
+}
+
+/* ---------- 横幅ごと ---------- */
+/* 左の帯が出ている狭めの画面（861〜1060px）と、スマホに近い幅では1段にする */
+@media (max-width: 720px), (min-width: 861px) and (max-width: 1060px) {
+  .scr-home .home-cols { display: flex; flex-direction: column; align-items: stretch; gap: 28px; }
+  .scr-home .home-col { display: contents; }
+  .scr-home .home-col > .home-sec + .home-sec { margin-top: 0; }
+  .scr-home .home-sec--lv { order: 1; }
+  .scr-home .home-sec--feed { order: 2; }
+  .scr-home .home-sec--ev { order: 3; }
+  .scr-home .home-sec--money { order: 4; }
+}
+
+@media (max-width: 640px) {
+  .scr-home .page-ttl { font-size: 23px; }
+  .scr-home .home-welcome { padding: 16px; gap: 12px; }
+  .scr-home .home-welcome__seal { width: 34px; height: 34px; font-size: 18px; border-radius: 9px; }
+  .scr-home .home-welcome__ttl { font-size: 16.5px; }
+
+  .scr-home .home-focus { grid-template-columns: 1fr; }
+  .scr-home .home-focus__media {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr; align-items: end;
+    gap: 6px 12px; padding: 14px 16px; min-height: 108px;
+  }
+  .scr-home .home-focus__kicker { grid-column: 1 / -1; }
+  .scr-home .home-focus__big { font-size: 32px; }
+  .scr-home .home-focus__media.is-step { border-right: 0; border-bottom: 1px solid var(--line); }
+  .scr-home .home-dots { gap: 5px; justify-content: flex-end; max-width: 150px; }
+  .scr-home .home-dots i { width: 9px; height: 9px; }
+  .scr-home .home-focus__body { padding: 16px 16px 18px; }
+  .scr-home .home-focus__ttl { font-size: 19px; }
+  .scr-home .home-focus__prog { max-width: none; }
+  .scr-home .home-focus__acts { flex-direction: column; align-items: stretch; margin-top: 16px; gap: 6px; }
+  .scr-home .home-focus__acts .btn-primary { min-width: 0; width: 100%; }
+  .scr-home .home-focus__acts .btn-text { height: 40px; }
+
+  .scr-home .home-post { padding: 12px 14px; }
+  .scr-home .home-post + .home-post::before { left: 56px; }
+  .scr-home .home-lv { padding: 16px 16px 10px; }
+  .scr-home .home-lv__foot { margin: 10px -16px 0; padding: 10px 16px 0; }
+}

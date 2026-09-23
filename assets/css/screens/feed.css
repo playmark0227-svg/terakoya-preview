@@ -1,0 +1,122 @@
+/* ============================================================
+   タイムライン（#/feed）
+   読む幅を保つため、本文の列は 680px まで。広い画面では右に細い列を置く。
+   ============================================================ */
+.scr-feed .feed-layout { display: grid; gap: 28px; align-items: start; }
+.scr-feed .feed-main, .scr-feed .feed-side { min-width: 0; max-width: 680px; }
+@media (min-width: 1180px) {
+  .scr-feed .feed-layout { grid-template-columns: minmax(0, 1fr) 264px; gap: 24px; }
+}
+/* 右の列が画面の高さに収まるときだけ止める（背の低い画面で、下のルールが最後まで隠れないように） */
+@media (min-width: 1180px) and (min-height: 760px) {
+  .scr-feed .feed-side { position: sticky; top: 24px; }
+}
+
+/* 指で押すものは、見た目を変えずに押せる範囲を上下に足して 40px 以上にする */
+.scr-feed .composer__seg button, .scr-feed .chip, .scr-feed .post__link { position: relative; }
+.scr-feed .composer__seg button::before, .scr-feed .chip::before, .scr-feed .post__link::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px;
+}
+
+/* ---------- 自己紹介のすすめ ---------- */
+.scr-feed .intro-cta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 14px; padding: 16px 18px; margin-bottom: 14px; }
+.scr-feed .intro-cta__ico {
+  width: 40px; height: 40px; border-radius: 12px; flex: none;
+  display: grid; place-items: center; background: var(--indigo-weak); color: var(--indigo);
+}
+.scr-feed .intro-cta__body { flex: 1 1 220px; min-width: 0; }
+.scr-feed .intro-cta__ttl { font-weight: 700; font-size: 15px; line-height: 1.5; }
+.scr-feed .intro-cta .sub { font-size: 13px; margin-top: 2px; }
+@media (max-width: 560px) { .scr-feed .intro-cta .btn { width: 100%; height: 42px; font-size: 14px; } }
+
+/* ---------- 書く欄 ---------- */
+.scr-feed .composer { padding: 16px 18px 14px; }
+.scr-feed .composer__row { display: flex; gap: 12px; align-items: flex-start; }
+.scr-feed .composer__main { flex: 1; min-width: 0; }
+.scr-feed .composer__ta {
+  display: block; min-height: 88px; resize: none; overflow-y: hidden;
+  background: var(--surface-2); border-color: var(--line); line-height: 1.75;
+}
+.scr-feed .composer__ta:focus { background: var(--surface); }
+.scr-feed .composer__hint { color: var(--ink-3); margin-top: 6px; line-height: 1.6; }
+/* 種類の切り替えと「投稿する」。入りきらないときは、XPの注記と投稿ボタンがまとめて右下に回る */
+.scr-feed .composer__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-top: 12px; padding-left: 52px; }
+.scr-feed .composer__act { display: flex; align-items: center; gap: 12px; margin-left: auto; min-width: 0; }
+.scr-feed .composer__xp { color: var(--ink-3); text-align: right; line-height: 1.5; }
+.scr-feed .composer__send { flex: none; }
+@media (max-width: 560px) {
+  .scr-feed .composer { padding: 14px 14px 12px; }
+  .scr-feed .composer__foot { padding-left: 0; }
+}
+
+/* ---------- 絞り込み（せまい画面では横に流す。ページ全体は横に動かさない） ---------- */
+.scr-feed .feed-chips { position: relative; margin: 20px 0 14px; }
+@media (max-width: 640px) {
+  /* 上下の padding は、札の押せる範囲（上の ::before）が横スクロールの箱で切れないため */
+  .scr-feed .feed-chips {
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    margin: 16px -16px 10px; padding: 4px 16px 6px;
+  }
+  .scr-feed .feed-chips::-webkit-scrollbar { display: none; }
+  .scr-feed .feed-chips::after { content: ""; flex: 0 0 8px; }   /* 右端の余白（横に流す箱は右の padding が効かないため） */
+  .scr-feed .feed-chips .chip { flex: none; }
+}
+
+/* ---------- 投稿 ---------- */
+.scr-feed .post { padding: 16px 18px 6px; }
+.scr-feed .post__head { display: flex; align-items: flex-start; gap: 12px; }
+.scr-feed .post__who { flex: 1; min-width: 0; }
+.scr-feed .post__name { font-weight: 700; font-size: 14.5px; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 肩書き・地域が長いときは省略して、時刻は必ず1行に残す */
+.scr-feed .post__meta {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: 12px; color: var(--ink-3); line-height: 1.6; margin-top: 1px; white-space: nowrap;
+}
+.scr-feed .post__meta > * { flex: none; }
+.scr-feed .post__meta > .post__role { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.scr-feed .post__new { font-size: 10px; font-weight: 800; letter-spacing: .08em; color: var(--accent-ink); }
+.scr-feed .post__tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 50%; }
+.scr-feed .post__tags .ico-s { width: 13px; height: 13px; }
+.scr-feed .post__text { margin-top: 10px; font-size: 15px; line-height: 1.85; overflow-wrap: anywhere; }
+.scr-feed .post__link { margin-top: 12px; }
+.scr-feed .post__link .ico-s { width: 14px; height: 14px; }
+.scr-feed .post__foot { display: flex; align-items: center; gap: 12px; margin: 4px 0 0 -10px; min-height: 40px; }
+.scr-feed .post__like {
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; min-width: 56px; padding: 0 12px;
+  border: 0; border-radius: 20px; background: none; color: var(--ink-3); font-size: 13px; font-weight: 600;
+}
+.scr-feed .post__like:hover { background: rgba(29, 27, 24, .05); color: var(--ink-2); }
+.scr-feed .post__like .ico { width: 19px; height: 19px; }
+.scr-feed .post__like.is-on { color: var(--accent-ink); }
+.scr-feed .post__like.is-on .ico path { fill: currentColor; }
+.scr-feed .post__like.is-pop .ico { animation: feedHeart .4s var(--ease); }
+.scr-feed .post__cmt { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-3); }
+.scr-feed .post.is-fresh { animation: feedFresh 2.6s var(--ease); }
+@keyframes feedHeart { 0% { transform: scale(.6); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+@keyframes feedFresh {
+  0%, 45% { box-shadow: 0 0 0 2px var(--ok), var(--shadow-1); }
+  100% { box-shadow: var(--shadow-1); }
+}
+@media (max-width: 560px) {
+  .scr-feed .post { padding: 14px 14px 4px; }
+  .scr-feed .post__head { gap: 10px; }
+  /* 「固定」と種類を縦に積んで、名前と時刻の幅を空ける */
+  .scr-feed .post__tags { flex-direction: column; align-items: flex-end; gap: 4px; }
+}
+
+.scr-feed .feed-end { text-align: center; margin-top: 20px; }
+
+/* ---------- 横の列 ---------- */
+/* app.css の .li__ttl / .li__sub は span のままだと横に並んでしまうため、ここで段にする */
+.scr-feed .li__ttl, .scr-feed .li__sub { display: block; }
+.scr-feed .feed-side__ttl { margin-top: 22px; }
+.scr-feed .feed-side__ttl a { padding: 10px 0 10px 12px; margin: -10px 0; }   /* 押せる範囲を広げる（見た目は同じ） */
+.scr-feed .feed-side .li__ttl { font-size: 14px; }
+.scr-feed .feed-side__tag { height: 18px; padding: 0 6px; font-size: 10.5px; margin-left: 6px; vertical-align: 1px; }
+.scr-feed .feed-rules { margin-top: 22px; }
+.scr-feed .feed-rules__ttl { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; }
+.scr-feed .feed-rules li { position: relative; padding-left: 13px; font-size: 12.5px; line-height: 1.7; color: var(--ink-2); }
+.scr-feed .feed-rules li + li { margin-top: 6px; }
+.scr-feed .feed-rules li::before {
+  content: ""; position: absolute; left: 1px; top: .78em; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3);
+}

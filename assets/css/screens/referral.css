@@ -1,0 +1,160 @@
+/* ============================================================
+   紹介・報酬（#/referral）
+   あおらない画面なので、朱は「振込先を登録する」（報酬があるときだけ）に限る。
+   ============================================================ */
+
+.scr-referral .rf-first { margin-bottom: 14px; }
+
+/* ---------- 1. 紹介リンク（左：リンク／右：文面） ---------- */
+.scr-referral .rf-link { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.scr-referral .rf-link__main,
+.scr-referral .rf-link__text { padding: 22px 24px; min-width: 0; }
+.scr-referral .rf-link__text { background: var(--surface-2); border-left: 1px solid var(--line); border-radius: 0 var(--r-l) var(--r-l) 0; }
+.scr-referral .rf-link__ttl { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 800; line-height: 1.4; margin-bottom: 4px; }
+.scr-referral .rf-link__ttl .ico { color: var(--ink-2); }
+
+.scr-referral .rf-url {
+  display: flex; align-items: center; gap: 8px; margin: 14px 0 12px;
+  padding: 5px 5px 5px 14px; border: 1px solid var(--line-2); border-radius: 11px; background: var(--surface-2);
+}
+.scr-referral .rf-url__text { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13.5px; line-height: 1.5; user-select: all; -webkit-user-select: all; }
+.scr-referral .rf-link__sub { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; }
+.scr-referral .rf-code { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.scr-referral .rf-code b { color: var(--ink); font-size: 14px; letter-spacing: .04em; }
+.scr-referral .rf-code__copy { font-size: 13px; }
+
+.scr-referral .rf-link .field { margin-bottom: 10px; }
+.scr-referral .rf-share { min-height: 150px; resize: none; font-size: 13.5px; line-height: 1.75; }
+.scr-referral .rf-pr { display: flex; gap: 6px; align-items: flex-start; margin-top: 12px; font-size: 12px; line-height: 1.6; color: var(--warn); }
+.scr-referral .rf-pr .ico { margin-top: 1px; }
+
+@media (max-width: 1080px) {
+  .scr-referral .rf-link { grid-template-columns: 1fr; }
+  .scr-referral .rf-link__text { border-left: 0; border-top: 1px solid var(--line); border-radius: 0 0 var(--r-l) var(--r-l); }
+}
+@media (max-width: 860px) {
+  .scr-referral .rf-link__main,
+  .scr-referral .rf-link__text { padding: 18px 16px; }
+}
+
+/* ---------- 2. 本人の記録 ---------- */
+.scr-referral .rf-stats dd { white-space: nowrap; }
+.scr-referral .rf-caption { font-size: 12px; color: var(--ink-3); margin: 8px 4px 0; }
+
+/* ---------- 3. 受け取り ---------- */
+.scr-referral .rf-pay { padding: 20px 22px; }
+.scr-referral .rf-pay__nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.scr-referral .rf-pay__nums > div + div { border-left: 1px solid var(--line); padding-left: 18px; }
+.scr-referral .rf-pay__k { font-size: 12px; color: var(--ink-3); }
+.scr-referral .rf-pay__v { font-size: 28px; font-weight: 800; line-height: 1.3; margin-top: 2px; white-space: nowrap; }
+.scr-referral .rf-pay__v-date { font-size: 22px; line-height: 1.6; }
+.scr-referral .rf-pay__s { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+
+.scr-referral .rf-bank { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.scr-referral .rf-bank__ico { color: var(--ink-2); display: grid; place-items: center; }
+.scr-referral .rf-bank__body { flex: 1; min-width: 180px; }
+.scr-referral .rf-bank__ttl { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14.5px; }
+.scr-referral .rf-paid { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+.scr-referral .rf-paid b { font-size: 15px; color: var(--ink); }
+
+@media (max-width: 860px) {
+  .scr-referral .rf-pay { padding: 16px; }
+  .scr-referral .rf-pay__nums > div + div { padding-left: 14px; }
+  .scr-referral .rf-pay__v { font-size: 24px; }
+  .scr-referral .rf-pay__v-date { font-size: 18px; line-height: 1.75; }
+}
+/* 幅の狭いスマホでは、締め日の説明が1文字ずつ折り返されるので上下に積む */
+@media (max-width: 480px) {
+  .scr-referral .rf-pay__nums { grid-template-columns: 1fr; gap: 12px; }
+  .scr-referral .rf-pay__nums > div + div { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+}
+
+/* ---------- 4. 報酬が支払われるまで（横の流れ／スマホは縦） ---------- */
+.scr-referral .rf-flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 22px 22px 16px; }
+.scr-referral .rf-step { position: relative; padding-right: 14px; }
+.scr-referral .rf-step::before { content: ""; position: absolute; left: 16px; right: 0; top: 7px; height: 2px; background: var(--line); }
+.scr-referral .rf-step:last-child::before { display: none; }
+.scr-referral .rf-step__dot {
+  position: relative; z-index: 1; display: block; width: 16px; height: 16px; margin-bottom: 10px;
+  border-radius: 50%; border: 2px solid var(--line-2); background: var(--surface);
+}
+.scr-referral .rf-step.is-on .rf-step__dot { border-color: var(--ink); background: var(--ink); box-shadow: 0 0 0 3px var(--surface); }
+.scr-referral .rf-step__name { font-size: 14px; font-weight: 700; line-height: 1.4; }
+.scr-referral .rf-step__text { font-size: 12px; color: var(--ink-2); line-height: 1.6; margin-top: 3px; }
+.scr-referral .rf-step__n {
+  display: inline-block; margin-top: 8px; padding: 1px 7px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--line); font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.scr-referral .rf-flow__foot { padding: 12px 22px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
+
+/* スマホと、左の帯が出ていて本文が狭い幅（861〜980px）は縦に並べる */
+@media (max-width: 760px), (min-width: 861px) and (max-width: 980px) {
+  .scr-referral .rf-flow { grid-template-columns: 1fr; padding: 18px 16px 4px; }
+  .scr-referral .rf-step { padding: 0 0 16px 30px; }
+  .scr-referral .rf-step::before { left: 7px; right: auto; top: 20px; bottom: 2px; width: 2px; height: auto; }
+  .scr-referral .rf-step__dot { position: absolute; left: 0; top: 2px; margin: 0; }
+  .scr-referral .rf-step__n { margin-top: 6px; }
+  .scr-referral .rf-flow__foot { padding: 12px 16px 14px; }
+}
+
+/* ---------- 5. 明細 ---------- */
+.scr-referral .rf-head { align-items: flex-start; }
+.scr-referral .rf-head .btn-text { flex: none; margin-top: 2px; gap: 4px; font-size: 13px; }
+.scr-referral .rf-tbl-pad { padding: 6px 8px 8px; }
+.scr-referral .rf-tbl td { white-space: nowrap; }
+.scr-referral .rf-tbl tr.is-void td { color: var(--ink-3); }
+.scr-referral .rf-tbl tr.is-void .num { text-decoration: line-through; }
+@media (max-width: 640px) {
+  .scr-referral .rf-tbl-pad { padding: 4px 2px 6px; }
+  .scr-referral .rf-tbl { font-size: 12.5px; }
+  .scr-referral .rf-tbl th,
+  .scr-referral .rf-tbl td { padding-left: 7px; padding-right: 7px; }
+}
+
+/* ---------- 6. 紹介した人 ---------- */
+.scr-referral .rf-sec-note { font-weight: 500; letter-spacing: 0; font-size: 12px; }
+/* app.css の .li__ttl / .li__sub は span だと横に並んでしまうので、ここで段にする */
+.scr-referral .li__ttl,
+.scr-referral .li__sub { display: block; }
+
+/* ---------- 7・8. しくみとルール ---------- */
+.scr-referral .rf-pair > .card + .card { margin-top: 0; }
+@media (min-width: 861px) and (max-width: 1000px) { .scr-referral .rf-pair { grid-template-columns: 1fr; } }
+/* 金（--gold）はレベルと会員証の色なので、報酬には使わない */
+.scr-referral .rf-how__lead { margin-top: 10px; padding: 12px 14px; border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1.65; }
+.scr-referral .rf-bullets { display: grid; gap: 8px; margin-top: 14px; }
+.scr-referral .rf-bullets li { position: relative; padding-left: 16px; font-size: 13.5px; line-height: 1.7; color: var(--ink-2); }
+.scr-referral .rf-bullets li::before { content: ""; position: absolute; left: 3px; top: .75em; width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); }
+.scr-referral .rf-how__tax { margin-top: 14px; font-size: 12px; line-height: 1.7; color: var(--ink-3); }
+.scr-referral .rf-how__tax a,
+.scr-referral .rf-rules__ask a { color: var(--indigo); margin-left: 2px; }
+.scr-referral .rf-how__tax a { white-space: nowrap; }
+
+.scr-referral .rf-rules__ttl { display: flex; align-items: center; gap: 8px; }
+.scr-referral .rf-rules__ttl .ico { color: var(--ink-2); }
+.scr-referral .rf-rules__list { margin-top: 10px; }
+.scr-referral .rf-rules__list li { padding: 8px 0; font-size: 13.5px; line-height: 1.65; border-bottom: 1px solid var(--line); }
+.scr-referral .rf-rules__list li:first-child { padding-top: 4px; }
+.scr-referral .rf-rules__warn { display: flex; align-items: flex-start; gap: 6px; margin-top: 12px; font-size: 13.5px; font-weight: 700; color: var(--warn); }
+.scr-referral .rf-rules__warn .ico { margin-top: 3px; }
+.scr-referral .rf-rules__ask { margin-top: 6px; }
+
+.scr-referral .rf-proto { margin: 28px 4px 0; }
+
+/* ---------- 窓（QRコード・振込先）。窓の中も .scr-referral で包んでいる ---------- */
+.scr-referral .rf-qr { width: 220px; max-width: 100%; margin: 18px auto 10px; padding: 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); color: var(--ink); }
+.scr-referral .rf-qr svg { display: block; width: 100%; height: auto; }
+.scr-referral .rf-qr__url { text-align: center; font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.scr-referral .rf-qr__note { text-align: center; margin-top: 4px; }
+
+.scr-referral .rf-bank-note { margin: 12px 0 18px; }
+.scr-referral .rf-bank-2 { display: grid; grid-template-columns: minmax(0, 1fr) 7.5em; gap: 12px; }
+
+/* ---------- スマホ：押せるところは高さ40px以上 ---------- */
+@media (max-width: 860px) {
+  .scr-referral .btn-s { height: 40px; }
+  .scr-referral .btn-text { min-height: 40px; }
+  /* 文中のリンクは行の高さを変えずに、押せる範囲だけ上下に広げる */
+  .scr-referral .rf-how__tax a,
+  .scr-referral .rf-rules__ask a { display: inline-block; padding: 10px 0; margin-top: -10px; margin-bottom: -10px; }
+}

@@ -1,0 +1,266 @@
+/* ============================================================
+   会員証（.scr-card）
+   - カードは container（inline-size）にして、中の文字を cqi で決める。
+     画面の会員証・見本・提示用で大きさが変わっても、同じ割合で縮む。
+   - 色は在籍期間で4段（.t-ink 墨 / .t-ai 藍 / .t-urushi 漆 / .t-kin 金）。
+     同じ変数を見本の色札（.cd-tiers__sw）でも使う。
+   - 提示用の窓は body 直下に出るので、窓の外枠だけ .scr-card-present で整える。
+   ============================================================ */
+
+/* ---------- 会員証の素材色 ----------
+   会員証は「濃い地に箔」の特別な面なので、tokens.css の色（--deep / --indigo / --gold / --accent / --on-deep）を
+   もとに、濃い地で映えるよう濃淡だけ変えた色をここで名前にしておく。会員証の外では使わない。 */
+.scr-card {
+  --cd-foil: #dec280;       /* 箔（--gold を濃い地で読める明るさにしたもの） */
+  --cd-foil-hi: #f3e0a8;    /* 箔の光るところ */
+  --cd-kin-ink: #2b210d;    /* 金の会員証の上の文字 */
+  --cd-shu: #ec6a4d;        /* 濃い地の上の朱印（--accent のままだと沈むため明るくした） */
+  --cd-urushi: #1a100d;     /* 漆の地 */
+}
+
+/* ---------- 色（在籍期間） ---------- */
+.scr-card .t-ink {
+  --t-bg:
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, .08), transparent 50%),
+    radial-gradient(100% 90% at 100% 100%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 60%),
+    linear-gradient(155deg, color-mix(in srgb, var(--deep) 94%, white) 0%, var(--deep) 55%, color-mix(in srgb, var(--deep) 70%, black) 100%);
+  --t-fg: var(--on-deep); --t-muted: color-mix(in srgb, var(--on-deep) 62%, transparent);
+  --t-pat: color-mix(in srgb, var(--cd-foil) 11%, transparent); --t-frame: color-mix(in srgb, var(--cd-foil) 24%, transparent);
+}
+.scr-card .t-ai {
+  --t-bg:
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, .10), transparent 50%),
+    radial-gradient(100% 90% at 100% 100%, color-mix(in srgb, var(--gold) 20%, transparent), transparent 60%),
+    linear-gradient(155deg, color-mix(in srgb, var(--indigo) 95%, white) 0%, color-mix(in srgb, var(--indigo) 80%, black) 52%, color-mix(in srgb, var(--indigo) 55%, black) 100%);
+  --t-fg: var(--on-deep); --t-muted: color-mix(in srgb, var(--indigo-weak) 66%, transparent);
+  --t-pat: color-mix(in srgb, var(--cd-foil) 13%, transparent); --t-frame: color-mix(in srgb, var(--cd-foil) 30%, transparent);
+}
+.scr-card .t-urushi {
+  --t-bg:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--cd-foil-hi) 9%, transparent), transparent 50%),
+    radial-gradient(110% 100% at 100% 100%, color-mix(in srgb, var(--gold) 42%, transparent), transparent 58%),
+    linear-gradient(155deg, color-mix(in srgb, var(--cd-urushi) 88%, var(--accent)) 0%, var(--cd-urushi) 55%, color-mix(in srgb, var(--cd-urushi) 55%, black) 100%);
+  --t-fg: var(--on-deep); --t-muted: color-mix(in srgb, var(--on-deep) 62%, transparent);
+  --t-pat: color-mix(in srgb, var(--cd-foil) 24%, transparent); --t-frame: color-mix(in srgb, var(--cd-foil) 58%, transparent);
+}
+.scr-card .t-kin {
+  --t-bg:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--paper) 55%, transparent), transparent 45%),
+    linear-gradient(135deg, var(--gold) 0%, var(--cd-foil) 32%, color-mix(in srgb, var(--gold) 70%, var(--cd-foil)) 52%, var(--cd-foil-hi) 74%, color-mix(in srgb, var(--gold) 85%, var(--cd-foil)) 100%);
+  --t-fg: var(--cd-kin-ink); --t-muted: color-mix(in srgb, var(--cd-kin-ink) 68%, transparent);
+  --t-pat: color-mix(in srgb, var(--cd-kin-ink) 13%, transparent); --t-frame: color-mix(in srgb, var(--cd-kin-ink) 28%, transparent);
+}
+
+/* ---------- 会員証 ---------- */
+.scr-card .mcard {
+  --foil: linear-gradient(100deg, color-mix(in srgb, var(--gold) 70%, var(--cd-foil)) 0%, var(--cd-foil-hi) 28%, var(--cd-foil) 46%, var(--gold) 62%, var(--cd-foil-hi) 84%, color-mix(in srgb, var(--gold) 60%, var(--cd-foil)) 100%);
+  container-type: inline-size;
+  position: relative; width: 100%; max-width: 420px; aspect-ratio: 1.586 / 1;
+  border-radius: 16px; overflow: hidden; isolation: isolate;
+  background: var(--t-bg); color: var(--t-fg);
+  box-shadow: 0 24px 44px -20px rgba(29, 27, 24, .6), 0 4px 12px rgba(29, 27, 24, .14), inset 0 1px 0 rgba(255, 255, 255, .12);
+  font-family: var(--font-sans); line-height: 1.4; text-align: left;
+}
+/* 箔押しの内枠 */
+.scr-card .mcard::after {
+  content: ""; position: absolute; inset: 7px; z-index: 1; pointer-events: none;
+  border: 1px solid var(--t-frame); border-radius: 11px;
+}
+.scr-card .mcard.t-urushi::after { outline: 1px solid var(--t-frame); outline-offset: -5px; }
+.scr-card .mcard-big { max-width: 560px; border-radius: 20px; }
+.scr-card .mcard-big::after { inset: 9px; border-radius: 13px; }
+
+.scr-card .mcard__pat {
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; color: var(--t-pat);
+  -webkit-mask-image: linear-gradient(118deg, transparent 22%, #000 88%);
+  mask-image: linear-gradient(118deg, transparent 22%, #000 88%);
+}
+
+.scr-card .mcard__in {
+  position: absolute; inset: 0; z-index: 2;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr auto;
+  column-gap: 14px; column-gap: 4cqi;
+  padding: 20px 22px 18px; padding: 6cqi 6.4cqi 5.6cqi;
+}
+
+.scr-card .foil {
+  color: var(--cd-foil);
+  background: var(--foil);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.scr-card .t-kin .foil {
+  background: none; -webkit-text-fill-color: currentColor; color: var(--cd-kin-ink);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--paper) 50%, transparent);
+}
+
+.scr-card .mcard__top { grid-column: 1 / -1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.scr-card .mcard__brand { display: flex; align-items: center; gap: 9px; gap: 2.6cqi; min-width: 0; }
+.scr-card .mcard__seal {
+  flex: none; display: grid; place-items: center;
+  width: 30px; height: 30px; width: 8.4cqi; height: 8.4cqi; border-radius: 7px; border-radius: 1.9cqi;
+  background: var(--accent); color: var(--ink-inv);
+  font-family: var(--font-serif); font-weight: 700; font-size: 17px; font-size: 4.8cqi; line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), 0 2px 6px rgba(0, 0, 0, .25);
+}
+.scr-card .mcard__brandtx { display: flex; flex-direction: column; min-width: 0; }
+.scr-card .mcard__site {
+  font-family: var(--font-serif); font-weight: 700; letter-spacing: .16em; line-height: 1.15;
+  font-size: 15px; font-size: 4.2cqi;
+}
+.scr-card .mcard__brandtx small {
+  color: var(--t-muted); letter-spacing: .3em; line-height: 1.3; margin-top: 2px;
+  font-size: 9px; font-size: max(9px, 2.3cqi);
+}
+
+/* 在籍の色を表す丸い紋（今月の印がないとき） */
+.scr-card .mcard__crest {
+  flex: none; display: grid; place-items: center; border-radius: 50%;
+  width: 26px; height: 26px; width: 7.2cqi; height: 7.2cqi;
+  border: 1px solid var(--t-frame); color: var(--t-muted);
+  font-family: var(--font-serif); font-size: 12px; font-size: 3.4cqi; line-height: 1;
+}
+
+/* 今月の印（朱印）。1位は金の印 */
+.scr-card .mcard__stamp {
+  flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 4px 8px; padding: 1.1cqi 2cqi;
+  border: 2px solid color-mix(in srgb, var(--cd-shu) 90%, var(--accent)); border-width: max(1.5px, .5cqi); border-radius: 6px; border-radius: 1.6cqi;
+  color: var(--cd-shu); font-family: var(--font-serif); line-height: 1.2;
+  transform: rotate(-7deg); transform-origin: 70% 30%;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.scr-card .mcard__stamp small { letter-spacing: .14em; font-size: 8px; font-size: max(8px, 2.1cqi); }
+.scr-card .mcard__stamp b { font-weight: 700; letter-spacing: .04em; font-size: 11px; font-size: 3.2cqi; }
+.scr-card .mcard__stamp .num { font-size: 1.25em; margin: 0 .08em; }
+.scr-card .mcard__stamp.is-gold { border-color: var(--cd-foil); color: var(--cd-foil-hi); background: color-mix(in srgb, var(--cd-foil) 10%, transparent); }
+.scr-card .t-kin .mcard__stamp { color: var(--accent-ink); border-color: var(--accent-ink); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.scr-card .t-kin .mcard__stamp.is-gold { color: var(--cd-kin-ink); border-color: var(--cd-kin-ink); background: none; }
+
+.scr-card .mcard__who { grid-column: 1; grid-row: 2; align-self: center; min-width: 0; }
+.scr-card .mcard.is-noqr .mcard__who, .scr-card .mcard.is-noqr .mcard__kv { grid-column: 1 / -1; }
+.scr-card .mcard__name {
+  font-family: var(--font-serif); font-weight: 600; letter-spacing: .08em; line-height: 1.3;
+  font-size: 24px; font-size: 7cqi;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.scr-card .mcard__id {
+  font-family: var(--font-mono); letter-spacing: .16em; color: var(--t-muted);
+  margin-top: 3px; margin-top: .8cqi; font-size: 11px; font-size: max(10px, 3.2cqi);
+}
+.scr-card .mcard__meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; gap: 1cqi 2.2cqi;
+  margin-top: 8px; margin-top: 2.4cqi; color: var(--t-muted);
+  font-size: 10px; font-size: max(9.5px, 2.7cqi);
+}
+.scr-card .mcard__lv {
+  display: inline-flex; align-items: center; border-radius: 999px; font-weight: 700; letter-spacing: .04em;
+  padding: 1px 8px; padding: .3cqi 2.2cqi;
+  border: 1px solid color-mix(in srgb, var(--cd-foil) 55%, transparent); color: var(--cd-foil);
+}
+.scr-card .t-kin .mcard__lv { border-color: color-mix(in srgb, var(--cd-kin-ink) 45%, transparent); color: var(--cd-kin-ink); }
+
+.scr-card .mcard__qr {
+  grid-column: 2; grid-row: 2 / 4; align-self: end;
+  width: 72px; width: 21cqi; padding: 4px; padding: 1.2cqi; border-radius: 6px; border-radius: 1.8cqi;
+  background: var(--paper); color: var(--ink); line-height: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+}
+.scr-card .mcard__qr svg { display: block; width: 100%; height: auto; }
+
+.scr-card .mcard__kv { grid-column: 1; grid-row: 3; display: flex; gap: 18px; gap: 6cqi; margin: 0; }
+.scr-card .mcard__kv dt { color: var(--t-muted); letter-spacing: .14em; font-size: 9px; font-size: max(8.5px, 2.2cqi); }
+.scr-card .mcard__kv dd {
+  margin: 1px 0 0; font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: .06em;
+  font-size: 11px; font-size: max(10px, 3cqi);
+}
+
+/* ---------- 画面の組み方 ---------- */
+/* 共通の .li__ttl / .li__sub は span だと横に並んでしまうので、この画面では段に分ける */
+.scr-card .li__ttl, .scr-card .li__sub { display: block; }
+.scr-card .cd-notice { margin-bottom: 18px; }
+.scr-card .cd-notice a { color: inherit; font-weight: 700; margin-left: .3em; }
+
+.scr-card .cd-hero { container: cdhero / inline-size; }
+.scr-card .cd-hero__in { display: grid; gap: 20px; }
+.scr-card .cd-stage { display: flex; justify-content: center; }
+.scr-card .cd-side { width: 100%; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+@container cdhero (min-width: 760px) {
+  .scr-card .cd-hero__in { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .scr-card .cd-stage { justify-content: flex-start; position: sticky; top: 24px; }
+  .scr-card .cd-side { max-width: none; margin: 0; }
+}
+
+.scr-card .cd-acts { display: grid; gap: 10px; }
+.scr-card .cd-share { padding: 0 4px; }
+.scr-card .cd-share__label { font-size: 12px; color: var(--ink-3); }
+.scr-card .cd-share__text { font-size: 14px; font-weight: 600; line-height: 1.6; margin-top: 2px; }
+.scr-card .cd-share__hint { font-size: 12px; color: var(--ink-3); line-height: 1.7; margin-top: 6px; }
+.scr-card .cd-share__hint a { color: var(--indigo); margin: 0 .2em; }
+
+.scr-card .cd-tier + .list { margin-top: 0; }
+.scr-card .cd-tier__now { font-size: 12px; color: var(--ink-3); }
+.scr-card .cd-tier__ttl { font-size: 15px; font-weight: 700; line-height: 1.55; margin-top: 2px; }
+.scr-card .cd-tier__bar { margin-top: 10px; }
+.scr-card .cd-tiers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+.scr-card .cd-tiers__it {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
+  padding: 8px 4px 6px; border-radius: 10px; border: 1px solid transparent; background: none;
+}
+.scr-card .cd-tiers__it:hover { background: var(--surface-2); }
+.scr-card .cd-tiers__it.is-now { border-color: var(--line-2); background: var(--surface-2); }
+.scr-card .cd-tiers__sw {
+  display: block; width: 100%; max-width: 64px; aspect-ratio: 1.586 / 1; border-radius: 5px; margin-bottom: 4px;
+  background: var(--t-bg); box-shadow: 0 2px 5px rgba(29, 27, 24, .22), inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.scr-card .cd-tiers__it:not(.is-now):not(.is-past) .cd-tiers__sw { opacity: .78; }
+.scr-card .cd-tiers__name { font-family: var(--font-serif); font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.scr-card .cd-tiers__name em {
+  font-style: normal; font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+  color: var(--gold); background: var(--gold-weak); border-radius: 4px; padding: 0 4px; line-height: 1.6;
+}
+.scr-card .cd-tiers__span { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.scr-card .cd-tier__foot { font-size: 12px; color: var(--ink-3); margin-top: 10px; line-height: 1.6; }
+
+.scr-card .cd-proto { margin: 18px 4px 0; line-height: 1.7; }
+
+/* ---------- 見本の窓 ---------- */
+.scr-card.cd-preview .mcard { margin: 6px auto 0; }
+.scr-card .cd-preview__eyebrow { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); margin-bottom: 6px; }
+.scr-card .cd-preview__txt { margin-top: 14px; }
+
+/* ---------- 提示用（全面・明るい地） ---------- */
+.scr-card-present.modal-bg { padding: 0; align-items: stretch; justify-content: stretch; background: var(--surface-2); }
+.scr-card-present .modal {
+  max-width: none; width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none;
+  background: var(--surface-2); display: flex; padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+}
+.scr-card.cd-present { width: 100%; max-width: 560px; margin: auto; display: flex; flex-direction: column; gap: 16px; }
+.scr-card .cd-present__bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.scr-card .cd-present__ttl { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+.scr-card.cd-present .mcard { margin: 0 auto; }
+.scr-card .cd-present__panel {
+  display: flex; align-items: center; gap: 18px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); padding: 16px;
+}
+.scr-card .cd-present__qr { flex: none; width: 150px; line-height: 0; color: var(--ink); }
+.scr-card .cd-present__qr svg { display: block; width: 100%; height: auto; }
+.scr-card .cd-present__info { min-width: 0; }
+.scr-card .cd-present__name { font-size: 21px; font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; }
+.scr-card .cd-present__id { font-family: var(--font-mono); font-size: 17px; font-weight: 700; letter-spacing: .1em; margin-top: 2px; }
+.scr-card .cd-present__meta { font-size: 13px; color: var(--ink-2); margin-top: 6px; line-height: 1.6; }
+.scr-card .cd-present__clock { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; margin-top: 10px; color: var(--ink); }
+.scr-card .cd-present__clock b { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 800; letter-spacing: .02em; line-height: 1.2; }
+.scr-card .cd-present__clock span { font-size: 12.5px; color: var(--ink-2); }
+.scr-card .cd-present__clock i {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none;
+  animation: cdLive 1.6s ease-in-out infinite;
+}
+@keyframes cdLive { 50% { opacity: .25; } }
+.scr-card .cd-present__note { font-size: 12.5px; color: var(--ink-3); line-height: 1.7; text-align: center; }
+@media (max-width: 420px) {
+  .scr-card .cd-present__panel { gap: 14px; padding: 14px; }
+  .scr-card .cd-present__qr { width: 118px; }
+  .scr-card .cd-present__name { font-size: 18px; }
+  .scr-card .cd-present__id { font-size: 15px; letter-spacing: .06em; }
+}

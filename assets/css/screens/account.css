@@ -1,0 +1,129 @@
+/* ============================================================
+   アカウント・解約（.scr-account）
+   設定の画面なので、読みやすい幅に抑える。
+   ============================================================ */
+.scr-account { max-width: 760px; }
+.scr-account.acc-cancel { max-width: 640px; }
+
+.scr-account .acc-eyebrow { font-size: 12px; color: var(--ink-3); font-weight: 600; letter-spacing: .04em; }
+.scr-account .acc-hint { font-size: 12.5px; color: var(--ink-3); margin: 10px 4px 0; line-height: 1.7; }
+.scr-account .acc-hint .ico { margin: -2px 4px 0 0; }
+.scr-account .acc-hint a { color: var(--indigo); }
+.scr-account .acc-hint-in { margin: 12px 0 0; }
+.scr-account .acc-break { overflow-wrap: anywhere; }
+/* 共通の .li__ttl / .li__sub は span で書くと横に並んでしまうため、ここで段にする */
+.scr-account .li__ttl, .scr-account .li__sub { display: block; }
+
+/* キー：値の表。スマホでは見出しを上に積む */
+.scr-account .acc-kv th { width: 10.5em; white-space: nowrap; }
+@media (max-width: 520px) {
+  .scr-account .acc-kv, .scr-account .acc-kv tbody, .scr-account .acc-kv tr, .scr-account .acc-kv th, .scr-account .acc-kv td { display: block; width: auto; }
+  .scr-account .acc-kv th { border-bottom: 0; padding: 12px 0 0; font-size: 12px; }
+  .scr-account .acc-kv td { padding: 2px 0 12px; }
+}
+
+/* ---------- プロフィール ---------- */
+.scr-account .acc-prof__head { display: flex; align-items: center; gap: 16px; padding: 22px 22px 4px; }
+.scr-account .acc-prof__who { min-width: 0; }
+.scr-account .acc-prof__kana { font-size: 12px; color: var(--ink-3); letter-spacing: .06em; line-height: 1.4; }
+.scr-account .acc-prof__name { font-size: 22px; font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; }
+.scr-account .acc-prof__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 4px; font-size: 13px; color: var(--ink-2); }
+.scr-account .acc-prof__hint { margin: 14px 22px 0; }
+.scr-account .acc-prof__body { padding: 6px 22px 4px; }
+.scr-account .acc-prof__foot { justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.scr-account .acc-prof__foot .btn-text { color: var(--ink-2); min-height: 40px; }
+@media (max-width: 860px) {
+  .scr-account .acc-prof__head { padding: 18px 16px 4px; gap: 14px; }
+  .scr-account .acc-prof__hint { margin: 12px 16px 0; }
+  .scr-account .acc-prof__body { padding: 4px 16px 2px; }
+  .scr-account .acc-prof__foot { padding: 10px 16px; }
+}
+
+/* ---------- 通知のスイッチ ---------- */
+.scr-account .acc-sw { cursor: pointer; align-items: flex-start; }
+.scr-account .acc-sw .li__ico { margin-top: 2px; }
+.scr-account .acc-sw .switch { margin-top: 2px; }
+.scr-account .acc-sw:hover { background: var(--surface-2); }
+.scr-account .acc-sw__state { color: var(--ink-2); }
+.scr-account .switch input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- プランとお支払い ---------- */
+.scr-account .acc-plan__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 6px; }
+.scr-account .acc-plan__name { font-size: 17px; font-weight: 800; line-height: 1.5; margin-top: 2px; }
+.scr-account .acc-nowrap { white-space: nowrap; }
+.scr-account .acc-plan__head .tag { margin-top: 4px; }
+.scr-account .acc-plan__notice { margin: 10px 22px 4px; }
+.scr-account .acc-plan__undo { margin-top: 10px; }
+.scr-account .acc-plan__body { padding: 4px 22px 8px; }
+.scr-account .acc-pay { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
+.scr-account .acc-pay__card { display: inline-flex; align-items: center; gap: 8px; }
+.scr-account .acc-pay__card .ico { color: var(--ink-3); }
+/* 押せる幅は40pxほしいが、表の行は高くしたくないので上下を食い込ませる */
+.scr-account .acc-pay .btn-text { height: 40px; padding: 0 8px; margin: -9px -8px -9px 0; }
+@media (max-width: 860px) {
+  .scr-account .acc-plan__head { padding: 16px 16px 4px; }
+  .scr-account .acc-plan__notice { margin: 10px 16px 4px; }
+  .scr-account .acc-plan__body { padding: 2px 16px 6px; }
+}
+
+/* ---------- 請求 ---------- */
+.scr-account .acc-inv .li__sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }
+.scr-account .acc-inv .li__sub .tag { height: 20px; font-size: 11px; }
+.scr-account .acc-inv .li__end .btn { gap: 6px; }
+
+/* ---------- 試作版・ログアウト・解約への入口 ---------- */
+.scr-account .acc-proto-note { margin: 8px 4px 0; }
+.scr-account .acc-logout { margin-top: 30px; }
+.scr-account .acc-leave { margin: 34px 4px 0; text-align: center; }
+.scr-account .acc-leave__link { height: 40px; padding: 0 12px; font-size: 13.5px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.scr-account .acc-leave__link:hover { color: var(--ink); }
+.scr-account .acc-leave p { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+/* ---------- 解約 ---------- */
+.scr-account .crumb .chev { width: 12px; height: 12px; }
+.scr-account .acc-cancel__lead { padding: 22px 24px; }
+.scr-account .acc-cancel__until { font-size: 18px; font-weight: 700; line-height: 1.6; margin-bottom: 6px; }
+.scr-account .acc-cancel__until b { font-weight: 800; }
+.scr-account .acc-keep__n { color: var(--ink-2); white-space: nowrap; }
+.scr-account .acc-keep__n b { font-size: 17px; font-weight: 800; color: var(--ink); margin: 0 1px; }
+.scr-account .acc-cancel__act { display: flex; justify-content: flex-end; gap: 10px; margin-top: 30px; }
+.scr-account .acc-cancel .chip { height: 40px; padding: 0 16px; border-radius: 20px; }
+.scr-account .acc-cancel__proto { margin-top: 12px; text-align: right; }
+@media (max-width: 520px) {
+  .scr-account .acc-cancel__lead { padding: 18px 16px; }
+  .scr-account .acc-cancel__until { font-size: 16.5px; }
+  .scr-account .acc-cancel__act { flex-direction: column-reverse; }
+  .scr-account .acc-cancel__act .btn { width: 100%; }
+  .scr-account .acc-cancel__proto { text-align: left; }
+}
+
+/* 受け付けたあと */
+.scr-account .acc-done { padding: 30px 28px 24px; }
+.scr-account .acc-done__mark {
+  width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--ok-weak); color: var(--ok); margin-bottom: 14px;
+}
+.scr-account .acc-done__mark.is-wait { background: var(--warn-weak); color: var(--warn); }
+.scr-account .acc-done__ttl { font-size: 20px; font-weight: 800; line-height: 1.45; }
+.scr-account .acc-done__lead { font-size: 16px; font-weight: 700; margin: 4px 0 6px; }
+.scr-account .acc-done__thanks { margin-top: 4px; }
+.scr-account .acc-done__kv { margin-top: 16px; border-top: 1px solid var(--line); }
+.scr-account .acc-done__act { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+@media (max-width: 520px) {
+  .scr-account .acc-done { padding: 22px 16px 18px; }
+  .scr-account .acc-done__act .btn-ghost { width: 100%; }
+  .scr-account .acc-done__act .btn-text { width: 100%; justify-content: center; height: 40px; }
+}
+
+/* ---------- プロフィールの編集（窓は body の直下に出るので、中身を .scr-account.acc-edit で包んである） ---------- */
+.scr-account.acc-edit { max-width: none; }
+.scr-account .acc-form__lead { margin: -2px 0 18px; }
+.scr-account .acc-area { display: grid; grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr); gap: 8px; }
+.scr-account .acc-form .textarea { min-height: 84px; }
+.scr-account .acc-form__err { font-size: 13px; color: var(--accent-ink); min-height: 1.2em; margin: -4px 0 0; }
+.scr-account .acc-form .modal__foot { margin-top: 12px; }
+
+/* ---------- スマホ：指で押すものは高さ40px以上 ---------- */
+@media (max-width: 860px) {
+  .scr-account .btn-s { height: 40px; padding: 0 14px; }
+}

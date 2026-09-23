@@ -1,0 +1,195 @@
+/* ============================================================
+   案件（#/gigs・#/gigs/<id>）
+   共通の部品（.card .list .li .tag .chip .kv .notice）で組み、ここは差分だけ。
+   応募の窓は body 直下に出るので、窓の中身にも .scr-gigs を付けて閉じている。
+   ============================================================ */
+
+/* ---------- あなたの応募 ---------- */
+.scr-gigs .gg-mine { margin-bottom: 32px; }
+.scr-gigs .gg-mine__count { font-weight: 500; letter-spacing: 0; font-size: 12px; }
+.scr-gigs .gg-mine__card { overflow: hidden; }
+.scr-gigs .gg-mine__sum {
+  display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap;
+  gap: 6px 24px; padding: 18px 20px 16px;
+}
+.scr-gigs .gg-mine__label { font-size: 12px; font-weight: 700; color: var(--ink-3); letter-spacing: .04em; }
+.scr-gigs .gg-mine__amt { font-size: 28px; font-weight: 800; line-height: 1.25; margin-top: 2px; }
+.scr-gigs .gg-mine__note { font-size: 12px; color: var(--ink-3); line-height: 1.7; max-width: 25em; }
+.scr-gigs .gg-mine__note a { color: var(--indigo); }
+.scr-gigs .gg-mine__rows { border-top: 1px solid var(--line); }
+.scr-gigs .li__sub.gg-mine__sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 5px; }
+.scr-gigs .gg-mine__sub b { color: var(--ink); font-weight: 700; }
+.scr-gigs .gg-ico-ok { color: var(--ok); }
+/* 行の題と補足は span で書いているので、ここで段を分ける（app.css の .li__ttl は display を持たない） */
+.scr-gigs .li__ttl, .scr-gigs .li__sub { display: block; }
+
+/* 入会したて：まだ応募がないとき */
+.scr-gigs .gg-first { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 32px; }
+.scr-gigs .gg-first__ico {
+  flex: none; width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; background: var(--indigo-weak); color: var(--indigo);
+}
+.scr-gigs .gg-first__body { min-width: 0; }
+.scr-gigs .gg-first__ttl { font-size: 15px; font-weight: 700; line-height: 1.5; }
+.scr-gigs .gg-first .sub { margin: 2px 0 12px; }
+
+/* ---------- 指で押しやすく ----------
+   共通の .chip .btn-s（34px）や文字だけのリンクは、見た目の大きさを変えずに押せる範囲だけ40px以上に広げる */
+.scr-gigs .chip, .scr-gigs .btn-s, .scr-gigs .crumb a, .scr-gigs .sec-ttl a { position: relative; }
+.scr-gigs .chip::after, .scr-gigs .btn-s::after { content: ""; position: absolute; inset: -4px -2px; }
+.scr-gigs .crumb a::after, .scr-gigs .sec-ttl a::after { content: ""; position: absolute; inset: -11px -6px; }
+
+/* ---------- 絞り込み ---------- */
+.scr-gigs .gg-filter { margin-bottom: 22px; }
+.scr-gigs .gg-typedesc {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px;
+  margin: 12px 4px 0; font-size: 13px; color: var(--ink-2);
+}
+.scr-gigs .gg-typedesc > .ico { color: var(--ink-3); }
+.scr-gigs .gg-typedesc > span { flex: 1; min-width: 16em; }  /* 狭い幅では「募集を出す」を次の行へ送る */
+
+/* ---------- 種類ごとのまとまり ---------- */
+.scr-gigs .gg-group + .gg-group { margin-top: 30px; }
+.scr-gigs .gg-group__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 0 4px 10px; }
+.scr-gigs .gg-group__ttl { font-size: 16px; font-weight: 800; line-height: 1.4; }
+.scr-gigs .gg-group__desc { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+.scr-gigs .gg-post { flex: none; }
+
+/* ---------- 案件のカード ---------- */
+.scr-gigs .gg-grid > .card { margin-top: 0; }
+.scr-gigs .gg-card {
+  position: relative; display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 18px 12px; transition: border-color .15s;
+}
+.scr-gigs .gg-card:hover { border-color: var(--line-2); }
+.scr-gigs .gg-card__tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.scr-gigs .gg-card__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.5; }
+.scr-gigs .gg-card__link { color: inherit; text-decoration: none; }
+/* 題のリンクをカード全体に広げる（鍵の行の「講座を見る」はその上に出す） */
+.scr-gigs .gg-card__link::after { content: ""; position: absolute; inset: 0; border-radius: var(--r-l); }
+.scr-gigs .gg-card__link:focus-visible { outline: none; }
+.scr-gigs .gg-card__link:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.scr-gigs .gg-reward { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; line-height: 1.4; }
+.scr-gigs .gg-reward b { font-size: 17px; font-weight: 800; letter-spacing: .01em; }
+.scr-gigs .gg-reward__est { font-size: 12px; color: var(--ink-3); margin-left: -6px; }
+.scr-gigs .gg-rt {
+  font-size: 11px; font-weight: 700; color: var(--ink-2); line-height: 18px;
+  border: 1px solid var(--line-2); border-radius: 5px; padding: 0 6px;
+}
+
+.scr-gigs .gg-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.scr-gigs .gg-meta li { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.scr-gigs .gg-meta .ico { width: 15px; height: 15px; color: var(--ink-3); }
+.scr-gigs .gg-meta .gg-meta__ok .ico { color: var(--ok); }
+
+.scr-gigs .gg-lock {
+  display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px 9px 12px; border-radius: 10px;
+  background: rgba(29, 27, 24, .045); font-size: 12.5px; color: var(--ink-2); line-height: 1.6;
+}
+.scr-gigs .gg-lock > .ico { margin-top: 2px; color: var(--ink-3); }
+.scr-gigs .gg-lock__txt { flex: 1; min-width: 0; font-weight: 600; }
+.scr-gigs .gg-lock__txt small { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.scr-gigs .gg-lock__go {
+  position: relative; z-index: 1; flex: none; align-self: center;
+  display: inline-flex; align-items: center; min-height: 40px; margin: -8px -4px -8px 0;
+  border: 0; background: none; padding: 0 4px; font-size: 12.5px; font-weight: 700;
+  color: var(--indigo); text-decoration: none;
+}
+.scr-gigs .gg-lock__go:hover { text-decoration: underline; }
+
+.scr-gigs .gg-card.is-locked { background: var(--surface-2); box-shadow: none; border-color: var(--line); }
+.scr-gigs .gg-card.is-locked .gg-card__ttl { color: var(--ink-2); }
+.scr-gigs .gg-card.is-locked .gg-reward b { color: var(--ink-2); font-weight: 700; }
+
+.scr-gigs .gg-card__foot {
+  display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 10px;
+  border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2);
+}
+.scr-gigs .gg-card__foot .avatar { width: 24px; height: 24px; font-size: 10px; }
+.scr-gigs .gg-card__foot .avatar.is-staff { box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 3px var(--accent); }
+.scr-gigs .gg-card__by { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scr-gigs .gg-card__by small { font-size: 11.5px; color: var(--ink-3); margin-right: 6px; }
+
+/* ---------- 下の注意書き ---------- */
+.scr-gigs .gg-safe { display: flex; gap: 12px; align-items: flex-start; margin-top: 36px; font-size: 13px; color: var(--ink-2); }
+.scr-gigs .gg-safe__ico { flex: none; color: var(--ink-2); margin-top: 1px; }
+.scr-gigs .gg-safe__link {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 40px; margin: -4px 0 -10px;
+  font-weight: 700; color: var(--indigo); text-decoration: none;
+}
+.scr-gigs .gg-safe__link:hover { text-decoration: underline; }
+
+/* ---------- くわしく ---------- */
+.scr-gigs .gd-head .page-ttl { margin-top: 8px; }
+.scr-gigs .gd-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.scr-gigs .gd { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
+.scr-gigs .gd__main { grid-column: 1; grid-row: 1; min-width: 0; }
+.scr-gigs .gd__side { grid-column: 2; grid-row: 1; position: sticky; top: 24px; margin-top: 33px; }  /* 左の小見出しの分だけ下げて、面の上端をそろえる */
+/* 左のメニューがある幅で横に並べると本文が細くなりすぎるので、早めに1列にする */
+@media (max-width: 1080px) {
+  .scr-gigs .gd { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .scr-gigs .gd__main, .scr-gigs .gd__side { grid-column: auto; grid-row: auto; }
+  .scr-gigs .gd__side { position: static; margin: 0 0 26px; }
+}
+
+.scr-gigs .gd-reward { padding: 20px; }
+.scr-gigs .gd-reward__label { font-size: 12px; font-weight: 700; color: var(--ink-3); letter-spacing: .06em; }
+.scr-gigs .gd-reward__amt { font-size: 22px; font-weight: 800; line-height: 1.4; margin-top: 4px; }
+.scr-gigs .gd-reward__type { display: flex; margin-top: 8px; }
+.scr-gigs .gd-reward__note { margin-top: 8px; font-size: 12px; color: var(--ink-3); line-height: 1.7; }
+.scr-gigs .gd-act { display: grid; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.scr-gigs .gd-act__note { font-size: 12px; color: var(--ink-3); line-height: 1.7; }
+.scr-gigs .gd-status { display: flex; }
+.scr-gigs .gd-status__txt { font-size: 13px; color: var(--ink-2); }
+.scr-gigs .gd-sent { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--ink-2); word-break: break-word; }
+.scr-gigs .gd-sent__label { font-size: 11.5px; font-weight: 700; color: var(--ink-3); }
+.scr-gigs .gd-withdraw { justify-self: center; height: 40px; padding: 0 12px; font-size: 13px; color: var(--ink-2); }
+.scr-gigs .gd-act__center { text-align: center; margin-top: -8px; }
+.scr-gigs .gd-lock {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(29, 27, 24, .045); font-size: 13px; color: var(--ink-2); line-height: 1.6;
+}
+.scr-gigs .gd-lock > .ico { margin-top: 3px; color: var(--ink-3); }
+.scr-gigs .gd-lock__why { font-weight: 700; }
+.scr-gigs .gd-lock__sub { font-size: 12px; color: var(--ink-3); }
+
+.scr-gigs .gd-notice { margin-top: 12px; line-height: 1.8; }
+.scr-gigs .gd-notice a { color: inherit; font-weight: 700; }
+.scr-gigs .gd-sec + .gd-sec { margin-top: 26px; }
+.scr-gigs .gd-desc { font-size: 14.5px; line-height: 1.9; }
+.scr-gigs .gd-kvcard { padding: 2px 22px; }
+.scr-gigs .gd-kv th { width: 7.5em; }
+.scr-gigs .gd-host { display: inline-flex; align-items: center; gap: 10px; }
+.scr-gigs .gd-host b { display: block; font-weight: 700; line-height: 1.4; }
+.scr-gigs .gd-host small { display: block; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+.scr-gigs .gd-req { display: block; }
+.scr-gigs .gd-req a { color: var(--indigo); }
+.scr-gigs .gd-mark { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; }
+.scr-gigs .gd-met { font-weight: 700; color: var(--ok); }
+@media (max-width: 860px) { .scr-gigs .gd-kvcard { padding: 2px 16px; } }
+
+/* 進め方（番号を縦の線でつなぐ） */
+.scr-gigs .gd-steps { counter-reset: gd; }
+.scr-gigs .gd-steps li { counter-increment: gd; position: relative; padding: 1px 0 16px 38px; font-size: 14px; line-height: 1.7; }
+.scr-gigs .gd-steps li:last-child { padding-bottom: 0; }
+.scr-gigs .gd-steps li::before {
+  content: counter(gd); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--surface); border: 1.5px solid var(--ink);
+  font-family: var(--font-num); font-size: 12px; font-weight: 700;
+}
+.scr-gigs .gd-steps li::after { content: ""; position: absolute; left: 12.25px; top: 29px; bottom: 3px; width: 1.5px; background: var(--line-2); }
+.scr-gigs .gd-steps li:last-child::after { display: none; }
+
+/* ---------- 応募の窓 ---------- */
+.scr-gigs .gg-apply__eyebrow { font-size: 12px; font-weight: 700; color: var(--ink-3); letter-spacing: .06em; margin-bottom: 4px; }
+.scr-gigs .gg-apply__reward { font-size: 13.5px; color: var(--ink-2); margin: -4px 0 18px; }
+.scr-gigs .gg-apply__reward b { color: var(--ink); }
+.scr-gigs .gg-apply__notice { margin-bottom: 16px; font-size: 13px; }
+.scr-gigs .gg-apply__req {
+  font-style: normal; font-size: 11px; font-weight: 700; color: var(--accent-ink);
+  background: var(--accent-weak); border-radius: 5px; padding: 1px 6px; margin-left: 6px; vertical-align: 1px;
+}
+.scr-gigs .gg-apply__check { padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; line-height: 1.6; cursor: pointer; }
+.scr-gigs .gg-apply__hint { min-height: 1.6em; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
+.scr-gigs .gg-apply .modal__foot { margin-top: 10px; }

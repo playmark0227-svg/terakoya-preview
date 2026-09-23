@@ -1,0 +1,114 @@
+/* ============================================================
+   色・文字・角丸・影（公開サイトと会員ページで共通）
+   ここを変えると全画面が変わる。
+   ------------------------------------------------------------
+   配色の考え方
+   - 墨（--ink）と生成り（--paper）を地にして、朱（--accent）を1色だけ差す。
+     寺子屋の「墨と朱筆」から取った。朱は「押せるもの」「いま進むところ」だけに使う。
+   - 藍（--indigo）は情報の色。お知らせ・リンク・運営からの連絡に使う。
+   - 緑（--ok）は「できた」、黄土（--warn）は「気をつけて」。この2つは意味でしか使わない。
+   ============================================================ */
+:root {
+  /* 地 */
+  --paper: #f7f4ee;        /* 公開サイトの地（生成り） */
+  --bg: #f3f2ef;           /* 会員ページの地（薄い灰） */
+  --surface: #ffffff;
+  --surface-2: #faf9f7;
+
+  /* 文字 */
+  --ink: #1d1b18;
+  --ink-2: #55514a;
+  --ink-3: #726d65;       /* 白地・灰地のどちらでも 4.5:1 以上 */
+  --ink-inv: #ffffff;
+
+  /* 罫 */
+  --line: #e7e3dc;
+  --line-2: #d6d1c7;
+
+  /* 差し色 */
+  --accent: #c63f25;       /* 朱 */
+  --accent-ink: #a8321b;   /* 朱の文字用（白地で 4.5:1 以上） */
+  --accent-weak: #fbebe6;
+  --indigo: #274868;       /* 藍 */
+  --indigo-weak: #e7edf4;
+  --ok: #2c7a53;
+  --ok-weak: #e4f1ea;
+  --warn: #9a6512;
+  --warn-weak: #fbf0d9;
+  --gold: #a07d2c;         /* レベル章・会員証の箔（線や面に使う） */
+  --gold-ink: #7d6120;     /* 金の文字用（白地・淡い金地で 4.5:1 以上） */
+  --gold-weak: #f6efdc;
+
+  /* 濃色の面（会員証・公開サイトの帯） */
+  --deep: #1d1b18;
+  --on-deep: #f4efe6;
+  --on-deep-muted: #b9b2a6;
+
+  /* 文字 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP", "Yu Gothic UI", "YuGothic", "Meiryo", sans-serif;
+  --font-serif: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "BIZ UDPMincho", serif;
+  --font-num: "SF Pro Display", -apple-system, "Helvetica Neue", "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* 形 */
+  --r-s: 8px;
+  --r: 12px;
+  --r-l: 16px;
+  --shadow-1: 0 1px 2px rgba(29, 27, 24, .05);
+  --shadow-2: 0 6px 24px rgba(29, 27, 24, .08), 0 1px 3px rgba(29, 27, 24, .06);
+  --shadow-3: 0 18px 48px rgba(29, 27, 24, .18);
+
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  line-height: 1.75;
+  font-feature-settings: "palt" 0;
+  -webkit-font-smoothing: antialiased;
+}
+img, svg { max-width: 100%; }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+table { border-collapse: collapse; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.mono { font-family: var(--font-mono); font-size: .92em; }
+.serif { font-family: var(--font-serif); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 線だけの記号（ui.js の icon()） */
+.ico { width: 20px; height: 20px; flex: none; display: inline-block; vertical-align: middle; }
+.ico-s { width: 16px; height: 16px; }
+.ico-l { width: 24px; height: 24px; }
+
+/* 試作版の注記（全画面共通・本番では外す） */
+.proto-note {
+  font-size: 11px; letter-spacing: .04em; color: var(--ink-3);
+}
+
+/* ---------- 公開サイトと会員ページの両方で使う部品 ---------- */
+/* 屋号の判子（ui.js の brandmark()） */
+.brandmark { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); }
+.brandmark__seal {
+  width: 34px; height: 34px; border-radius: 8px; background: var(--accent); color: #fff;
+  display: grid; place-items: center; font-family: var(--font-serif); font-size: 19px; font-weight: 700;
+  flex: none;
+}
+.brandmark__name { font-family: var(--font-serif); font-size: 17px; font-weight: 700; letter-spacing: .08em; line-height: 1.1; }
+.brandmark__sub { display: block; font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; color: var(--ink-3); margin-top: 3px; }
+
+/* 一言の知らせ（ui.js の toast()）。幅は画面いっぱいまで使い、短い文は真ん中に */
+#toast { position: fixed; left: 16px; right: 16px; bottom: 28px; z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast { background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; line-height: 1.6; box-shadow: 0 6px 24px rgba(29, 27, 24, .18); max-width: 520px; text-align: center; animation: toastin .25s cubic-bezier(.2, .7, .2, 1); }
+.toast.is-ok::before { content: "✓ "; color: #8fd6ae; }
+@keyframes toastin { from { opacity: 0; transform: translateY(8px); } }

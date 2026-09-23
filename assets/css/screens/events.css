@@ -1,0 +1,123 @@
+/* ============================================================
+   イベント（#/events）
+   日付の札を左に置き、その日のイベントを右に重ねる。
+   詳細の窓は body 直下に出るので、中身も .scr-events で包んである。
+   ============================================================ */
+
+/* 切り替えと絞り込み */
+.scr-events .ev-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.scr-events .seg .ev-n { font-size: 11.5px; color: var(--ink-3); margin-left: 2px; }
+.scr-events .seg .is-on .ev-n { color: var(--ink-2); }
+.scr-events .ev-chips { gap: 6px; }
+.scr-events .ev-chips .chip { height: 32px; padding: 0 12px; }
+@media (max-width: 420px) { .scr-events .ev-chips .n { display: none; } }
+
+/* 一覧の上の一言 */
+.scr-events .ev-top { align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+.scr-events .ev-top .ico { margin-top: 0; }
+.scr-events .ev-top__txt { flex: 1; min-width: 200px; }
+.scr-events .ev-top .btn-text { margin-left: auto; }
+@media (max-width: 480px) { .scr-events .ev-top .btn-text { margin-left: 26px; padding-left: 0; } }
+
+/* 日付ごとのまとまり */
+.scr-events .ev-day { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 16px; }
+.scr-events .ev-day + .ev-day { margin-top: 24px; }
+.scr-events .ev-date { position: sticky; top: 20px; align-self: start; text-align: center; padding-top: 10px; }
+.scr-events .ev-date__m { display: block; font-size: 12px; font-weight: 600; color: var(--ink-3); line-height: 1.2; }
+.scr-events .ev-date__d { display: block; font-size: 32px; font-weight: 800; line-height: 1.1; }
+.scr-events .ev-date__w { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); line-height: 1.4; }
+.scr-events .ev-date__rel {
+  display: inline-block; margin-top: 6px; padding: 1px 7px; border-radius: 6px;
+  font-size: 11px; font-weight: 700; color: var(--ink-2); background: rgba(29, 27, 24, .06);
+}
+@media (max-width: 860px) { .scr-events .ev-date { top: 68px; } }
+@media (max-width: 480px) {
+  .scr-events .ev-day { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; }
+  .scr-events .ev-date__d { font-size: 26px; }
+  .scr-events .ev-date__rel { padding: 1px 4px; font-size: 10.5px; }
+}
+
+/* イベントの面 */
+.scr-events .ev { padding: 16px 18px 14px; cursor: pointer; transition: border-color .15s; }
+.scr-events .ev:hover { border-color: var(--line-2); }
+.scr-events .ev.is-reserved { border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.scr-events .ev__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.scr-events .ev__tags .ico { width: 13px; height: 13px; }
+.scr-events .ev__ttl { display: flex; align-items: flex-start; gap: 8px; font-size: 16.5px; font-weight: 700; line-height: 1.5; }
+.scr-events .ev__link {
+  flex: 1; min-width: 0; background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit;
+  text-align: left; cursor: pointer; line-height: inherit;
+}
+.scr-events .ev__ttl .chev { margin-top: 5px; }
+.scr-events .ev__meta {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 18px;
+  margin-top: 8px; font-size: 13px; color: var(--ink-2); line-height: 1.6;
+}
+.scr-events .ev__meta li { display: flex; gap: 6px; align-items: flex-start; min-width: 0; }
+.scr-events .ev__meta .ico { margin-top: 2px; color: var(--ink-3); }
+@media (max-width: 640px) { .scr-events .ev__meta { grid-template-columns: minmax(0, 1fr); } }
+
+.scr-events .ev__note {
+  display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+  background: var(--gold-weak); color: var(--ink-2); font-size: 12.5px; line-height: 1.6;
+}
+.scr-events .ev__note .ico { margin-top: 1px; color: var(--gold); }
+
+/* 幅が足りないとき（予約済み＋取り消す など）は、席の表示を上の段に残してボタンを下の段へ送る */
+.scr-events .ev__foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.scr-events .ev-cap { flex: 1 1 150px; min-width: 0; max-width: 240px; font-size: 12.5px; color: var(--ink-2); }
+.scr-events .ev-cap .muted { white-space: nowrap; }
+.scr-events .ev-cap b { font-size: 14.5px; color: var(--ink); margin: 0 1px; }
+.scr-events .ev-cap .muted { font-size: 11.5px; margin-left: 2px; }
+.scr-events .ev-cap .bar { height: 4px; margin-top: 5px; }
+.scr-events .ev-cap.is-few, .scr-events .ev-cap.is-few b { color: var(--warn); }
+.scr-events .ev-cap.is-few .bar > i { background: var(--warn); }
+.scr-events .ev__act { display: flex; align-items: center; gap: 4px; flex: none; margin-left: auto; }
+.scr-events .ev__state { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ok); }
+.scr-events .ev.is-done .ev__ttl { color: var(--ink-2); }
+
+/* 空のとき・注記 */
+.scr-events .ev-empty { padding-bottom: 20px; }
+.scr-events .ev-empty .empty { padding-bottom: 14px; }
+.scr-events .ev-empty__act { text-align: center; }
+.scr-events .ev-foot-note { display: flex; gap: 6px; align-items: flex-start; margin: 18px 4px 0; font-size: 12px; color: var(--ink-3); }
+.scr-events .ev-foot-note .ico { margin-top: 2px; flex: none; }
+
+/* 参加した */
+/* app.css の .li__ttl / .li__sub は span のままだと横に並んでしまうので、ここで段にする */
+.scr-events .li__ttl, .scr-events .li__sub { display: block; }
+.scr-events .ev-sum { font-size: 13.5px; color: var(--ink-2); margin: 0 4px 12px; }
+.scr-events .ev-ok { color: var(--ok); }
+.scr-events .ev-xp { color: var(--gold); font-weight: 700; font-size: 12.5px; }
+.scr-events .ev-share { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.scr-events .ev-share p { flex: 1; min-width: 200px; color: var(--ink-2); }
+
+/* 詳細の窓 */
+.scr-events.ev-detail .modal__ttl { margin-bottom: 6px; }
+.scr-events .ev-detail__when { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14.5px; font-weight: 700; margin-bottom: 10px; }
+.scr-events .ev-detail__when .ico { color: var(--ink-3); }
+.scr-events .ev-detail__min { font-weight: 500; color: var(--ink-2); }
+.scr-events .ev-detail__desc { font-size: 14px; color: var(--ink-2); margin-bottom: 10px; }
+.scr-events .ev-detail__kv { margin-top: 8px; font-size: 13.5px; }
+.scr-events .ev-detail__kv th, .scr-events .ev-detail__kv td { padding-top: 9px; padding-bottom: 9px; line-height: 1.6; }
+.scr-events .ev-detail__kv th { width: 5.5em; padding-right: 12px; }
+.scr-events .ev-detail__host { display: flex; align-items: center; gap: 10px; }
+.scr-events .ev-detail__state { margin-top: 14px; }
+.scr-events .ev-detail__proto { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.scr-events .ev-detail__proto .btn-text { padding-left: 0; }
+.scr-events .ev-detail__cancel { margin-right: auto; }
+@media (max-width: 640px) {
+  .scr-events.ev-detail .modal__foot .btn:not(.btn-text) { flex: 1 1 auto; }
+  .scr-events .ev-detail__cancel { width: 100%; justify-content: flex-start; padding: 6px 0; }
+}
+
+/* スマホでは指で押しやすい高さ（40px以上）にそろえる */
+@media (max-width: 640px) {
+  .scr-events .seg button { height: 40px; }
+  .scr-events .ev-chips .chip { height: 40px; }
+  .scr-events .ev__act .btn, .scr-events .ev-top .btn-text, .scr-events .ev-empty__act .btn,
+  .scr-events .ev-share .btn, .scr-events .ev-detail__proto .btn-text { min-height: 40px; }
+}
