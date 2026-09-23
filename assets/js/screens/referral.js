@@ -6,6 +6,7 @@
    - 収入を約束する言い方をしない。ランキング・ほかの会員のお金は出さない
    - 紹介した相手は頭文字だけ
    - 振込先はどこにも保存しない（本番は決済サービス側で保管する）
+   - 文章は docs/脱AIの約束.md に合わせて短く。UIの説明・図解・飾りの記号は置かない
    ============================================================ */
 (function () {
   'use strict';
@@ -29,7 +30,6 @@
   // 曜日は付けない（支払日が土日にあたっても、ここでは前倒しの規則を持っていないため）
   function md(d) { return U.fmtDate(d, { noYear: true, wd: false }); }   // 9月6日
   function ymd(d) { d = new Date(d); return d.getFullYear() + '-' + U.pad(d.getMonth() + 1) + '-' + U.pad(d.getDate()); }
-  function payDay(ref) { return new Date(ref.payDate).getDate(); }
 
   /** 在籍中で、まだ保留中の紹介のうち、いちばん早い確定日（なければ null）。
       退会した方の分は確定しないので数えない */
@@ -42,42 +42,34 @@
     });
     return t === null ? null : new Date(t);
   }
-  function countOf(ref, status) {
-    var rows = ref.rows.filter(function (x) { return x.status === status; });
-    return { n: rows.length, sum: rows.reduce(function (a, x) { return a + x.amount; }, 0) };
-  }
 
-  /* ---------- 1. 紹介リンクと文面 ---------- */
+  /* ---------- 紹介リンクと紹介文 ---------- */
   function linkCard(ref) {
-    return '<section class="card rf-link">' +
-      '<div class="rf-link__main">' +
-        '<h2 class="rf-link__ttl">' + icon('link') + 'あなたの紹介リンク</h2>' +
-        '<p class="sub">このリンクから入会した方が、あなたからの紹介になります。</p>' +
-        '<div class="rf-url">' +
-          '<span class="rf-url__text mono">' + esc(ref.url) + '</span>' +
-          '<button class="btn btn-ink btn-s" data-rf="copy-url">' + icon('copy', 'ico-s') + 'コピー</button>' +
-        '</div>' +
-        '<div class="rf-link__sub">' +
-          '<button class="btn btn-ghost btn-s" data-rf="qr">' + icon('qr', 'ico-s') + 'QRコード</button>' +
-          '<span class="rf-code">紹介コード <b class="mono">' + esc(ref.code) + '</b>' +
-            '<button class="btn btn-text rf-code__copy" data-rf="copy-code">コピー</button></span>' +
-        '</div>' +
-        '<p class="xsmall muted">リンクを使わずに入会する方は、入会フォームの「紹介コード」にこのコードを入れてもらえば紹介になります。</p>' +
+    return '<section class="card card-pad rf-link">' +
+      '<h2 class="h3">紹介リンク</h2>' +
+      '<div class="rf-url">' +
+        '<span class="rf-url__text mono">' + esc(ref.url) + '</span>' +
+        '<button class="btn btn-ink btn-s" data-rf="copy-url">' + icon('copy', 'ico-s') + 'コピー</button>' +
       '</div>' +
-      '<div class="rf-link__text">' +
-        '<label class="field"><span>紹介するときの文面</span>' +
-          '<textarea class="textarea rf-share" readonly rows="6" data-rf-select>' + esc(ref.shareText) + '</textarea>' +
+      '<div class="rf-code">' +
+        '<span>紹介コード <b class="mono">' + esc(ref.code) + '</b></span>' +
+        '<button class="btn btn-text" data-rf="copy-code">コピー</button>' +
+      '</div>' +
+      '<div class="rf-text">' +
+        '<label class="field"><span>紹介文</span>' +
+          '<textarea class="textarea rf-share" readonly rows="5" data-rf-select>' + esc(ref.shareText) + '</textarea>' +
         '</label>' +
-        '<div class="row">' +
+        '<div class="row rf-share-btns">' +
           '<button class="btn btn-ghost btn-s" data-rf="copy-text">' + icon('copy', 'ico-s') + '文面をコピー</button>' +
           '<button class="btn btn-ghost btn-s" data-rf="line">' + icon('line', 'ico-s') + 'LINEで送る</button>' +
+          '<button class="btn btn-ghost btn-s" data-rf="qr">' + icon('qr', 'ico-s') + 'QRコード</button>' +
         '</div>' +
-        '<p class="rf-pr">' + icon('info', 'ico-s') + '<span>文面の最初の #PR は消さないでください（広告であることを示す決まりです）</span></p>' +
+        '<p class="rf-pr">先頭の #PR は消さないでください（ステマ規制のため）。</p>' +
       '</div>' +
     '</section>';
   }
 
-  /* ---------- 2. 本人の記録 ---------- */
+  /* ---------- 本人の記録 ---------- */
   function stat(label, value, unit) {
     return '<div><dt>' + esc(label) + '</dt><dd>' + value + (unit ? '<small>' + esc(unit) + '</small>' : '') + '</dd></div>';
   }
@@ -87,78 +79,45 @@
       stat('この30日の入会', U.num(ref.recent), '人') +
       stat('在籍中の紹介', U.num(ref.active), '人') +
       stat('保留中の報酬', esc(U.yen(ref.held)), '') +
-    '</dl></div>' +
-    '<p class="rf-caption">クリックは、紹介リンクが開かれた回数です。数字はあなたの分だけで、ほかの会員には見えません。</p>';
+    '</dl></div>';
   }
 
-  /* ---------- 3. 受け取り ---------- */
+  /* ---------- 受け取り（キー：値の表） ---------- */
   function payCard(ref) {
-    var first = firstConfirm(ref), has = ref.held + ref.confirmed > 0, msg, cls = '';
-    if (ref.confirmed >= ref.minPayout) {
-      // 試作版は振込先を保存しないので、いつも「登録が要る」と添える
-      msg = '確定した ' + U.yen(ref.confirmed) + ' を、' + md(ref.payDate) + 'にお振り込みする予定です（振込先の登録が必要です）。';
-      cls = ' notice-ok';
-    } else if (ref.confirmed > 0) {
-      msg = '確定した報酬が最低支払額（' + U.yen(ref.minPayout) + '）に届いていないため、翌月に繰り越します。';
-    } else if (first) {
-      // 保留中は取消になることもあるので、条件を添えて言い切らない
-      msg = '返金・解約がなければ、' + md(first) + 'に' + (ref.paid > 0 ? '次の' : '最初の') + '報酬が確定します。確定した報酬は月末で締めて、翌月' + payDay(ref) + '日にお振り込みします。';
-    } else if (ref.held > 0) {
-      msg = '保留中の報酬は、返金・解約がないことを確かめてから確定します。確定した報酬は月末で締めて、翌月' + payDay(ref) + '日にお振り込みします。';
-    } else {
-      msg = 'まだ報酬はありません。紹介した方が入会した場合、報酬は初回のお支払いから' + ref.holdDays + '日の保留のあとに確定します。';
+    var first = firstConfirm(ref), has = ref.held + ref.confirmed > 0;
+    var rows = [];
+    var conf = esc(U.yen(ref.confirmed));
+    if (ref.confirmed > 0 && ref.confirmed < ref.minPayout) {
+      conf += '<span class="rf-kv__note">' + esc(U.yen(ref.minPayout)) + '未満のため翌月に繰り越し</span>';
     }
-    return '<section class="card rf-pay">' +
-      '<div class="rf-pay__nums">' +
-        '<div><p class="rf-pay__k">確定した報酬</p><p class="rf-pay__v num">' + esc(U.yen(ref.confirmed)) + '</p>' +
-          '<p class="rf-pay__s">支払予定の分を含みます</p></div>' +
-        '<div><p class="rf-pay__k">次のお支払い予定日</p><p class="rf-pay__v rf-pay__v-date">' + esc(md(ref.payDate)) + '</p>' +
-          '<p class="rf-pay__s">' + esc(ref.closeLabel) + '</p>' +
-          // 確定が0円でも日付だけ出ていると「この日に入る」と読めてしまうため
-          (ref.confirmed > 0 ? '' : '<p class="rf-pay__s muted">確定した報酬があるときだけ、お振り込みします</p>') + '</div>' +
-      '</div>' +
-      '<div class="notice' + cls + '">' + icon(cls ? 'checkc' : 'clock') + '<div>' + esc(msg) + '</div></div>' +
-      '<div class="rf-bank">' +
-        '<span class="rf-bank__ico">' + icon('card') + '</span>' +
-        '<div class="rf-bank__body"><p class="rf-bank__ttl">振込先 <span class="tag ' + (has ? 'tag-warn' : 'tag-line') + '">未登録</span></p>' +
-          '<p class="xsmall muted">' + (has ? '登録がないと、確定した報酬をお振り込みできません。' : '報酬が確定する前に登録しておけば大丈夫です。') + '</p></div>' +
-        '<button class="btn btn-s ' + (has ? 'btn-primary' : 'btn-ghost') + '" data-rf="bank">登録する</button>' +
-      '</div>' +
-      '<div class="rf-paid"><span>これまでに受け取った報酬</span><b class="num">' + esc(U.yen(ref.paid)) + '</b></div>' +
+    rows.push(['確定（未払い）', '<b class="num">' + conf + '</b>']);
+    // 確定した分があるときだけ日付を出す（0円で日付だけあると「この日に入る」と読めてしまう）
+    if (ref.confirmed >= ref.minPayout && ref.payDate) {
+      rows.push(['次の振込', esc(md(ref.payDate)) + '（予定）']);
+    } else if (first) {
+      // 保留中は取消になることもあるので、条件を添える
+      rows.push(['次の確定', esc(md(first)) + '（返金・解約がなければ）']);
+    }
+    rows.push(['締め・支払日', esc(ref.closeLabel)]);
+    rows.push(['受け取り済み', '<span class="num">' + esc(U.yen(ref.paid)) + '</span>']);
+    rows.push(['振込先', '<span class="rf-bank"><span class="' + (has ? 'rf-bank__warn' : '') + '">未登録</span>' +
+      '<button class="btn btn-s ' + (has ? 'btn-primary' : 'btn-ghost') + '" data-rf="bank">登録する</button></span>']);
+    return '<section class="card card-pad rf-pay">' +
+      '<h2 class="h3">報酬の受け取り</h2>' +
+      '<table class="kv rf-kv"><tbody>' + rows.map(function (r) {
+        return '<tr><th>' + esc(r[0]) + '</th><td>' + r[1] + '</td></tr>';
+      }).join('') + '</tbody></table>' +
     '</section>';
   }
 
-  /* ---------- 4. 報酬が支払われるまで ---------- */
-  function flow(ref) {
-    var steps = [
-      { name: '発生', text: ref.model === 'monthly' ? '紹介した方の月額のお支払いが済むたびに発生します' : '紹介した方の初回のお支払いが済むと発生します' },
-      { name: '保留（' + ref.holdDays + '日）', st: 'hold', text: '返金や解約がないかを確かめる期間です' },
-      { name: '確定', st: 'confirmed', text: '返金・解約がなければ確定します' },
-      { name: '支払予定', st: 'scheduled', text: '月末で締めて、翌月' + payDay(ref) + '日にお振り込みします' },
-      { name: '支払済', st: 'paid', text: '登録した口座にお振り込みしました' }
-    ];
-    return '<section class="card">' +
-      '<ol class="rf-flow">' + steps.map(function (s) {
-        var c = s.st ? countOf(ref, s.st) : { n: 0 };
-        return '<li class="rf-step' + (c.n ? ' is-on' : '') + '">' +
-          '<span class="rf-step__dot" aria-hidden="true"></span>' +
-          '<p class="rf-step__name">' + esc(s.name) + '</p>' +
-          '<p class="rf-step__text">' + esc(s.text) + '</p>' +
-          (c.n ? '<span class="rf-step__n num">' + c.n + '件・' + esc(U.yen(c.sum)) + '</span>' : '') +
-        '</li>';
-      }).join('') + '</ol>' +
-      '<p class="rf-flow__foot">保留のあいだに返金・解約があった場合は「取消」になり、その分の報酬はお支払いしません。</p>' +
-    '</section>';
-  }
-
-  /* ---------- 5. 明細 ---------- */
+  /* ---------- 明細 ---------- */
   function rowsCard(ref) {
     var rows = ref.rows;
     var body = rows.length ?
       '<div class="tbl-wrap"><table class="tbl rf-tbl"><thead><tr>' +
-        '<th>対象</th><th>発生日</th><th class="r">金額</th><th>状態</th><th>確定予定</th>' +
+        '<th>対象</th><th>発生日</th><th class="r">金額</th><th>状態</th><th>確定日</th>' +
       '</tr></thead><tbody>' + rows.map(function (x) {
-        var when = x.status === 'hold' ? esc(md(x.confirmAt)) : x.status === 'void' ? '—' : '<span class="muted">確定済み</span>';
+        var when = x.status === 'void' ? '—' : esc(md(x.confirmAt)) + (x.status === 'hold' ? '（予定）' : '');
         return '<tr' + (x.status === 'void' ? ' class="is-void"' : '') + '>' +
           '<td>' + esc(x.who) + '</td>' +
           '<td>' + esc(md(x.at)) + '</td>' +
@@ -166,64 +125,62 @@
           '<td><span class="tag ' + (TAG[x.status] || '') + '">' + esc(x.label) + '</span></td>' +
           '<td>' + when + '</td></tr>';
       }).join('') + '</tbody></table></div>'
-      : U.empty('receipt', 'まだ明細はありません。紹介した方が入会すると、ここに1件ずつ並びます。');
-    return '<section class="card">' +
-      '<div class="card-head rf-head">' +
-        '<div><h2 class="h3">明細</h2><p class="xsmall muted">' +
-          (ref.model === 'monthly' ? '紹介した方1名につき、在籍中は毎月1件ずつ増えます。' : '紹介した方1名につき1件です。') + '</p></div>' +
+      : '<p class="rf-none">' + (ref.list.length ? 'まだ明細はありません。' : 'まだ紹介した方はいません。') + '</p>';
+    return '<section class="card rf-rows">' +
+      '<div class="card-head"><h2 class="h3">明細</h2>' +
         (rows.length ? '<button class="btn btn-text" data-rf="csv">' + icon('download', 'ico-s') + 'CSVで保存</button>' : '') +
       '</div>' +
-      '<div class="rf-tbl-pad">' + body + '</div>' +
+      (rows.length ? '<div class="rf-tbl-pad">' + body + '</div>' : body) +
     '</section>';
   }
 
-  /* ---------- 6. 紹介した人（頭文字だけ） ---------- */
+  /* ---------- 紹介した人（頭文字だけ） ---------- */
   function people(ref) {
-    if (!ref.list.length) {
-      return '<div class="card">' + U.empty('users', '紹介した方はまだいません。入会されると、ここに頭文字で表示されます。') + '</div>';
-    }
+    if (!ref.list.length) return '';
     var list = ref.list.slice().sort(function (a, b) { return new Date(b.joinedAt) - new Date(a.joinedAt); });
-    return '<div class="list">' + list.map(function (r) {
-      var active = r.status === 'active';
-      // 緑は「できた」の色なので、在籍中は藍（情報）にする
-      return '<div class="li">' + U.avatar({ name: r.who.charAt(0), color: 'var(--ink-3)' }, 's') +
-        '<span class="li__body"><span class="li__ttl">' + esc(r.who) + '</span>' +
-          '<span class="li__sub">' + esc(md(r.joinedAt)) + 'に入会' +
-          (r.held && active ? '・報酬は' + esc(md(r.confirmAt)) + 'に確定予定' : '') + '</span></span>' +
-        '<span class="tag' + (active ? ' tag-indigo' : '') + '">' + (active ? '在籍中' : '退会') + '</span>' +
-      '</div>';
-    }).join('') + '</div>';
+    return '<section class="card rf-people">' +
+      '<div class="card-head"><h2 class="h3">紹介した人</h2><span class="rf-count">' + list.length + '人</span></div>' +
+      '<ul class="rf-people__list">' + list.map(function (r) {
+        var active = r.status === 'active';
+        // 緑は「できた」の色なので、在籍中は藍（情報）にする
+        return '<li>' +
+          '<b>' + esc(r.who) + '</b>' +
+          '<span class="rf-people__date">' + esc(md(r.joinedAt)) + '入会</span>' +
+          '<span class="tag' + (active ? ' tag-indigo' : '') + '">' + (active ? '在籍中' : '退会') + '</span>' +
+        '</li>';
+      }).join('') + '</ul>' +
+    '</section>';
   }
 
-  /* ---------- 7. 報酬のしくみ ---------- */
+  /* ---------- 報酬のしくみ ---------- */
   function howCard(ref) {
     var monthly = ref.model === 'monthly';
     var lead = monthly
-      ? '紹介した方が会員でいるあいだ、毎月その方の月額の' + Math.round(ref.rate * 100) + '%（' + U.yen(ref.perPerson) + '）をお支払いします。'
+      ? '紹介した方が在籍しているあいだ、毎月その方の月額の' + Math.round(ref.rate * 100) + '%（' + U.yen(ref.perPerson) + '）をお支払いします。'
       : '紹介した方1名につき、' + U.yen(ref.perPerson) + 'を1回だけお支払いします。';
     return '<section class="card card-pad rf-how">' +
       '<h2 class="h3">報酬のしくみ（仮）</h2>' +
       '<p class="rf-how__lead">' + esc(lead) + '</p>' +
       '<ul class="rf-bullets">' +
-        '<li>1段だけです（紹介した方がさらに紹介しても、あなたへの報酬はありません）</li>' +
-        '<li>紹介の人数で料率は変わりません</li>' +
-        (monthly ? '<li>紹介した方が退会すると、それ以降の報酬はありません</li>' : '') +
-        '<li>最低支払額は' + esc(U.yen(ref.minPayout)) + 'です（届かないときは翌月に繰り越します）</li>' +
-        '<li>ランキングには関係しません（ランキングは貢献ポイントと学びのXPだけで決まります）</li>' +
+        '<li>紹介は1段だけです。紹介した方がさらに紹介しても、あなたへの報酬はありません。</li>' +
+        '<li>紹介の人数で料率は変わりません。</li>' +
+        (monthly ? '<li>紹介した方が退会すると、それ以降の報酬はありません。</li>' : '') +
+        '<li>報酬は、紹介した方のお支払いから' + esc(ref.holdDays) + '日間「保留」です。返金・解約がなければ「確定」、あれば「取消」になります。</li>' +
+        '<li>最低支払額は' + esc(U.yen(ref.minPayout)) + 'です。届かない月は翌月に繰り越します。</li>' +
+        '<li>紹介はランキングに関係しません。</li>' +
+        '<li>確定申告が必要になることがあります。提携の税理士に相談できます（初回30分無料）。' +
+          '<a href="#/perks?tab=experts">専門家の一覧</a></li>' +
       '</ul>' +
-      '<p class="rf-how__tax">報酬は、所得として確定申告が必要になることがあります。提携の税理士に相談できます（初回30分無料）。' +
-        '<a href="#/perks">専門家に相談する</a></p>' +
     '</section>';
   }
 
-  /* ---------- 8. 紹介のルール（いつも見せる） ---------- */
+  /* ---------- 紹介のルール（いつも見せる） ---------- */
   function rulesCard() {
     return '<section class="card card-pad rf-rules">' +
-      '<h2 class="h3 rf-rules__ttl">' + icon('shield') + '紹介のルール</h2>' +
-      '<p class="sub">紹介するときに守っていただくことです。</p>' +
-      '<ul class="rf-rules__list">' + RULES.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
-      '<p class="rf-rules__warn">' + icon('info', 'ico-s') + '<span>守られなかった場合、報酬はお支払いできません。</span></p>' +
-      '<p class="xsmall muted rf-rules__ask">伝え方に迷ったら、<a href="#/messages">運営に相談</a>できます。</p>' +
+      '<h2 class="h3">紹介のルール</h2>' +
+      '<ol class="rf-rules__list">' + RULES.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ol>' +
+      '<p class="rf-rules__warn">守られなかった場合、報酬はお支払いできません。</p>' +
+      '<p class="rf-rules__ask">分からないことは<a href="#/messages">運営に相談</a>してください。</p>' +
     '</section>';
   }
 
@@ -265,10 +222,8 @@
     var m = U.modal(
       '<div class="scr-referral">' +
         '<h3 class="modal__ttl">紹介リンクのQRコード</h3>' +
-        '<p class="sub">会って紹介するときに、相手のスマホで読み取ってもらうためのものです。</p>' +
         '<div class="rf-qr">' + qrSvg(ref.url) + '</div>' +
         '<p class="rf-qr__url mono">' + esc(ref.url) + '</p>' +
-        '<p class="proto-note rf-qr__note">試作版の見た目だけ。読み取れません</p>' +
         '<div class="modal__foot"><button class="btn btn-soft" data-close>閉じる</button>' +
           '<button class="btn btn-ink" data-qr-copy>' + icon('copy', 'ico-s') + 'リンクをコピー</button></div>' +
       '</div>');
@@ -279,15 +234,14 @@
 
   /* ---------- 窓：振込先 ----------
      口座の情報は、試作版ではどこにも保存しない（state にも localStorage にも入れない）。 */
-  function field(label, control, note) {
-    return '<label class="field"><span>' + esc(label) + '</span>' + control + (note ? '<small>' + esc(note) + '</small>' : '') + '</label>';
+  function field(label, control) {
+    return '<label class="field"><span>' + esc(label) + '</span>' + control + '</label>';
   }
   function bankModal() {
     var m = U.modal(
       '<div class="scr-referral">' +
         '<h3 class="modal__ttl">振込先の登録</h3>' +
-        '<p class="sub">確定した報酬をお振り込みする口座です。ご本人名義の口座を登録してください。</p>' +
-        '<div class="notice rf-bank-note">' + icon('shield') + '<div>試作版では、入力した内容は保存しません。</div></div>' +
+        '<p class="sub rf-bank-lead">本人名義の口座を登録してください。</p>' +
         '<form class="rf-bank-form" autocomplete="off" novalidate>' +
           field('金融機関名', '<input class="input" autocomplete="off" placeholder="例：〇〇銀行">') +
           '<div class="rf-bank-2">' +
@@ -295,8 +249,8 @@
             field('口座の種類', '<select class="select"><option>普通</option><option>当座</option></select>') +
           '</div>' +
           field('口座番号', '<input class="input" autocomplete="off" inputmode="numeric" maxlength="7" placeholder="7桁の数字">') +
-          field('口座名義（カタカナ）', '<input class="input" autocomplete="off" placeholder="例：ヤマダ ハナコ">', '通帳やキャッシュカードに書かれているとおりに入力してください。') +
-          field('インボイス登録番号（任意）', '<input class="input" autocomplete="off" maxlength="14" placeholder="T から始まる13桁">', '適格請求書発行事業者の方だけ。お持ちでなければ空欄のままで大丈夫です。') +
+          field('口座名義（カタカナ）', '<input class="input" autocomplete="off" placeholder="例：ヤマダ ハナコ">') +
+          field('インボイス登録番号（任意）', '<input class="input" autocomplete="off" maxlength="14" placeholder="T から始まる13桁">') +
           '<div class="modal__foot"><button type="button" class="btn btn-soft" data-close>やめる</button>' +
             '<button type="submit" class="btn btn-ink">登録する</button></div>' +
         '</form>' +
@@ -305,15 +259,15 @@
       e.preventDefault();
       e.target.reset();
       m.close();
-      U.toast('試作版では保存しません。本番では決済サービス側で安全に保管します');
+      U.toast('本番ではここで振込先を登録します');
     });
   }
 
   /* ---------- 明細のCSV ---------- */
   function csv(ref) {
     function cell(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }
-    var lines = [['対象', '発生日', '金額（円）', '状態', '確定予定'].map(cell).join(',')].concat(ref.rows.map(function (x) {
-      return [x.who, ymd(x.at), x.amount, x.label, x.status === 'hold' ? ymd(x.confirmAt) : ''].map(cell).join(',');
+    var lines = [['対象', '発生日', '金額（円）', '状態', '確定日'].map(cell).join(',')].concat(ref.rows.map(function (x) {
+      return [x.who, ymd(x.at), x.amount, x.label, x.status === 'void' ? '' : ymd(x.confirmAt)].map(cell).join(',');
     }));
     U.download('紹介報酬の明細_' + ymd(CLG.now()) + '.csv', lines.join('\r\n'), 'text/csv');
     U.toast('明細をCSVで保存しました', 'ok');
@@ -338,16 +292,13 @@
       var ref = R.referral();
       return '<div class="scr-referral">' +
         '<div class="page-head"><h1 class="page-ttl">紹介・報酬</h1>' +
-          '<p class="page-lead">この場所が合いそうな人に、紹介できます。紹介は入会の条件ではなく、収入を約束するものでもありません。</p></div>' +
-        (ref.list.length ? '' :
-          '<div class="notice rf-first">' + icon('info') + '<div>紹介は急がなくて大丈夫です。まずはご自身で講座やイベントを使ってみて、合いそうな人が思い浮かんだときに使ってください。</div></div>') +
+          '<p class="page-lead">紹介は任意です。収入を保証するものではありません。</p></div>' +
         linkCard(ref) +
         stats(ref) +
-        '<div class="sec"><p class="sec-ttl">報酬の受け取り</p>' + payCard(ref) + '</div>' +
-        '<div class="sec"><p class="sec-ttl">報酬が支払われるまで</p>' + flow(ref) + '</div>' +
-        '<div class="sec">' + rowsCard(ref) + '</div>' +
-        '<div class="sec"><p class="sec-ttl">紹介した人<span class="rf-sec-note">お名前は頭文字だけ表示しています</span></p>' + people(ref) + '</div>' +
-        '<div class="sec grid-2 rf-pair">' + howCard(ref) + rulesCard() + '</div>' +
+        payCard(ref) +
+        rowsCard(ref) +
+        people(ref) +
+        '<div class="grid-2 rf-pair">' + howCard(ref) + rulesCard() + '</div>' +
         '<p class="proto-note rf-proto">試作版メモ：報酬のしくみは弁護士の確認前の仮のものです。</p>' +
       '</div>';
     },
@@ -366,8 +317,8 @@
         var act = b.getAttribute('data-rf'), ref = R.referral();
         if (act === 'copy-url') copy(ref.url, '紹介リンクをコピーしました');
         else if (act === 'copy-code') copy(ref.code, '紹介コードをコピーしました');
-        else if (act === 'copy-text') copy(ref.shareText, '文面をコピーしました（#PR 入り）');
-        else if (act === 'line') U.toast('本番ではLINEの送信画面が開き、この文面が入った状態で送る相手を選べます');
+        else if (act === 'copy-text') copy(ref.shareText, '文面をコピーしました');
+        else if (act === 'line') U.toast('本番ではLINEが開いて、この文面を送れます');
         else if (act === 'qr') qrModal(ref);
         else if (act === 'bank') bankModal();
         else if (act === 'csv') csv(ref);

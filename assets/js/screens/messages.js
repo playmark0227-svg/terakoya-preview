@@ -3,6 +3,7 @@
    ------------------------------------------------------------
    運営と会員の1対1だけ（会員どうしのDMは作らない。調査メモ参照）。
    送信は R.sendMessage。試作版は数秒後に運営の自動返信が届く。
+   1枚の面に、上から 返信する人の帯 → やりとり（中だけスクロール）→ 書く欄。
    #/messages?kind=面談の予約 で来たら、種類を選んで書き出しを入れておく。
    ============================================================ */
 (function () {
@@ -14,22 +15,16 @@
   var MEET = '面談の予約';
   var MEET_TEXT = '15分の面談をお願いしたいです。\n都合のよい時間帯：';
 
-  var HINT = {
-    '質問': '講座・案件・会員ページの使い方など、何でもどうぞ。',
-    '壁打ち・相談': '考えがまとまっていなくても大丈夫です。箇条書きでどうぞ。',
-    '面談の予約': '15分のオンライン面談です。都合のよい時間帯を書いてください。候補の日時をお送りします。',
-    'その他': 'ご意見や、会員ページの不具合の報告もこちらへどうぞ。'
-  };
   var PH = {
-    '質問': '例：「SNS発信入門」の第3回で、プロフィール文の書き方がよく分かりませんでした。',
+    '質問': '例：SNS発信入門の第3回、プロフィール文の書き方が分かりませんでした。',
     '壁打ち・相談': '例：在宅でできる副業を探しています。平日の夜に1時間くらい使えます。',
-    '面談の予約': '例：15分の面談をお願いしたいです。平日の21時以降だと助かります。',
+    '面談の予約': '例：平日の21時以降だと助かります。',
     'その他': '例：講座の動画が途中で止まることがあります。'
   };
   var TEMPLATES = [
-    { label: '講座について質問', kind: '質問', text: '講座「」について質問です。\n分からなかったところ：\n試したこと：' },
-    { label: '副業の方向性を相談したい', kind: '壁打ち・相談', text: '副業の方向性を相談させてください。\nいまの状況：\nやってみたいこと：\n使える時間（1週間に）：' },
-    { label: '税理士に相談したい', kind: '質問', text: '税理士さんに相談したいことがあります。\n内容（例：確定申告・開業届・経費のこと）：\n急ぎかどうか：' }
+    { label: '講座の質問', kind: '質問', text: '講座「」について質問です。\n分からなかったところ：\n試したこと：' },
+    { label: '副業の相談', kind: '壁打ち・相談', text: '副業の方向性を相談させてください。\nいまの状況：\nやってみたいこと：\n使える時間（1週間に）：' },
+    { label: '税理士に相談', kind: '質問', text: '税理士さんに相談したいことがあります。\n内容（例：確定申告・開業届・経費のこと）：\n急ぎかどうか：' }
   ];
 
   // 画面の中だけの状態。書きかけ（draft）は描き直しても消えないようにここで持つ
@@ -67,10 +62,8 @@
     list.forEach(function (m, i) {
       if (firstUnread < 0 && m.from !== 'me' && (!since || new Date(m.at) > since)) firstUnread = i;
     });
-    var html = '<p class="msg-private">' + icon('lock', 'ico-s') + '運営とあなただけのやりとりです。ほかの会員には見えません。</p>';
-    if (!list.length && !view.pending) {
-      return html + U.empty('message', 'まだメッセージはありません。分からないことを、最初のひとことでどうぞ。');
-    }
+    var html = '';
+    if (!list.length && !view.pending) return U.empty('', 'まだメッセージはありません。');
     var lastDay = '', lastFrom = '';
     list.forEach(function (m, i) {
       var day = new Date(m.at).toDateString();
@@ -87,9 +80,9 @@
       html += '<div class="msg ' + (mine ? 'msg-me' : 'msg-them') + (first ? ' is-first' : '') + '">' +
         (mine ? '' : (first ? U.avatar(p, 's') : '<span class="msg__gap" aria-hidden="true"></span>')) +
         '<div class="msg__col">' +
-          (!mine && first ? '<span class="msg__name">' + esc(p.name) + (p.role ? '<small>' + esc(p.role) + '</small>' : '') + '</span>' : '') +
+          (!mine && first ? '<span class="msg__name">' + esc(p.name) + '</span>' : '') +
           '<div class="msg__bubble">' + U.nl2br(m.text) + '</div>' +
-          '<span class="msg__meta">' + (mine && m.kind ? '<span class="msg__kind">' + esc(m.kind) + '</span>' : '') +
+          '<span class="msg__meta">' + (mine && m.kind ? esc(m.kind) + '・' : '') +
             '<time datetime="' + esc(m.at) + '">' + U.fmtShort(m.at, true) + '</time></span>' +
         '</div>' +
       '</div>';
@@ -103,45 +96,32 @@
     return html;
   }
 
-  function staffCard() {
+  /** やりとりの上の帯：返信する運営の人と、面談の予約 */
+  function head() {
     var s = DATA.PEOPLE[STAFF_ID] || R.person(STAFF_ID);
-    return '<section class="card msg-staff" aria-label="相談の窓口">' +
-      '<div class="msg-staff__main">' +
-        U.avatar(s, 'l') +
-        '<div class="msg-staff__body">' +
-          '<p class="msg-staff__eyebrow">相談の窓口</p>' +
-          '<p class="msg-staff__name">' + esc(s.name) + '<span class="msg-staff__role">' + esc(s.role || '運営') + '</span></p>' +
-          '<p class="msg-staff__eta">' + icon('clock', 'ico-s') + '返信の目安：24時間以内（試作版は数秒で自動返信）</p>' +
-        '</div>' +
-        '<button type="button" class="btn btn-ghost btn-s msg-staff__meet" data-msg="meet">' + icon('calendar', 'ico-s') + '15分の面談を予約</button>' +
-      '</div>' +
-      '<a class="li has-ico msg-staff__experts" href="#/perks?tab=experts">' +
-        '<span class="li__ico">' + icon('shield') + '</span>' +
-        '<span class="li__body"><span class="li__ttl">専門家（税理士・司法書士など）に相談したいとき</span>' +
-        '<span class="li__sub">提携の専門家をご紹介します。初回30分の相談は無料です</span></span>' + U.chevron() +
-      '</a>' +
-    '</section>';
+    return '<div class="msg-head">' + U.avatar(s, 's') +
+      '<p class="msg-head__who"><b>' + esc(s.name) + '</b><span>' + esc(s.role || '運営') + '</span></p>' +
+      '<button type="button" class="btn btn-ghost btn-s" data-msg="meet">15分の面談を予約</button>' +
+    '</div>';
   }
 
   function composer() {
     var k = view.kind;
-    return '<section class="card card-pad msg-compose" aria-label="メッセージを書く">' +
-      '<p class="msg-compose__lbl" id="msgKindLbl">種類</p>' +
-      '<div class="chips msg-kinds" role="group" aria-labelledby="msgKindLbl">' + kinds().map(function (x) {
-        var on = x === k;
-        return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-msg-kind="' + esc(x) + '">' + esc(x) + '</button>';
-      }).join('') + '</div>' +
-      '<p class="msg-compose__hint" id="msgHint">' + esc(HINT[k] || '') + '</p>' +
+    return '<div class="msg-compose">' +
+      '<div class="msg-kinds-row"><span class="msg-compose__lbl" id="msgKindLbl">種類</span>' +
+        '<div class="chips msg-kinds" role="group" aria-labelledby="msgKindLbl">' + kinds().map(function (x) {
+          var on = x === k;
+          return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-msg-kind="' + esc(x) + '">' + esc(x) + '</button>';
+        }).join('') + '</div></div>' +
       '<label class="sr-only" for="msgText">メッセージ</label>' +
       '<textarea class="textarea" id="msgText" rows="4" placeholder="' + esc(PH[k] || '') + '">' + esc(view.draft) + '</textarea>' +
-      '<div class="msg-tpl"><span class="msg-tpl__lbl">書き出しを使う</span>' + TEMPLATES.map(function (t, i) {
-        return '<button type="button" class="btn btn-ghost btn-s" data-msg-tpl="' + i + '">' + esc(t.label) + '</button>';
-      }).join('') + '</div>' +
       '<div class="msg-compose__foot">' +
-        '<span class="msg-compose__kbd">Ctrl（Mac は ⌘）＋ Enter でも送れます</span>' +
-        '<button type="button" class="btn btn-primary" data-msg="send"' + (view.draft.trim() ? '' : ' disabled') + '>送る</button>' +
+        '<div class="msg-tpl"><span class="msg-compose__lbl">定型文</span>' + TEMPLATES.map(function (t, i) {
+          return '<button type="button" class="msg-tpl__btn" data-msg-tpl="' + i + '">' + esc(t.label) + '</button>';
+        }).join('') + '</div>' +
+        '<button type="button" class="btn btn-primary" data-msg="send" aria-keyshortcuts="Control+Enter Meta+Enter"' + (view.draft.trim() ? '' : ' disabled') + '>送る</button>' +
       '</div>' +
-    '</section>';
+    '</div>';
   }
 
   /* ---------- 書く欄の操作（描き直さずに DOM だけ変える。入力中の文字と変換を守るため） ---------- */
@@ -157,8 +137,6 @@
       b.classList.toggle('is-on', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    var hint = el.querySelector('#msgHint');
-    if (hint) hint.textContent = HINT[k] || '';
     if (ta) ta.placeholder = PH[k] || '';
   }
   function setText(el, text, caret) {
@@ -245,13 +223,12 @@
 
       return '<div class="scr-messages">' +
         '<div class="page-head"><h1 class="page-ttl">相談・メッセージ</h1>' +
-          '<p class="page-lead">運営への質問・壁打ち・面談の予約。回数の制限はありません。</p></div>' +
-        staffCard() +
-        '<section class="card msg-thread" aria-label="運営とのメッセージ">' +
+          '<p class="page-lead">回数の制限はなく、返信はだいたい24時間以内です。税理士・司法書士に聞きたいことは<a href="#/perks?tab=experts">専門家への相談</a>からどうぞ。</p></div>' +
+        '<section class="card msg-box" aria-label="運営とのメッセージ">' +
+          head() +
           '<div class="msg-thread__scroll" id="msgScroll" role="log" aria-live="polite" tabindex="0">' + threadInner() + '</div>' +
+          composer() +
         '</section>' +
-        composer() +
-        '<p class="proto-note msg-proto">試作版：送った内容はこのブラウザの中にだけ保存され、外には送られません。返信は自動です。</p>' +
       '</div>';
     },
     mount: function (root, ctx) {

@@ -3,9 +3,10 @@
    窓（U.modal）の中身も .scr-perks で包んでいるので、ここに書いた形がそのまま効く。
    ============================================================ */
 
-.scr-perks .pk-seg { margin-bottom: 18px; }
+.scr-perks .pk-seg { margin-bottom: 16px; }
 /* 共通の .li__ttl / .li__sub は span だと横に並んでしまうので、この画面では段に分ける */
 .scr-perks .li__ttl, .scr-perks .li__sub { display: block; }
+.scr-perks .li__sub { font-size: 13px; color: var(--ink-2); }
 
 /* 小さい押しもの（絞り込み・タブ・小さいボタン）は、見た目を変えずに押せる範囲だけ縦42pxに広げる（絞り込みの行の間 8px とちょうど接する） */
 .scr-perks .chip, .scr-perks .seg button, .scr-perks .btn-s { position: relative; }
@@ -14,90 +15,46 @@
 }
 
 /* ---------- 福利厚生 ---------- */
-.scr-perks .pk-bar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-.scr-perks .pk-note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.65; color: var(--ink-3); }
-.scr-perks .pk-note .ico { width: 16px; height: 16px; margin-top: 2px; }
-
-/* grid の中では .card + .card の上余白を消す（段がずれるため） */
-.scr-perks .pk-grid > .card { margin-top: 0; }
-.scr-perks .pk { display: flex; flex-direction: column; padding: 18px 18px 16px; }
-.scr-perks .pk__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.scr-perks .pk__ico {
-  width: 38px; height: 38px; border-radius: 11px; flex: none;
-  display: grid; place-items: center;
-  background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2);
+.scr-perks .pk-chips { margin-bottom: 14px; }
+.scr-perks .pk__how { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+.scr-perks .pk__ext { flex: none; display: grid; place-items: center; width: 16px; color: var(--ink-3); }
+@media (max-width: 640px) {
+  .scr-perks .pk__how { display: none; }
 }
-.scr-perks .pk__ttl { font-size: 16px; font-weight: 700; line-height: 1.5; }
-.scr-perks .pk__desc { flex: 1; margin-top: 4px; font-size: 13.5px; line-height: 1.7; color: var(--ink-2); }
-.scr-perks .pk__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-.scr-perks .pk__how { max-width: 100%; }
-.scr-perks .tag .ico { width: 14px; height: 14px; }
+.scr-perks .pk-note { margin: 10px 4px 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-3); }
+.scr-perks .pk-more { margin-top: 24px; }
 
 /* 会員証の画面から指されて来たときの目印（少しして消える） */
 .scr-perks .pk.is-focus { animation: scrPerksFocus 2.8s var(--ease) forwards; }
 @keyframes scrPerksFocus {
-  0%, 55% { box-shadow: 0 0 0 2px var(--gold), var(--shadow-2); }
-  100% { box-shadow: var(--shadow-1); }
+  0%, 55% { background: var(--gold-weak); }
+  100% { background: transparent; }
 }
 
 /* ---------- 専門家に相談 ---------- */
-.scr-perks .ex-flow { margin-bottom: 14px; }
-.scr-perks .ex-flow__lead { font-size: 14px; font-weight: 700; }
-.scr-perks .ex-flow__steps { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; font-size: 13px; color: var(--ink-2); }
-.scr-perks .ex-flow__arrow { display: inline-flex; color: var(--ink-3); }
-.scr-perks .ex-flow__arrow .ico { width: 14px; height: 14px; }
-
-.scr-perks .ex-row .li__ttl .tag { margin-left: 8px; vertical-align: 2px; }
-.scr-perks .ex-row__cta { font-size: 13px; font-weight: 600; color: var(--indigo); }
-@media (max-width: 640px) {
-  .scr-perks .ex-row__cta { display: none; }
-}
-.scr-perks .ex-fee { margin: 10px 4px 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-3); }
-
-.scr-perks .ex-faq__q { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; line-height: 1.5; }
-.scr-perks .ex-faq__mark {
-  width: 26px; height: 26px; border-radius: 8px; flex: none;
-  display: grid; place-items: center;
-  background: var(--indigo-weak); color: var(--indigo);
-  font-family: var(--font-num); font-size: 13px; font-weight: 800;
-}
-.scr-perks .ex-faq__a { margin: 8px 0 0 36px; font-size: 14px; color: var(--ink-2); }
-/* 答えの文と、ボタンの左端をそろえる */
-.scr-perks .ex-faq__acts { margin: 12px 0 0 36px; gap: 4px 8px; }
-@media (max-width: 640px) {
-  .scr-perks .ex-faq__a, .scr-perks .ex-faq__acts { margin-left: 0; }
-}
+.scr-perks .ex-lead { margin: 0 4px 14px; font-size: 14px; line-height: 1.75; color: var(--ink-2); }
+.scr-perks .ex-fee p { font-size: 14px; color: var(--ink-2); }
+.scr-perks .ex-fee__acts { margin-top: 12px; gap: 4px 8px; }
 
 /* ---------- 窓の中 ---------- */
-.scr-perks .pk-mhead { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.scr-perks .pk-mhead .modal__ttl { margin-bottom: 0; font-size: 17px; }
-.scr-perks .pk-mhead__eyebrow { font-size: 12px; color: var(--ink-3); line-height: 1.4; }
-
+.scr-perks .modal__ttl { font-size: 17px; }
 .scr-perks .pk-code {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  margin-top: 16px; padding: 14px 16px; border-radius: var(--r);
-  background: var(--surface-2); border: 1px dashed var(--line-2);
+  margin-top: 14px; padding: 12px 14px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--line);
 }
 .scr-perks .pk-code__main { min-width: 0; }
-.scr-perks .pk-code__label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.scr-perks .pk-code__label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-3); }
 .scr-perks .pk-code__val {
-  display: block; margin-top: 4px; font-family: var(--font-mono); font-size: 19px; font-weight: 700;
-  letter-spacing: .06em; line-height: 1.4; word-break: break-all; color: var(--ink);
+  display: block; margin-top: 2px; font-family: var(--font-mono); font-size: 19px; font-weight: 700;
+  letter-spacing: .02em; line-height: 1.4; word-break: break-all; color: var(--ink);
 }
-.scr-perks .pk-mnote { margin-top: 10px; font-size: 12.5px; line-height: 1.7; color: var(--ink-3); }
 
-.scr-perks .pk-how { margin-top: 14px; }
-.scr-perks .pk-how__ttl { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-
-.scr-perks .pk-form { margin-top: 16px; }
+.scr-perks .pk-form { margin-top: 12px; }
 .scr-perks .pk-err { min-height: 1.2em; margin: -6px 0 4px; color: var(--accent-ink); font-weight: 600; }
-.scr-perks .pk-form .pk-mnote { margin-top: 0; }
+.scr-perks .pk-mnote { font-size: 12.5px; line-height: 1.7; color: var(--ink-3); }
 
-.scr-perks .pk-done { text-align: center; padding-top: 6px; }
-.scr-perks .pk-done__ico {
-  display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 50%;
-  background: var(--ok-weak); color: var(--ok); margin-bottom: 10px;
+.scr-perks .pk-sent {
+  margin-top: 14px; padding: 12px 14px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); line-height: 1.7;
 }
-.scr-perks .pk-done__ico .ico { width: 28px; height: 28px; }
-.scr-perks .pk-done__sent { margin-top: 14px; }
-.scr-perks .pk-done__label { font-size: 12px; color: var(--ink-3); margin-bottom: 4px; }

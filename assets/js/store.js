@@ -69,7 +69,7 @@
 
     // 自分の投稿（2件）
     s.posts.push({ id: 'my1', kind: 'intro', at: daysAgo(22, 22, 40), likes: 21, comments: 7,
-      text: 'はじめまして、高橋さくらです。\n住んでいるところ：北海道 旭川市\nいまのお仕事：会社員（事務）・2児の母\nここでやりたいこと：在宅で、月3万円の副収入をつくる\nよろしくお願いします！' });
+      text: 'はじめまして、高橋さくらです。\n住んでいるところ：北海道 旭川市\nいまのお仕事：会社員（事務）・2児の母\nやりたいこと：動画編集を覚えて、在宅の仕事を1件受ける\nよろしくお願いします！' });
     log(daysAgo(22, 22, 40), DATA.XP.post, 'タイムラインに投稿');
     s.posts.push({ id: 'my2', kind: 'win', at: daysAgo(11, 21, 5), likes: 16, comments: 3,
       text: 'お小遣い案件の商品モニター、はじめての報酬が確定しました！金額は小さいけど、自分で稼いだ1,200円はうれしい。' });
@@ -77,7 +77,7 @@
 
     // 案件
     s.gigs.g1 = { status: 'done', at: daysAgo(14), reward: 1200, doneAt: daysAgo(11) };
-    log(daysAgo(11, 21), DATA.XP.gigDone, '案件「' + DATA.GIGS[0].title + '」をやり終えた');
+    log(daysAgo(11, 21), DATA.XP.gigDone, '案件「' + DATA.GIGS[0].title + '」が完了');
     s.gigs.g2 = { status: 'applied', at: daysAgo(2, 12), note: '平日の夜なら参加できます' };
 
     // イベントの予約
@@ -146,9 +146,9 @@
     s.session = true;
     s.referredBy = form.ref || null;
     s.thread = [{ from: 'staff2', at: now,
-      text: (form.name || '') + 'さん、ご入会ありがとうございます！コミュニティ運営の佐藤です。\n' +
-        'まずは「スタートガイド」を上から進めてみてください。最初の1週間で、この場所の使い方がひと通り分かるようになっています。\n' +
-        '分からないことは、このメッセージでいつでも聞いてください。回数の制限はありません。' }];
+      text: (form.name || '') + 'さん、入会ありがとうございます。運営の佐藤です。\n' +
+        'まずはスタートガイドを見てください。最初の1週間でやることが並んでいます。\n' +
+        '分からないことは、ここでいつでも聞いてください。' }];
     s.invoices = [{ id: 'in_' + seq + '_1', at: now, amount: DATA.SITE.price, status: 'paid' }];
     return s;
   }

@@ -11,40 +11,27 @@
   var CLG = window.CLG, U = CLG.ui, R = CLG.rules, DATA = CLG.DATA;
   var esc = U.esc, icon = U.icon;
 
-  var KINDS = {
-    news:  { label: 'お知らせ', tag: 'tag-indigo' },
-    'new': { label: '新着講座', tag: 'tag-accent', link: '講座を見る' },
-    gig:   { label: '案件',     tag: 'tag-warn',   link: '案件を見る' },
-    event: { label: 'イベント', tag: 'tag-indigo', link: 'イベントを見る' },
-    win:   { label: '成果',     tag: 'tag-gold' },
-    intro: { label: '自己紹介', tag: 'tag-ok' },
-    post:  { label: 'つぶやき', tag: '' }
-  };
+  /* 投稿の種類は札にしない（1投稿に札は「固定」だけ）。運営の投稿は、中のリンクの文言で分かる */
+  var LINK_LABEL = { 'new': '講座を見る', gig: '案件を見る', event: 'イベントを見る' };
   var FILTERS = [
     ['all', 'すべて'], ['news', 'お知らせ'], ['new', '新着講座'], ['gig', '案件'],
     ['event', 'イベント'], ['win', '成果'], ['post', 'みんなの投稿']
   ];
   var EMPTY = {
-    all:   ['feed', 'まだ投稿はありません。最初のひとことをどうぞ。'],
-    news:  ['bell', 'いまはお知らせがありません。'],
-    'new': ['play', '新しい講座の知らせは、まだありません。'],
-    gig:   ['briefcase', '新着の案件は、まだありません。'],
-    event: ['calendar', 'イベントの知らせは、まだありません。'],
-    win:   ['star', 'まだ成果の報告はありません。小さなことでも、ぜひ。'],
-    post:  ['chat', 'まだ投稿はありません。']
+    all:   'まだ投稿はありません。',
+    news:  'お知らせはありません。',
+    'new': '新着講座の投稿はありません。',
+    gig:   '案件の投稿はありません。',
+    event: 'イベントの投稿はありません。',
+    win:   '成果の報告はまだありません。',
+    post:  'まだ投稿はありません。'
   };
+  /* 成果の例は、金額でなく「やったこと」にしておく（収入を言い切る投稿が並ばないように） */
   var PLACEHOLDER = {
-    post: '今日やったこと、聞きたいこと、なんでも',
-    win: 'できたこと、うれしかったこと（例：講座を1本見終えた、はじめて応募した）',
-    intro: '住んでいるところ、いまのお仕事、ここでやりたいこと'
+    post: '近況や質問を書く',
+    win: '例：講座を1本見終えた／はじめて案件に応募した',
+    intro: '自己紹介を書く'
   };
-  /* 成果の報告は金額の話になりやすい。収入を言い切る投稿が並ばないよう、書き方をそっと示す */
-  var HINT = {
-    post: '',
-    win: '金額よりも「やったこと・できたこと」を書くと、仲間の参考になります。',
-    intro: '空いているところを埋めて、そのまま投稿できます。'
-  };
-  var DAILY_XP = 3;   // domain.js の addPost と同じ「1日3回まで」
 
   /* 書きかけの投稿。いいねや絞り込みで描き直しても消えないよう、画面の外に持つ */
   var draft = { text: '', kind: 'post' };
@@ -59,15 +46,6 @@
     return EMPTY[k] ? k : 'all';
   }
   function introStep() { return R.steps().filter(function (s) { return s.id === 'intro'; })[0] || null; }
-  function postsToday(state) {
-    var today = CLG.now().toDateString();
-    return state.posts.filter(function (p) { return new Date(p.at).toDateString() === today; }).length;
-  }
-  function xpNote(state) {
-    var left = Math.max(0, DAILY_XP - postsToday(state));
-    if (!left) return '今日のXPは上限に達しました（投稿はいつでもできます）';
-    return '+' + DATA.XP.post + ' XP（1日' + DAILY_XP + '回まで' + (left < DAILY_XP ? '・今日はあと' + left + '回' : '') + '）';
-  }
   /* 自己紹介のすすめは、書く欄にひな形が入っているあいだは隠す（同じことを2か所で言わない） */
   function showIntroCard() { return !(draft.kind === 'intro' && draft.text.trim()); }
   /* ひな形の「〜：」のあとが空のままの行（カーソルを置く先・投稿前の確認に使う） */
@@ -78,18 +56,14 @@
   }
 
   /* ---------- 部品 ---------- */
-  function introCard(step) {
+  function introCard() {
     return '<div class="card intro-cta">' +
-      '<span class="intro-cta__ico">' + icon('pen') + '</span>' +
-      '<div class="intro-cta__body">' +
-        '<p class="intro-cta__ttl">自己紹介を書いてみましょう（1分）</p>' +
-        '<p class="sub">ひな形に沿って書くだけです。スタートガイドの項目にもなっています（+' + esc(step.xp) + ' XP）。</p>' +
-      '</div>' +
-      '<button type="button" class="btn btn-ink btn-s" data-feed-intro>ひな形で書く</button>' +
+      '<p class="intro-cta__ttl">まだ自己紹介を書いていません。</p>' +
+      '<button type="button" class="btn btn-ink btn-s" data-feed-intro>自己紹介を書く</button>' +
     '</div>';
   }
 
-  function composer(me, state, introOpen) {
+  function composer(me, introOpen) {
     var k = draft.kind;
     var opts = [['post', 'つぶやき'], ['win', '成果報告']];
     if (introOpen || k === 'intro') opts.push(['intro', '自己紹介']);
@@ -99,7 +73,6 @@
           '<label class="sr-only" for="feedText">投稿の本文</label>' +
           '<textarea id="feedText" class="textarea composer__ta" rows="3" maxlength="1000" placeholder="' +
             esc(PLACEHOLDER[k] || PLACEHOLDER.post) + '">' + esc(draft.text) + '</textarea>' +
-          '<p class="composer__hint xsmall"' + (HINT[k] ? '' : ' hidden') + '>' + esc(HINT[k] || '') + '</p>' +
         '</div>' +
       '</div>' +
       '<div class="composer__foot">' +
@@ -107,10 +80,7 @@
           var on = o[0] === k;
           return '<button type="button" data-feed-kind="' + o[0] + '" class="' + (on ? 'is-on' : '') + '" aria-pressed="' + on + '">' + esc(o[1]) + '</button>';
         }).join('') + '</div>' +
-        '<div class="composer__act">' +
-          '<span class="composer__xp xsmall">' + esc(xpNote(state)) + '</span>' +
-          '<button type="submit" class="btn btn-primary composer__send"' + (draft.text.trim() ? '' : ' disabled') + '>投稿する</button>' +
-        '</div>' +
+        '<button type="submit" class="btn btn-primary composer__send"' + (draft.text.trim() ? '' : ' disabled') + '>投稿する</button>' +
       '</div>' +
     '</form>';
   }
@@ -122,62 +92,55 @@
     }).join('') + '</div>';
   }
 
-  function postCard(p, now) {
+  function postItem(p) {
     var who = R.person(p.by);
-    var k = KINDS[p.kind] || KINDS.post;
-    var meta = who.me ? 'あなた' + (who.area ? '・' + who.area : '') : who.staff ? (who.role || '運営') : (who.area || '');
-    var age = now - new Date(p.at);
-    var isNew = age >= 0 && age < 86400000;
+    var meta = who.me ? 'あなた' : who.staff ? (who.role || '運営') : (who.area || '');
     // 外へ飛ぶリンクは作らない（会員ページの中の画面だけ）
     var link = p.link && /^#\//.test(p.link) ? p.link : '';
-    return '<article class="card post' + (p.id === lastPosted ? ' is-fresh' : '') + '">' +
+    return '<article class="post' + (p.id === lastPosted ? ' is-fresh' : '') + '">' +
       '<header class="post__head">' + U.avatar(who) +
         '<div class="post__who">' +
           '<p class="post__name">' + esc(who.name) + '</p>' +
           '<p class="post__meta">' +
             (meta ? '<span class="post__role">' + esc(meta) + '</span><span aria-hidden="true">·</span>' : '') +
             '<time datetime="' + esc(p.at) + '">' + esc(U.relTime(p.at)) + '</time>' +
-            (isNew ? '<span class="post__new">NEW</span>' : '') +
           '</p>' +
         '</div>' +
-        '<div class="post__tags">' +
-          (p.pinned ? '<span class="tag tag-line">' + icon('pin', 'ico-s') + '固定</span>' : '') +
-          '<span class="tag' + (k.tag ? ' ' + k.tag : '') + '">' + esc(k.label) + '</span>' +
-        '</div>' +
+        (p.pinned ? '<span class="post__pin">固定</span>' : '') +
       '</header>' +
       '<div class="post__text">' + U.nl2br(p.text) + '</div>' +
-      (link ? '<a class="btn btn-soft btn-s post__link" href="' + esc(link) + '">' + esc(k.link || '詳しく見る') + icon('arrow', 'ico-s') + '</a>' : '') +
+      (link ? '<p class="post__link"><a href="' + esc(link) + '">' + esc(LINK_LABEL[p.kind] || '詳しく見る') + '</a></p>' : '') +
       '<footer class="post__foot">' +
         '<button type="button" class="post__like' + (p.liked ? ' is-on' : '') + (p.id === popLike ? ' is-pop' : '') + '" data-feed-like="' + esc(p.id) + '"' +
           ' aria-pressed="' + (p.liked ? 'true' : 'false') + '" aria-label="いいね（' + U.num(p.likeCount) + '件）">' +
           icon('heart') + '<span class="num">' + U.num(p.likeCount) + '</span></button>' +
-        (p.comments ? '<span class="post__cmt">' + icon('comment', 'ico-s') + 'コメント ' + U.num(p.comments) + '件</span>' : '') +
+        (p.comments ? '<span class="post__cmt">コメント' + U.num(p.comments) + '件</span>' : '') +
       '</footer>' +
     '</article>';
   }
 
-  /** 横の列（広い画面では右、せまい画面では下）。ほかの画面への入口と、場の約束 */
+  /** 横の列（広い画面では右、せまい画面では下） */
   function side() {
     var mine = R.ranking('points').filter(function (r) { return r.me; })[0];
     var ev = R.upcoming().slice(0, 2);
     return '<aside class="feed-side" aria-label="あわせて見る">' +
       '<div class="list">' +
-        '<a class="li has-ico" href="#/ranking"><span class="li__ico">' + icon('trophy') + '</span>' +
-          '<span class="li__body"><span class="li__ttl">ランキング</span>' +
+        '<a class="li feed-side__rank" href="#/ranking"><span class="li__body li__ttl">今月のランキング</span>' +
           // 0pt で「13位」と出すと、入ったばかりの人には下から数えた順位に見えてしまう
-          '<span class="li__sub">' + (mine && mine.value ? '今月 ' + mine.rank + '位・' + U.num(mine.value) + 'pt' : '貢献ポイントと学びの順位') + '</span></span>' + U.chevron() + '</a>' +
+          (mine && mine.value ? '<span class="li__end num">' + mine.rank + '位・' + U.num(mine.value) + 'pt</span>' : '') +
+          U.chevron() + '</a>' +
       '</div>' +
       (ev.length ?
-        '<p class="sec-ttl feed-side__ttl">近いイベント<a href="#/events">すべて見る</a></p>' +
+        '<h2 class="feed-side__ttl">近いイベント<a href="#/events">すべて見る</a></h2>' +
         '<div class="list">' + ev.map(function (e) {
-          return '<a class="li has-ico" href="#/events/' + esc(encodeURIComponent(e.id)) + '"><span class="li__ico">' + icon('calendar') + '</span>' +
+          return '<a class="li" href="#/events/' + esc(encodeURIComponent(e.id)) + '">' +
             '<span class="li__body"><span class="li__ttl">' + esc(e.title) + '</span>' +
-            '<span class="li__sub">' + esc(U.fmtShort(e.at, true)) + (R.isReserved(e.id) ? '<span class="tag tag-ok feed-side__tag">予約済み</span>' : '') + '</span></span>' +
+            '<span class="li__sub">' + esc(U.fmtShort(e.at, true)) + (R.isReserved(e.id) ? '・予約済み' : '') + '</span></span>' +
             U.chevron() + '</a>';
         }).join('') + '</div>' : '') +
-      '<div class="card-flat feed-rules">' +
-        '<p class="feed-rules__ttl">' + icon('shield', 'ico-s') + 'この場所のルール</p>' +
-        '<ul>' + DATA.RULES.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul>' +
+      '<div class="feed-rules">' +
+        '<h2 class="feed-side__ttl">コミュニティのルール</h2>' +
+        '<ol>' + DATA.RULES.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ol>' +
       '</div>' +
     '</aside>';
   }
@@ -197,9 +160,6 @@
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     ta.placeholder = PLACEHOLDER[k] || PLACEHOLDER.post;
-    var hint = form.querySelector('.composer__hint');
-    hint.textContent = HINT[k] || '';
-    hint.hidden = !HINT[k];
     form.querySelector('.composer__send').disabled = !ta.value.trim();
     autosize(ta);
   }
@@ -226,21 +186,17 @@
       }
       var cur = filterOf(q);
       var list = R.feed(cur);
-      var now = CLG.now();
-      var empty = EMPTY[cur];
 
       return '<div class="scr-feed">' +
-        '<div class="page-head"><h1 class="page-ttl">タイムライン</h1>' +
-          '<p class="page-lead">運営・講師・仲間の、新しい動き。</p></div>' +
+        '<div class="page-head"><h1 class="page-ttl">タイムライン</h1></div>' +
         '<div class="feed-layout">' +
           '<div class="feed-main">' +
-            (introOpen && showIntroCard() ? introCard(step) : '') +
-            composer(me, ctx.state, introOpen) +
+            (introOpen && showIntroCard() ? introCard() : '') +
+            composer(me, introOpen) +
             chips(cur) +
-            (list.length
-              ? '<div class="feed-list">' + list.map(function (p) { return postCard(p, now); }).join('') + '</div>' +
-                '<p class="feed-end proto-note">試作版では、最近の投稿だけを表示しています。</p>'
-              : '<div class="card">' + U.empty(empty[0], empty[1]) + '</div>') +
+            '<div class="feed-list">' +
+              (list.length ? list.map(postItem).join('') : U.empty('', EMPTY[cur])) +
+            '</div>' +
           '</div>' +
           side() +
         '</div>' +

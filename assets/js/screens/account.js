@@ -1,7 +1,8 @@
 /* ============================================================
    アカウント（#/account）と解約（#/account/cancel）
    ------------------------------------------------------------
-   - プロフィール・通知・プランとお支払い・請求と領収書・試作版の操作
+   - プロフィール・通知・契約とお支払い・請求と領収書・ログアウト
+     （スマホだけ、試作版バーの代わりの2つのボタン）
    - 解約は「アカウント → 解約の手続き → 解約する」の2回で終わる。
      引き止めは解約の画面1枚だけ（確認の窓を重ねない）。
    ============================================================ */
@@ -77,22 +78,15 @@
     var m = R.me(), p = R.plan(), canceling = p.status === 'canceling';
     local.justCanceled = false;
     return '<div class="scr-account">' +
-      '<div class="page-head"><h1 class="page-ttl">アカウント</h1>' +
-        '<p class="page-lead">プロフィール、通知、お支払いの確認と変更ができます。</p></div>' +
+      '<div class="page-head"><h1 class="page-ttl">アカウント</h1></div>' +
       profileCard(m) +
       '<section class="sec"><h2 class="sec-ttl">通知</h2>' + notifyList(m) + '</section>' +
-      '<section class="sec"><h2 class="sec-ttl">プランとお支払い</h2>' + planCard(m, p, canceling, ctx.state) + '</section>' +
+      '<section class="sec"><h2 class="sec-ttl">契約とお支払い</h2>' + planCard(m, p, canceling, ctx.state) + '</section>' +
       '<section class="sec"><h2 class="sec-ttl">請求と領収書</h2>' + invoiceList() + '</section>' +
-      '<section class="sec"><h2 class="sec-ttl">試作版</h2>' + protoList() + '</section>' +
-      '<div class="list acc-logout">' +
-        '<button class="li has-ico" data-acc="logout"><span class="li__ico">' + icon('logout') + '</span>' +
-          '<span class="li__body"><span class="li__ttl">ログアウト</span>' +
-          '<span class="li__sub">次に入るときは、会員IDとパスワードを使います</span></span>' + U.chevron() + '</button>' +
+      '<div class="acc-bottom">' +
+        '<button type="button" class="btn btn-ghost" data-acc="logout">ログアウト</button>' +
       '</div>' +
-      '<div class="acc-leave">' +
-        '<a class="btn btn-text acc-leave__link" href="#/account/cancel">' + (canceling ? '解約の状況を見る・取り消す' : '解約の手続き') + '</a>' +
-        '<p>会員ページから2回の操作で解約できます。期間の終わりまで使えて、そこで終わります。</p>' +
-      '</div>' +
+      protoBox() +
     '</div>';
   }
 
@@ -104,44 +98,38 @@
         '<div class="acc-prof__who">' +
           (m.kana ? '<p class="acc-prof__kana">' + esc(m.kana) + '</p>' : '') +
           '<p class="acc-prof__name">' + esc(m.name) + '</p>' +
-          '<p class="acc-prof__meta"><span class="mono">' + esc(m.id) + '</span><span class="tag tag-line">' + esc(R.cohort()) + '</span></p>' +
+          '<p class="acc-prof__meta"><span class="mono">' + esc(m.id) + '</span>・' + esc(R.cohort()) + '</p>' +
         '</div>' +
       '</div>' +
-      (needs ? '<div class="notice acc-prof__hint">' + icon('info') +
-        '<div>住んでいる地域といまのお仕事を入れると、スタートガイドの「プロフィールを整える」が済になります（+' + stepXp('profile') + ' XP）。</div></div>' : '') +
+      (needs ? '<p class="notice acc-prof__hint">地域といまのお仕事を入れてください（スタートガイド +' + stepXp('profile') + ' XP）。</p>' : '') +
       '<div class="acc-prof__body"><table class="kv acc-kv"><tbody>' +
         '<tr><th>住んでいる地域</th><td>' + orEmpty(m.area) + '</td></tr>' +
         '<tr><th>いまのお仕事</th><td>' + orEmpty(m.job) + '</td></tr>' +
-        '<tr><th>ここでやりたいこと</th><td>' + (m.goal ? U.nl2br(m.goal) : '<span class="muted">未入力</span>') + '</td></tr>' +
+        '<tr><th>やりたいこと</th><td>' + (m.goal ? U.nl2br(m.goal) : '<span class="muted">未入力</span>') + '</td></tr>' +
         '<tr><th>メールアドレス</th><td class="acc-break">' + orEmpty(m.email, '未登録') + '</td></tr>' +
       '</tbody></table></div>' +
       '<div class="card-foot acc-prof__foot">' +
-        '<a class="btn btn-text" href="#/card">' + icon('card', 'ico-s') + '会員証を見る</a>' +
-        '<button class="btn ' + (needs ? 'btn-primary' : 'btn-soft') + ' btn-s" data-acc="edit">' + icon('pen', 'ico-s') + 'プロフィールを編集</button>' +
+        '<a class="btn btn-text" href="#/card">会員証を見る</a>' +
+        '<button type="button" class="btn ' + (needs ? 'btn-primary' : 'btn-soft') + ' btn-s" data-acc="edit">編集する</button>' +
       '</div>' +
     '</div>';
   }
 
   function notifyList(m) {
     var mailOn = m.notifyMail !== false;
-    var lineNote = m.lineLinked ? '連携済み：' + DATA.SITE.lineName
-      : (stepDone('line') ? 'いまは止めています' : 'オンにすると、スタートガイドが1つ進みます（+' + stepXp('line') + ' XP）');
+    var lineNote = m.lineLinked ? '連携済み：' + DATA.SITE.lineName : '未連携';
     return '<div class="list">' +
-      '<label class="li has-ico acc-sw">' +
-        '<span class="li__ico">' + icon('line') + '</span>' +
-        '<span class="li__body"><span class="li__ttl">LINEで通知を受け取る</span>' +
-          '<span class="li__sub">新しい講座・案件・イベント、運営からの返信をお知らせします。<br><span class="acc-sw__state">' + esc(lineNote) + '</span></span></span>' +
-        '<span class="switch"><input type="checkbox" data-acc-sw="line"' + (m.lineLinked ? ' checked' : '') + '><i></i></span>' +
+      '<label class="li acc-sw">' +
+        '<span class="li__body"><span class="li__ttl">LINE</span>' +
+          '<span class="li__sub">' + esc(lineNote) + '</span></span>' +
+        '<span class="switch"><input type="checkbox" data-acc-sw="line" aria-label="LINEで通知を受け取る"' + (m.lineLinked ? ' checked' : '') + '><i></i></span>' +
       '</label>' +
-      '<label class="li has-ico acc-sw">' +
-        '<span class="li__ico">' + icon('message') + '</span>' +
-        '<span class="li__body"><span class="li__ttl">メールで通知を受け取る</span>' +
-          '<span class="li__sub">イベントの前日のご案内、新しい講座、運営からの返信をお送りします。<br><span class="acc-sw__state">' +
-          (m.email ? '届け先：' + esc(m.email) : 'メールアドレスが未登録です。プロフィールの編集から登録できます') + '</span></span></span>' +
-        '<span class="switch"><input type="checkbox" data-acc-sw="mail"' + (mailOn ? ' checked' : '') + '><i></i></span>' +
+      '<label class="li acc-sw">' +
+        '<span class="li__body"><span class="li__ttl">メール</span>' +
+          '<span class="li__sub acc-break">' + (m.email ? esc(m.email) : 'メールアドレス未登録') + '</span></span>' +
+        '<span class="switch"><input type="checkbox" data-acc-sw="mail" aria-label="メールで通知を受け取る"' + (mailOn ? ' checked' : '') + '><i></i></span>' +
       '</label>' +
-    '</div>' +
-    '<p class="acc-hint">お支払いの確認メールは、この設定にかかわらずお送りします。会員ページの中のお知らせ（鈴のマーク）も、いつもどおり届きます。</p>';
+    '</div>';
   }
 
   function planCard(m, p, canceling, state) {
@@ -149,59 +137,56 @@
     var ref = state && state.referredBy;
     return '<div class="card acc-plan">' +
       '<div class="acc-plan__head">' +
-        '<div><p class="acc-eyebrow">いまのプラン</p>' +
-          '<p class="acc-plan__name">スタンダード　<span class="acc-nowrap">月額 ' + U.yen(p.price) + '（税込）</span></p></div>' +
+        '<p class="acc-plan__name">月額会員</p>' +
         (canceling ? '<span class="tag tag-warn">解約予定</span>' : '<span class="tag tag-ok">有効</span>') +
       '</div>' +
       (canceling ?
-        '<div class="notice notice-warn acc-plan__notice">' + icon('clock') +
-          '<div><b>' + U.fmtDate(until) + 'まで利用できます。</b>その日で終わり、次の請求はありません。' +
-          '<div class="acc-plan__undo"><button class="btn btn-ghost btn-s" data-acc="resume">解約を取り消す</button></div></div></div>' : '') +
+        '<div class="notice notice-warn acc-plan__notice"><div>' + U.fmtDate(until) + 'で終了します。次の請求はありません。' +
+          '<div class="acc-plan__undo"><button type="button" class="btn btn-ghost btn-s" data-acc="resume">解約を取り消す</button></div></div></div>' : '') +
       '<div class="acc-plan__body"><table class="kv acc-kv"><tbody>' +
+        '<tr><th>月額</th><td>' + U.yen(p.price) + '（税込）</td></tr>' +
         (canceling ? '' :
-          '<tr><th>次回のお支払い日</th><td>' + U.fmtDate(p.nextBill) + '<span class="muted">　' + U.yen(p.price) + '</span></td></tr>') +
+          '<tr><th>次回のお支払い日</th><td>' + U.fmtDate(p.nextBill) + '</td></tr>') +
         '<tr><th>お支払い方法</th><td><div class="acc-pay">' +
-          '<span class="acc-pay__card">' + icon('card', 'ico-s') + '<span class="num">' + orEmpty(p.card, '未登録') + '</span></span>' +
-          '<button class="btn btn-text btn-s" data-acc="card">変更する</button></div></td></tr>' +
+          '<span class="num">' + orEmpty(p.card, '未登録') + '</span>' +
+          '<button type="button" class="btn btn-text btn-s" data-acc="card">変更</button></div></td></tr>' +
         '<tr><th>更新</th><td>' + esc(DATA.SITE.billing) + '</td></tr>' +
-        '<tr><th>入会日</th><td>' + U.fmtDate(m.joinedAt) + '<span class="muted">　' + R.day() + '日目</span></td></tr>' +
-        (ref ? '<tr><th>紹介</th><td>紹介コード <span class="mono">' + esc(ref) + '</span> から入会</td></tr>' : '') +
+        '<tr><th>入会日</th><td>' + U.fmtDate(m.joinedAt) + '（' + R.day() + '日目）</td></tr>' +
+        (ref ? '<tr><th>紹介コード</th><td class="mono">' + esc(ref) + '</td></tr>' : '') +
       '</tbody></table></div>' +
+      '<div class="card-foot acc-plan__foot">' +
+        '<a class="acc-leave" href="#/account/cancel">' + (canceling ? '解約の状況' : '解約の手続き') + '</a>' +
+      '</div>' +
     '</div>';
   }
 
   function invoiceList() {
     var list = R.invoices();
-    if (!list.length) return '<div class="card">' + U.empty('receipt', 'まだ請求はありません。最初のお支払いのあとに、ここに領収書が出ます。') + '</div>' + taxNote();
+    if (!list.length) return '<div class="card card-pad acc-inv-empty">まだ請求はありません。</div>' + taxNote();
     return '<div class="list">' + list.map(function (x) {
       var paid = x.status === 'paid';
-      return '<div class="li has-ico acc-inv">' +
-        '<span class="li__ico">' + icon('receipt') + '</span>' +
+      return '<div class="li acc-inv">' +
         '<span class="li__body">' +
           '<span class="li__ttl">' + U.fmtDate(x.at) + '</span>' +
-          '<span class="li__sub"><span class="num">' + U.yen(x.amount) + '</span>（税込）　月額会費　' +
-            (paid ? '<span class="tag tag-ok">支払済</span>' : '<span class="tag tag-warn">お支払い待ち</span>') + '</span>' +
+          '<span class="li__sub">月額会費　<span class="num">' + U.yen(x.amount) + '</span>（税込）　' +
+            (paid ? '支払済' : '<b class="acc-inv__wait">お支払い待ち</b>') + '</span>' +
         '</span>' +
-        '<span class="li__end"><button class="btn btn-ghost btn-s" data-acc="receipt" data-id="' + esc(x.id) + '">' +
+        '<span class="li__end"><button type="button" class="btn btn-ghost btn-s" data-acc="receipt" data-id="' + esc(x.id) + '">' +
           icon('download', 'ico-s') + '領収書</button></span>' +
       '</div>';
     }).join('') + '</div>' + taxNote();
   }
   function taxNote() {
-    return '<p class="acc-hint">' + icon('info', 'ico-s') + '会費を経費にできるかは事業の内容によります。' +
-      '<a href="#/perks?tab=experts">提携の税理士に無料で相談できます（初回30分）</a>。</p>';
+    return '<p class="acc-hint">会費を経費にできるかは、<a href="#/perks?tab=experts">提携の税理士</a>に相談できます（初回30分無料）。</p>';
   }
 
-  function protoList() {
-    return '<div class="list">' +
-      '<button class="li has-ico" data-acc="reset"><span class="li__ico">' + icon('settings') + '</span>' +
-        '<span class="li__body"><span class="li__ttl">デモを最初からにする</span>' +
-        '<span class="li__sub">高橋さくらさん（入会24日目）の状態に戻します</span></span>' + U.chevron() + '</button>' +
-      '<button class="li has-ico" data-acc="fresh"><span class="li__ico">' + icon('flag') + '</span>' +
-        '<span class="li__body"><span class="li__ttl">入会したての状態で見る</span>' +
-        '<span class="li__sub">山田 はなさんが今日入会した、という状態で開きます</span></span>' + U.chevron() + '</button>' +
-    '</div>' +
-    '<p class="proto-note acc-proto-note">この項目は打ち合わせ用です。本番の会員ページにはありません。</p>';
+  /** スマホでは右下の試作版バーが出ないので、同じ2つをここに置く（パソコンでは出さない） */
+  function protoBox() {
+    return '<div class="acc-proto">' +
+      '<span>試作版</span>' +
+      '<button type="button" data-acc="fresh">入会したての状態で見る</button>' +
+      '<button type="button" data-acc="reset">デモを最初から</button>' +
+    '</div>';
   }
 
   /* ---------- プロフィールの編集 ---------- */
@@ -211,7 +196,7 @@
     // 窓は body の直下に出るので、画面の CSS が効くように .scr-account で包む
     var box = U.modal('<div class="scr-account acc-edit">' +
       '<h3 class="modal__ttl">プロフィールを編集</h3>' +
-      '<p class="sub acc-form__lead">お名前・地域・いまのお仕事は、タイムラインやランキングでほかの会員にも表示されます。</p>' +
+      '<p class="sub acc-form__lead">お名前・地域・お仕事はほかの会員にも表示されます。メールアドレスは表示されません。</p>' +
       '<form class="acc-form" novalidate>' +
         '<label class="field"><span>お名前</span>' +
           '<input class="input" name="name" autocomplete="name" maxlength="30" value="' + esc(m.name) + '"></label>' +
@@ -223,18 +208,15 @@
               PREFS.map(function (x) { return '<option' + (x === a.pref ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') +
             '</select>' +
             '<input class="input" name="city" maxlength="30" aria-label="市区町村" placeholder="市区町村（例：旭川市）" value="' + esc(a.city) + '">' +
-          '</div>' +
-          '<small>市区町村まで入れると、近くの会員や地域のオフ会が見つけやすくなります。</small></div>' +
+          '</div></div>' +
         '<label class="field"><span>いまのお仕事</span>' +
           '<input class="input" name="job" maxlength="40" placeholder="例：会社員（事務）・2児の母" value="' + esc(m.job) + '"></label>' +
-        '<label class="field"><span>ここでやりたいこと</span>' +
-          '<textarea class="textarea" name="goal" maxlength="120" rows="3" placeholder="例：動画編集を覚えて、在宅の仕事を1件受ける">' + esc(m.goal) + '</textarea>' +
-          '<small>運営が、あなたに合う講座や案件を案内するときの手がかりにします。</small></label>' +
+        '<label class="field"><span>やりたいこと</span>' +
+          '<textarea class="textarea" name="goal" maxlength="120" rows="3" placeholder="例：動画編集を覚えて、在宅の仕事を1件受ける">' + esc(m.goal) + '</textarea></label>' +
         '<label class="field"><span>メールアドレス</span>' +
-          '<input class="input" name="email" type="email" inputmode="email" autocomplete="email" maxlength="80" placeholder="例：name@example.com" value="' + esc(m.email) + '">' +
-          '<small>ほかの会員には表示されません。ログインとお知らせのメールに使います。</small></label>' +
+          '<input class="input" name="email" type="email" inputmode="email" autocomplete="email" maxlength="80" placeholder="例：name@example.com" value="' + esc(m.email) + '"></label>' +
         '<p class="acc-form__err" role="alert"></p>' +
-        '<div class="modal__foot"><button type="button" class="btn btn-soft" data-close>やめる</button>' +
+        '<div class="modal__foot"><button type="button" class="btn btn-soft" data-close>閉じる</button>' +
           '<button type="submit" class="btn btn-primary">保存する</button></div>' +
       '</form></div>');
     var form = box.querySelector('form');
@@ -253,7 +235,7 @@
       });
       box.close();
       if (result) CLG.app.reward(result);
-      else U.toast(mailChanged && email ? 'プロフィールを保存しました。本番では新しいアドレスに確認のメールが届きます' : 'プロフィールを保存しました', 'ok');
+      else U.toast(mailChanged && email ? '保存しました。新しいアドレスに確認のメールを送ります' : '保存しました', 'ok');
       CLG.app.refresh();
     });
   }
@@ -270,12 +252,12 @@
         '*{box-sizing:border-box}body{margin:0;background:#f3f2ef;color:#1d1b18;font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;line-height:1.7}' +
         '.sheet{max-width:720px;margin:32px auto;background:#fff;padding:48px 52px;border:1px solid #e7e3dc}' +
         '.top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}' +
-        'h1{margin:0;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;font-size:30px;letter-spacing:.5em;font-weight:700}' +
+        'h1{margin:0;font-size:26px;letter-spacing:.02em;font-weight:800}' +
         '.meta{margin:0;font-size:13px;display:grid;grid-template-columns:auto auto;gap:2px 14px;color:#55514a}.meta dt{color:#8b867d}.meta dd{margin:0}' +
         '.to{margin:36px 0 0;font-size:20px;border-bottom:1px solid #1d1b18;padding-bottom:6px;display:inline-block;min-width:60%}.to small{font-size:15px;margin-left:12px}' +
         '.amount{margin:28px 0 0;background:#faf9f7;border:1px solid #e7e3dc;padding:18px 22px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}' +
         '.amount span{font-size:13px;color:#55514a}.amount b{font-size:32px;letter-spacing:.02em;font-variant-numeric:tabular-nums}.amount small{font-size:13px;color:#55514a}' +
-        '.for{margin:18px 0 0;font-size:14px}' +
+        '.for{margin:18px 0 0;font-size:14px}.nw{white-space:nowrap}' +
         'table{width:100%;border-collapse:collapse;margin-top:26px;font-size:13.5px}th,td{text-align:left;padding:9px 0;border-bottom:1px solid #e7e3dc;vertical-align:top}th{width:9em;color:#8b867d;font-weight:500}' +
         '.issuer{margin-top:34px;display:flex;justify-content:flex-end}.issuer div{font-size:13.5px;min-width:260px}.issuer b{font-size:15px}' +
         '.note{margin-top:30px;font-size:11.5px;color:#8b867d;border-top:1px dashed #d6d1c7;padding-top:12px}' +
@@ -290,14 +272,14 @@
         '<p class="for">但し　' + esc(site.name) + ' 月額会費として<br>上記の金額を正に領収いたしました。</p>' +
         '<table><tbody>' +
           '<tr><th>お支払い日</th><td>' + esc(U.fmtDate(inv.at, { wd: false })) + '</td></tr>' +
-          '<tr><th>対象期間</th><td>' + esc(U.fmtDate(from, { wd: false })) + ' 〜 ' + esc(U.fmtDate(to, { wd: false })) + '</td></tr>' +
-          '<tr><th>内訳</th><td>10%対象　' + esc(U.yen(amount)) + '（うち消費税 ' + esc(U.yen(tax)) + '）</td></tr>' +
+          '<tr><th>対象期間</th><td><span class="nw">' + esc(U.fmtDate(from, { wd: false })) + ' 〜</span> <span class="nw">' + esc(U.fmtDate(to, { wd: false })) + '</span></td></tr>' +
+          '<tr><th>内訳</th><td>10%対象　' + esc(U.yen(amount)) + '<span class="nw">（うち消費税 ' + esc(U.yen(tax)) + '）</span></td></tr>' +
           '<tr><th>お支払い方法</th><td>クレジットカード' + (m.card ? '（' + esc(m.card) + '）' : '') + '</td></tr>' +
           '<tr><th>会員ID</th><td>' + esc(m.id) + '</td></tr>' +
         '</tbody></table>' +
         '<div class="issuer"><div><b>' + esc(nameFull) + '</b><br>発行者：' + esc(site.company) + '<br>登録番号：登録予定</div></div>' +
-        '<p class="note">試作版で作った見本です。正式な領収書としては使えません。本番では、お支払いごとに自動で発行します。</p>' +
-        '<div class="print"><button type="button" onclick="window.print()">印刷する・PDFで保存する</button></div>' +
+        '<p class="note">試作版の見本です。領収書としては使えません。</p>' +
+        '<div class="print"><button type="button" onclick="window.print()">印刷する</button></div>' +
       '</main></body></html>';
   }
 
@@ -307,72 +289,56 @@
   function renderCancel(ctx) {
     var p = R.plan();
     var head = '<nav class="crumb" aria-label="現在地"><a href="#/account">アカウント</a>' + U.chevron() + '<span>解約</span></nav>' +
-      '<div class="page-head"><h1 class="page-ttl">解約の手続き</h1>' +
-      '<p class="page-lead">' + (p.status === 'canceling' ? '解約の受付と、取り消しができます。' : '下の「解約する」を押すと、手続きが終わります。') + '</p></div>';
+      '<div class="page-head"><h1 class="page-ttl">解約の手続き</h1></div>';
     if (p.status === 'canceling') return '<div class="scr-account acc-cancel">' + head + doneView(p) + '</div>';
 
     var until = lastDay(p), u = R.unusedSummary(), left = remaining();
-    // 予約中でも、使える最後の日より後のイベントには出られない。先に正直に伝える
+    // 予約中でも、使える最後の日より後のイベントには出られない。先に伝える
     var lateBooked = R.myUpcoming().filter(function (e) { return new Date(e.at) > endOfDay(until); }).length;
     var rows = [];
-    if (left.courses > 0) rows.push(keepRow('play', 'まだ見終えていない講座', 'いまのレベルで見られる講座です。残り' + left.lessons + '本・' + U.num(left.minutes) + '分',
-      '<b class="num">' + left.courses + '</b>講座'));
-    if (u.events > 0) rows.push(keepRow('calendar', 'これからのイベント',
-      'オンラインの勉強会や、地域のオフ会' + (lateBooked ? '。予約中のうち' + lateBooked + '件は' + U.fmtDate(until, { noYear: true }) + 'より後なので、参加できなくなります' : ''),
-      '<b class="num">' + u.events + '</b>件'));
+    if (left.courses > 0) rows.push('<tr><th>見終えていない講座</th><td>' + left.courses + '講座（残り' + left.lessons + '本・' + U.num(left.minutes) + '分）</td></tr>');
+    if (u.events > 0) rows.push('<tr><th>これからのイベント</th><td>' + u.events + '件' +
+      (lateBooked ? '<br><span class="acc-warn">予約中のうち' + lateBooked + '件は' + U.fmtDate(until, { noYear: true }) + 'より後のため、参加できません。</span>' : '') + '</td></tr>');
     // 紹介の報酬は引き止めの理由に使わない（会員資格と紹介収入を結びつけないため）
 
     return '<div class="scr-account acc-cancel">' + head +
       '<div class="card acc-cancel__lead">' +
-        '<p class="acc-cancel__until"><b>' + U.fmtDate(until) + '</b>まで、今と同じように使えます。</p>' +
-        '<p class="sub">途中の返金・違約金はありません。' + U.fmtDate(p.periodEnd, { noYear: true }) + 'の請求は行われず、そのまま終わります。</p>' +
+        '<p class="acc-cancel__until"><b>' + U.fmtDate(until) + '</b>まで使えて、その日で終了します。</p>' +
+        '<p>' + U.fmtDate(p.periodEnd, { noYear: true }) + '以降の請求はありません。途中解約の返金・違約金もありません。</p>' +
       '</div>' +
-      '<section class="sec"><h2 class="sec-ttl">まだ使っていないもの</h2>' +
-        (rows.length ? '<div class="list">' + rows.join('') + '</div>'
-          : '<div class="card">' + U.empty('checkc', 'まだ使っていないものは、特にありません。') + '</div>') +
-      '</section>' +
-      '<section class="sec"><h2 class="sec-ttl">よければ、理由を教えてください（任意）</h2>' +
-        '<div class="card card-pad">' +
-          '<div class="chips" role="group" aria-label="解約の理由">' + REASONS.map(function (r) {
-            var on = local.reasons.indexOf(r) >= 0;
-            return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-acc="reason" data-v="' + esc(r) + '">' + esc(r) + '</button>';
-          }).join('') + '</div>' +
-          '<p class="acc-hint acc-hint-in">選ばなくても解約できます。いただいた声は、講座と運営の見直しに使います。</p>' +
-        '</div>' +
+      (rows.length ? '<section class="sec"><h2 class="sec-ttl">まだ使っていないもの</h2>' +
+        '<div class="card acc-cancel__left"><table class="kv acc-kv"><tbody>' + rows.join('') + '</tbody></table></div>' +
+      '</section>' : '') +
+      '<section class="sec"><h2 class="sec-ttl">解約の理由（任意）</h2>' +
+        '<div class="chips" role="group" aria-label="解約の理由">' + REASONS.map(function (r) {
+          var on = local.reasons.indexOf(r) >= 0;
+          return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-acc="reason" data-v="' + esc(r) + '">' + esc(r) + '</button>';
+        }).join('') + '</div>' +
       '</section>' +
       '<div class="acc-cancel__act">' +
-        '<a class="btn btn-soft btn-l" href="#/account">やめておく</a>' +
+        '<a class="btn btn-soft btn-l" href="#/account">戻る</a>' +
         '<button type="button" class="btn btn-danger btn-l" data-acc="cancel">解約する</button>' +
       '</div>' +
-      '<p class="proto-note acc-cancel__proto">試作版：本番では Stripe の定期課金を、期間の終わりで止めます。</p>' +
     '</div>';
-  }
-
-  function keepRow(ic, ttl, sub, end) {
-    return '<div class="li has-ico"><span class="li__ico">' + icon(ic) + '</span>' +
-      '<span class="li__body"><span class="li__ttl">' + esc(ttl) + '</span><span class="li__sub">' + esc(sub) + '</span></span>' +
-      (end ? '<span class="li__end"><span class="acc-keep__n">' + end + '</span></span>' : '') + '</div>';
   }
 
   /** 解約を受け付けたあと（押した直後と、あとから開いたときで言い方を変える） */
   function doneView(p) {
     var until = lastDay(p), just = local.justCanceled;
     return '<div class="card acc-done">' +
-      '<span class="acc-done__mark' + (just ? '' : ' is-wait') + '">' + icon(just ? 'check' : 'clock', 'ico-l') + '</span>' +
-      '<h2 class="acc-done__ttl">' + (just ? '解約を受け付けました。' : '解約の手続きは済んでいます。') + '</h2>' +
-      '<p class="acc-done__lead">' + U.fmtDate(until) + 'まで使えます。</p>' +
-      (just ? '<p class="sub">確認のメールをお送りしました（試作版では送信しません）</p>' : '') +
-      (just && local.sentReasons.length ? '<p class="sub acc-done__thanks">理由（' + esc(local.sentReasons.join('・')) + '）も受け取りました。ありがとうございました。</p>' : '') +
+      '<h2 class="acc-done__ttl">' + (just ? '解約を受け付けました' : '解約の手続きは済んでいます') + '</h2>' +
+      (just ? '<p class="acc-done__msg">確認のメールを送りました。' +
+        (local.sentReasons.length ? '理由の回答もありがとうございました。' : '') + '</p>' : '') +
       '<table class="kv acc-kv acc-done__kv"><tbody>' +
         '<tr><th>使える最後の日</th><td>' + U.fmtDate(until) + '</td></tr>' +
-        '<tr><th>次回のお支払い</th><td>ありません</td></tr>' +
-        '<tr><th>返金・違約金</th><td>ありません</td></tr>' +
+        '<tr><th>次回のお支払い</th><td>なし</td></tr>' +
+        '<tr><th>返金・違約金</th><td>なし</td></tr>' +
+        '<tr><th>取り消し</th><td>' + U.fmtDate(until, { noYear: true }) + 'までできます</td></tr>' +
       '</tbody></table>' +
       '<div class="acc-done__act">' +
         '<button type="button" class="btn btn-ghost" data-acc="resume-go">解約を取り消す</button>' +
         '<a class="btn btn-text" href="#/account">アカウントに戻る</a>' +
       '</div>' +
-      '<p class="acc-hint acc-hint-in">' + U.fmtDate(until, { noYear: true }) + 'までなら、ここからいつでも取り消せます。</p>' +
     '</div>';
   }
 
@@ -385,22 +351,22 @@
     var act = b.getAttribute('data-acc');
 
     if (act === 'edit') openEditor();
-    else if (act === 'card') U.toast('本番では Stripe の安全な画面が開き、変更後はこのページに戻ります');
+    else if (act === 'card') U.toast('本番では Stripe のカード変更画面が開きます');
     else if (act === 'receipt') {
       var inv = R.invoices().filter(function (x) { return x.id === b.getAttribute('data-id'); })[0];
       if (!inv) return;
       U.download('領収書_' + isoDay(inv.at) + '.html', receiptHtml(inv), 'text/html');
-      U.toast('領収書を保存しました。開くと印刷・PDF保存ができます', 'ok');
+      U.toast('領収書をダウンロードしました', 'ok');
     }
     else if (act === 'resume') {
       CLG.app.reward(R.resumePlan());
-      U.toast('解約を取り消しました。これまでどおり続けられます', 'ok');
+      U.toast('解約を取り消しました', 'ok');
       ctx.refresh();
     }
     else if (act === 'resume-go') {
       CLG.app.reward(R.resumePlan());
       local.justCanceled = false;
-      U.toast('解約を取り消しました。これまでどおり続けられます', 'ok');
+      U.toast('解約を取り消しました', 'ok');
       ctx.go('#/account');
     }
     else if (act === 'reason') {
@@ -428,7 +394,7 @@
       });
     }
     else if (act === 'fresh') {
-      U.confirmBox('入会したての状態で見る', '「山田 はな」さんが今日入会した、という状態で会員ページを開きます。\n元に戻すときは「デモを最初からにする」を押してください。', '入会1日目で見る').then(function (ok) {
+      U.confirmBox('入会したての状態で見る', '「山田 はな」さんが今日入会した、という状態で会員ページを開きます。\n元に戻すときは「デモを最初から」を押してください。', '入会1日目で見る').then(function (ok) {
         if (!ok) return;
         CLG.store.startFresh({ name: '山田 はな' });
         resetLocal();
@@ -448,7 +414,7 @@
     var on = sw.checked, kind = sw.getAttribute('data-acc-sw'), result;
     if (kind === 'line') {
       result = R.linkLine(on);
-      U.toast(on ? 'LINEと連携しました（本番では LINE の画面で友だち追加をしてから戻ります）' : 'LINEの通知を止めました');
+      U.toast(on ? 'LINEと連携しました' : 'LINEの通知を止めました');
     } else {
       result = R.saveProfile({ notifyMail: on });
       U.toast(on ? 'メールの通知をオンにしました' : 'メールの通知を止めました');

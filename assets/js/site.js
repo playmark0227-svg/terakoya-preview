@@ -1,11 +1,12 @@
 /* ============================================================
    公開サイト（サービス紹介・入会の申込み・特商法などの表記）
    ------------------------------------------------------------
-   - 「読んでもらう紙の資料」。ヘッダーとフッターは描き直さず、#site-main だけを描き直す。
+   - ヘッダーとフッターは描き直さず、#site-main だけを描き直す。
    - URL：#/（紹介）、#/join（申込み）、#/tokushoho、#/terms、#/privacy
    - ページ内の移動は data-scroll で行う（#id のリンクにすると画面の切り替えと混ざるため）。
    - 料金と契約の条件は COND に一か所で持つ。紹介・確認画面・特商法で文言を完全にそろえるため。
    - 紹介の報酬のことは、この紹介ページには書かない（収入を目的に入会を勧めない）。
+   - 画面の見本は会員ページの実際のスクリーンショット（assets/img/shot-*.webp。tools/lp-images.js で撮る）。
    ============================================================ */
 (function (global) {
   'use strict';
@@ -18,7 +19,6 @@
   /* ---------- 小さな道具 ---------- */
   /** 10000 → 「10,000円」（法定表示に合わせて円で書く） */
   function en(n) { return U.num(n) + '円'; }
-  function byId(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
   function courseAt(lv) { return DATA.COURSES.filter(function (c) { return c.level === lv; }); }
   /** 句読点（または sep の文字）のあとで区切り、塊ごとに折り返す（変なところで割れないように） */
   function phrases(s, sep) {
@@ -30,16 +30,17 @@
   function reduceMotion() {
     try { return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; }
   }
-  /** 今日から日付の上で何日後か（時刻は見ない） */
-  function daysUntil(iso) {
-    var a = CLG.now(); a.setHours(0, 0, 0, 0);
-    var b = new Date(iso); b.setHours(0, 0, 0, 0);
-    return Math.round((b - a) / 86400000);
+  /** 会員ページのスクリーンショット（390×844 を2倍で撮ったもの。1枚50KB前後なので遅延読み込みはしない：
+      印刷やページ全体のスクリーンショットで枠だけになるため） */
+  function shotImg(name, alt, first) {
+    return '<img src="assets/img/shot-' + name + '.webp" width="390" height="844" alt="' + esc(alt) + '"' +
+      (first ? '' : ' fetchpriority="low"') + ' decoding="async">';
   }
 
   var LESSONS = DATA.COURSES.reduce(function (a, c) { return a.concat(c.lessons); }, []);
   var LONGEST = LESSONS.reduce(function (a, l) { return Math.max(a, l.min); }, 0);
   var EXPERT_NOTE = (DATA.EXPERTS[0] && DATA.EXPERTS[0].note) || '初回無料';
+  var COURSE_COUNT = DATA.COURSES.length + '講座・' + LESSONS.length + '本';
 
   /* ---------- 契約の条件（紹介・確認画面・特商法・規約で同じ文言を使う） ---------- */
   var COND = {
@@ -93,9 +94,9 @@
     try { return cleanRef(global.sessionStorage.getItem(REF_KEY)); } catch (e) { return ''; }
   }
 
-  /* ---------- 見出しとページ内の案内 ---------- */
-  var NAV = [['can', '学べること'], ['portal', '会員ページ'], ['price', '料金'], ['faq', 'よくある質問']];
-  var SECTIONS = ['why', 'can', 'levels', 'days', 'portal', 'fit', 'price', 'faq'];
+  /* ---------- ヘッダーとフッター ---------- */
+  var NAV = [['can', 'できること'], ['portal', '会員ページ'], ['levels', '講座'], ['price', '料金'], ['faq', 'よくある質問']];
+  var SECTIONS = ['can', 'portal', 'levels', 'days', 'fit', 'price', 'faq'];
 
   function headerHtml() {
     var navBtns = NAV.map(function (n) {
@@ -106,7 +107,7 @@
         '<a class="site-head__brand" href="#/" aria-label="' + esc(BRAND) + ' トップへ">' + U.brandmark(SITE, SITE.note) + '</a>' +
         '<nav class="site-nav" aria-label="ページ内の案内">' + navBtns + '</nav>' +
         '<div class="site-head__act">' +
-          '<a class="site-head__login" href="member.html">' + icon('user', 'ico-s') + '会員ログイン</a>' +
+          '<a class="site-head__login" href="member.html">ログイン</a>' +
           '<a class="site-btn site-btn--primary site-btn--s site-head__cta" href="#/join">入会する</a>' +
           '<button type="button" class="site-head__menu" data-menu aria-expanded="false" aria-controls="site-menu" aria-label="メニューを開く">' + icon('menu') + '</button>' +
         '</div>' +
@@ -116,7 +117,7 @@
           '<nav class="site-menu__nav" aria-label="メニュー">' + NAV.map(function (n) {
             return '<button type="button" data-scroll="' + n[0] + '"><span>' + esc(n[1]) + '</span>' + U.chevron() + '</button>';
           }).join('') +
-            '<a href="member.html"><span>' + icon('user', 'ico-s') + '会員ログイン</span>' + U.chevron() + '</a>' +
+            '<a href="member.html"><span>会員ログイン</span>' + U.chevron() + '</a>' +
           '</nav>' +
         '</div>' +
       '</div>' +
@@ -131,307 +132,144 @@
     return '<footer class="site-foot">' +
       '<div class="site-wrap">' +
         '<div class="site-foot__top">' +
-          '<div class="site-foot__brand">' + U.brandmark(SITE, SITE.nameJa + '（' + SITE.note + '）') +
-            '<p>令和の寺子屋。' + esc(SITE.catchcopy) + '</p></div>' +
+          '<a class="site-foot__brand" href="#/">' + U.brandmark(SITE, SITE.note) + '</a>' +
           '<ul class="site-foot__links">' + links.map(function (l) {
             return '<li><a href="' + esc(l[0]) + '">' + esc(l[1]) + '</a></li>';
           }).join('') + '</ul>' +
         '</div>' +
         '<div class="site-foot__bottom">' +
           '<p>運営：' + esc(SITE.company) + '</p>' +
-          '<p class="site-foot__proto">試作版：名前・料金・内容は検討中です。人物・数値はすべて架空です。</p>' +
+          '<p>試作版です。名前・料金・内容は検討中で、人物と数字は架空です。</p>' +
         '</div>' +
       '</div>' +
     '</footer>';
   }
 
-  function secHead(title, lead) {
-    return '<h2 class="site-h2">' + phrases(title) + '</h2>' + (lead ? '<p class="site-sec__lead">' + esc(lead) + '</p>' : '');
-  }
+  function h2(title) { return '<h2 class="site-h2">' + esc(title) + '</h2>'; }
 
   /* ============================================================
      サービス紹介（#/）
      ============================================================ */
 
-  /* ---------- 最初の画面：会員ページのホームの見本 ----------
-     デモ会員（高橋さん・入会24日目・Lv3 あと30XP）と同じ状態を、画像ではなく部品で組む */
-  function mockHome() {
-    var M = DATA.MEMBER, L = DATA.LEVELS;
-    var cur = L[2] || L[0], next = L[3] || cur, toNext = 30;
-    var xp = next.min - toNext;
-    var pct = next.min > cur.min ? Math.round((xp - cur.min) / (next.min - cur.min) * 100) : 100;
-    var first = String(M.name).split(' ')[1] || M.name;
-    var sns = byId(DATA.COURSES, 'sns-basic') || DATA.COURSES[0];
-    var les = sns.lessons[2] || sns.lessons[0];
-    var no = sns.lessons.indexOf(les) + 1;
-    var day = M.joinedDaysAgo + 1;
-    var show = DATA.EVENTS.filter(function (e) { return e.kind === 'showcase'; })[0];
-    var showIn = show ? daysUntil(show.at) : 0;
-    var opens = courseAt(next.lv).length;
-
-    return '<a class="site-mock" href="member.html?demo=1#/home" aria-label="会員ページのデモを開く（ホーム画面の見本）">' +
-      '<div class="site-mock__screen">' +
-        '<div class="site-mock__top"><span class="site-mock__seal">' + esc(SITE.seal) + '</span>ホーム' +
-          '<span class="site-mock__av" aria-hidden="true">' + esc(U.initials(M.name)) + '</span></div>' +
-        '<div class="site-mock__body">' +
-          '<p class="site-mock__hello">おかえりなさい、' + esc(first) + 'さん</p>' +
-          '<div class="site-mock__card">' +
-            '<div class="site-mock__row"><span class="site-mock__lv"><b>Lv' + esc(cur.lv) + '</b>' + esc(cur.name) + '</span>' +
-              '<span>あと <b class="num">' + toNext + '</b> XP</span></div>' +
-            '<div class="site-mock__meter"><i data-w="' + pct + '"></i></div>' +
-            '<p class="site-mock__hint">Lv' + esc(next.lv) + 'になると、講座が' + opens + 'つ開きます</p>' +
-          '</div>' +
-          '<p class="site-mock__k">今日やること</p>' +
-          '<div class="site-mock__card site-mock__today">' +
-            '<span class="site-mock__play">' + icon('play') + '</span>' +
-            '<span class="site-mock__t"><b>' + esc(sns.title) + ' 第' + no + '回</b><small>' + esc(les.title) + '・' + esc(les.min) + '分</small></span>' +
-            U.chevron() +
-          '</div>' +
-          '<p class="site-mock__k">スタートガイド</p>' +
-          '<div class="site-mock__card">' +
-            '<div class="site-mock__row"><b class="site-mock__day">Day ' + day + ' <small>/ 30</small></b>' +
-              (show && showIn > 0 ? '<span>成果発表会まで あと' + showIn + '日</span>' : '') + '</div>' +
-            '<div class="site-mock__meter site-mock__meter--ink"><i data-w="' + Math.round(day / 30 * 100) + '"></i></div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</a>';
-  }
-
   function hero() {
     return '<section class="site-hero">' +
       '<div class="site-wrap site-hero__grid">' +
         '<div class="site-hero__text">' +
-          '<p class="site-hero__eyebrow">月額制のオンラインスクール兼コミュニティ</p>' +
-          '<h1 class="site-h1">' + phrases(SITE.catchcopy) + '</h1>' +
-          '<p class="site-hero__lead">' + esc(SITE.lead) + '</p>' +
+          '<h1 class="site-h1">' + esc(SITE.catchcopy) + '</h1>' +
+          '<p class="site-hero__lead">' + esc(COURSE_COUNT) + 'の動画が見放題。案件の紹介、運営への相談、各地のオフ会もあります。</p>' +
           '<p class="site-hero__cond">' + phrases(COND.short, '・') + '</p>' +
           '<div class="site-hero__cta">' +
-            '<a class="site-btn site-btn--primary site-btn--l" href="#/join">入会する' + icon('arrow') + '</a>' +
-            '<a class="site-btn site-btn--ghost site-btn--l" href="member.html?demo=1#/home">会員ページのデモを見る</a>' +
+            '<a class="site-btn site-btn--primary site-btn--l" href="#/join">入会する</a>' +
+            '<a class="site-btn site-btn--ghost site-btn--l" href="member.html?demo=1#/home">デモを見る</a>' +
           '</div>' +
-          '<p class="site-hero__fine">申込みの最後に、料金と解約の条件をもう一度確認できます。</p>' +
         '</div>' +
-        '<figure class="site-hero__fig">' + mockHome() +
-          '<figcaption>会員ページのホーム（試作版）。押すとデモが開きます。</figcaption></figure>' +
+        '<a class="site-phone site-hero__shot" href="member.html?demo=1#/home">' + shotImg('home', '会員ページのホーム画面', true) + '</a>' +
       '</div>' +
     '</section>';
   }
 
-  /* ---------- 情報がばらばら → ひとつに ---------- */
-  function why() {
-    var before = [['講座は', '外部の講座サイト'], ['お知らせは', 'LINEグループ'], ['資料は', 'Notion'], ['申込は', 'フォーム'], ['相談は', '個別のLINE']];
-    var after = [
-      ['play', '講座と、勉強会の録画'],
-      ['bell', '運営からのお知らせ'],
-      ['feed', '仲間の近況が流れるタイムライン'],
-      ['briefcase', '案件への応募と、その進みぐあい'],
-      ['calendar', 'イベントの予約'],
-      ['message', '運営への相談'],
-      ['card', '会員証と福利厚生']
-    ];
-    return '<section class="site-sec" id="sec-why">' +
-      '<div class="site-wrap">' +
-        secHead('情報が、ばらばらになっていませんか。', '学ぶ場所がいくつものアプリやサイトに分かれていると、それだけで続けにくくなります。') +
-        '<div class="site-ba">' +
-          '<div class="site-ba__before">' +
-            '<p class="site-ba__k">よくあるかたち</p>' +
-            '<ul class="site-ba__list">' + before.map(function (b) {
-              return '<li><b>' + esc(b[0]) + '</b><i aria-hidden="true"></i><span>' + esc(b[1]) + '</span></li>';
-            }).join('') + '</ul>' +
-            '<p class="site-ba__note">見る場所も、覚えるパスワードも、そのぶん増えていきます。</p>' +
-          '</div>' +
-          '<div class="site-ba__arrow" aria-hidden="true">' + icon('arrow', 'ico-l') + '</div>' +
-          '<div class="site-ba__after">' +
-            '<p class="site-ba__k">' + esc(SITE.name) + 'では</p>' +
-            '<p class="site-ba__big">ログインひとつで、<br>全部ここに。</p>' +
-            '<ul class="site-ba__have">' + after.map(function (a) {
-              return '<li>' + icon(a[0]) + '<span>' + esc(a[1]) + '</span></li>';
-            }).join('') + '</ul>' +
-          '</div>' +
-        '</div>' +
-        '<p class="site-why__close">どこを見ればいいか迷わないことは、続けるうえで思っている以上に大切です。' +
-          '入会するとログインIDが届き、学ぶことも、案件への応募も、相談も、ひとつの会員ページで済みます。' +
-          '<b>きちんと整った場所だから、安心して続けられます。</b></p>' +
-      '</div>' +
-    '</section>';
-  }
-
-  /* ---------- この場所でできること（5つの柱・番号は振らない） ---------- */
-  function pillars() {
-    var P = [
-      { ico: 'book', k: '学ぶ', sub: DATA.COURSES.length + '講座・勉強会アーカイブ',
-        t: 'ビジネスの基礎から、AI活用・動画編集・Webデザイン・営業まで、' + DATA.FACULTIES.length + 'つの学部に分けています。講座は1本10分前後。ライブ勉強会の録画も、あとから見られます。' },
-      { ico: 'briefcase', k: '試す', sub: 'お小遣い案件・業務委託・紹介できる商材',
-        t: 'スマホで完結する小さな案件から、講座で身につけた腕を使う業務委託まで。学んだことを小さく試せる場を用意しています。報酬はどれも目安です。' },
-      { ico: 'users', k: 'つながる', sub: 'タイムライン・オンライン勉強会・地域のオフ会',
-        t: '新しい講座や案件、仲間の近況が流れるタイムライン。オンラインの勉強会や作業会に加えて、各地でオフ会も開きます（参加は任意です）。' },
-      { ico: 'chat', k: '相談する', sub: '運営に回数の制限なく相談・税理士や司法書士の紹介',
-        t: '進め方に迷ったら、会員ページから運営に相談できます。回数の制限はありません。開業や確定申告のことは、提携の税理士・司法書士をご紹介します（' + EXPERT_NOTE + '）。' },
-      { ico: 'ticket', k: '暮らし', sub: '福利厚生・デジタル会員証',
-        t: '日用品の会員価格や、映画館・レジャー施設の優待などを使えます（割引の内容は商品・店舗により異なります）。会員証はスマホで見せるだけです。' }
+  /* ---------- できること（名前と中身の2列） ---------- */
+  function can() {
+    var rows = [
+      ['講座', 'ビジネスの基礎、SNS、AI、動画編集、Webデザイン、営業など。動画は1本10分前後です。ライブ勉強会の録画もあとから見られます。'],
+      ['案件', 'アンケートやモニターなどのお小遣い案件、業務委託、紹介できる商材。会員ページから応募できます。報酬はどれも目安です。'],
+      ['イベント', 'オンラインの勉強会・作業会と、各地のオフ会。月末には成果発表会があります。参加は任意です。'],
+      ['タイムライン', '運営からのお知らせ、新しい講座や案件、会員の投稿が流れてきます。'],
+      ['相談', '運営への相談は回数の制限なし。税理士・司法書士などの専門家も紹介します（' + EXPERT_NOTE + '）。'],
+      ['福利厚生', '日用品の会員価格、映画館やレジャー施設の優待など。割引の内容は商品・店舗により異なります。会員証はスマホの画面を見せて使います。']
     ];
     return '<section class="site-sec" id="sec-can">' +
       '<div class="site-wrap">' +
-        secHead('この場所でできること', '学んで終わりにしないために、試す・つながる・相談するまでを、ひとつの会費でまとめています。') +
-        '<dl class="site-pillars">' + P.map(function (p) {
-          return '<div class="site-pillar">' +
-            '<dt><span class="site-pillar__ico">' + icon(p.ico) + '</span>' +
-              '<span><span class="site-pillar__k">' + esc(p.k) + '</span><span class="site-pillar__sub">' + esc(p.sub) + '</span></span></dt>' +
-            '<dd>' + esc(p.t) + '</dd>' +
-          '</div>';
+        h2('できること') +
+        '<dl class="site-can">' + rows.map(function (r) {
+          return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>';
         }).join('') + '</dl>' +
       '</div>' +
     '</section>';
   }
 
-  /* ---------- レベルで開く学び方（カリキュラムを全部見せる） ---------- */
-  function levels() {
-    var L = DATA.LEVELS, X = DATA.XP;
-    var steps = L.map(function (l, i) {
-      var cs = courseAt(l.lv);
-      return '<li class="site-step" style="--i:' + i + '">' +
-        '<p class="site-step__lv"><span class="num">Lv' + esc(l.lv) + '</span><b>' + esc(l.name) + '</b></p>' +
-        '<p class="site-step__xp">' + (l.min ? '<span class="num">' + U.num(l.min) + '</span> XP から' : '入会した日から') + '</p>' +
-        '<ul class="site-step__list">' + cs.map(function (c) { return '<li>' + esc(c.title) + '</li>'; }).join('') + '</ul>' +
-      '</li>';
-    }).join('');
-    var earn = [['講座を1本見終える', X.lesson], ['勉強会の録画を1本見る', X.archive], ['イベントに参加する', X.event], ['案件をやり終える', X.gigDone]];
-    return '<section class="site-sec" id="sec-levels">' +
+  /* ---------- 会員ページ（実際の画面のスクリーンショット） ---------- */
+  function portal() {
+    var S = [
+      ['courses', 'courses', '講座の一覧'],
+      ['lesson', 'lesson/sns-basic/sb-3', '講座の動画'],
+      ['start', 'start', 'スタートガイド'],
+      ['feed', 'feed', 'タイムライン'],
+      ['gigs', 'gigs', '案件'],
+      ['events', 'events', 'イベント']
+    ];
+    return '<section class="site-sec site-sec--band" id="sec-portal">' +
       '<div class="site-wrap">' +
-        secHead('レベルで開く学び方', '全部を一度に見せません。いまのあなたに必要な講座から開きます。') +
-        '<p class="site-sec__lead site-sec__lead--2">講座を見る・イベントに出る・案件をやり終えると経験値（XP）がたまり、レベルが上がるたびに次の講座が開きます。全' +
-          DATA.COURSES.length + '講座・' + LESSONS.length + '本の中身は、次のとおりです。</p>' +
-        // 段の数は DATA.LEVELS から（CSS に 6 を決め打ちしない）
-        '<ol class="site-ladder" style="--n:' + L.length + '">' + steps + '</ol>' +
-        '<div class="site-levels__foot">' +
-          '<ul class="site-earn" aria-label="経験値のたまり方">' + earn.map(function (e) {
-            return '<li><span>' + esc(e[0]) + '</span><b class="num">+' + esc(e[1]) + '</b></li>';
-          }).join('') + '</ul>' +
-          '<ul class="site-levels__notes">' +
-            '<li>' + icon('lock', 'ico-s') + '<span>鍵のかかった講座も、題と開く条件は見えます。先の見通しが立つようにしています。</span></li>' +
-            '<li>' + icon('play', 'ico-s') + '<span>勉強会の録画（アーカイブ）は、レベルに関係なくすべて見られます。</span></li>' +
-          '</ul>' +
+        h2('会員ページ') +
+        '<p class="site-sec__lead">講座、運営からのお知らせ、相談、イベントや案件の申込みは、どれも会員ページからできます。入会するとログインIDが届きます。</p>' +
+        '<ul class="site-shots">' + S.map(function (s) {
+          return '<li><a class="site-shot" href="member.html?demo=1#/' + s[1] + '">' +
+            '<span class="site-phone">' + shotImg(s[0], s[2] + 'の画面') + '</span>' +
+            '<b class="site-shot__ttl">' + esc(s[2]) + '</b></a></li>';
+        }).join('') + '</ul>' +
+        '<div class="site-portal__foot">' +
+          '<a class="site-btn site-btn--ghost" href="member.html?demo=1#/home">デモを見る</a>' +
         '</div>' +
       '</div>' +
     '</section>';
   }
 
-  /* ---------- 最初の30日 ---------- */
+  /* ---------- 講座とレベル（表） ---------- */
+  function levels() {
+    var X = DATA.XP;
+    return '<section class="site-sec" id="sec-levels">' +
+      '<div class="site-wrap">' +
+        h2('講座とレベル') +
+        '<p class="site-sec__lead">講座はレベルが上がると開きます（勉強会の録画は最初から全部見られます）。XPは講座1本で+' + esc(X.lesson) +
+          '、録画1本で+' + esc(X.archive) + '、イベント参加で+' + esc(X.event) + '、案件の完了で+' + esc(X.gigDone) + 'です。</p>' +
+        '<div class="site-tbl-wrap"><table class="site-tbl">' +
+          '<thead><tr><th scope="col">レベル</th><th scope="col">必要なXP</th><th scope="col">見られるようになる講座</th></tr></thead>' +
+          '<tbody>' + DATA.LEVELS.map(function (l) {
+            return '<tr><th scope="row">Lv' + esc(l.lv) + ' ' + esc(l.name) + '</th>' +
+              '<td class="site-tbl__xp">' + U.num(l.min) + '</td>' +
+              '<td>' + courseAt(l.lv).map(function (c) { return esc(c.title); }).join('、') + '</td></tr>';
+          }).join('') + '</tbody>' +
+        '</table></div>' +
+      '</div>' +
+    '</section>';
+  }
+
+  /* ---------- 入会後の30日（週ごとの箇条書き） ---------- */
   function days() {
-    var NAMES = { 1: '慣れる', 2: '学ぶ', 3: '動く', 4: 'ふり返る' };
     var weeks = [1, 2, 3, 4].map(function (w) {
       var list = DATA.ONBOARDING.filter(function (s) { return s.week === w; });
-      return '<li class="site-week">' +
-        '<div class="site-week__head"><p class="site-week__no">' + w + '週目</p><p class="site-week__ttl">' + esc(NAMES[w]) + '</p></div>' +
-        '<ul class="site-week__list">' + list.map(function (s) { return '<li>' + esc(s.title) + '</li>'; }).join('') + '</ul>' +
-      '</li>';
+      return '<li><b>' + w + '週目</b><span>' + list.map(function (s) { return esc(s.title); }).join('、') + '</span></li>';
     }).join('');
     return '<section class="site-sec" id="sec-days">' +
       '<div class="site-wrap">' +
-        secHead('最初の30日', '入会したら、会員ページの「スタートガイド」を上から進めてください。週ごとにやることを決めてあるので、何から始めるかで迷いません。') +
-        '<ol class="site-weeks">' + weeks + '</ol>' +
-        '<div class="site-duo">' +
-          '<div class="site-duo__item"><span class="site-duo__ico">' + icon('users') + '</span><div>' +
-            '<p class="site-duo__ttl">担当スタッフが伴走します</p>' +
-            '<p class="site-duo__txt">スタートガイドの進みぐあいを見ながら、運営のスタッフが声をかけます。分からないことは、会員ページのメッセージからいつでも聞けます。</p></div></div>' +
-          '<div class="site-duo__item"><span class="site-duo__ico">' + icon('flag') + '</span><div>' +
-            '<p class="site-duo__ttl">月末の成果発表会で、ふり返る</p>' +
-            '<p class="site-duo__txt">1人3分で「やったこと・できたこと・次」を話す会です。見るだけの参加もできます。オンラインと地域の会場で開きます。</p></div></div>' +
-        '</div>' +
+        h2('入会後の30日') +
+        '<ul class="site-weeks">' + weeks + '</ul>' +
+        '<p class="site-sec__after">同じ一覧が会員ページの「スタートガイド」にあります。運営のスタッフが進みぐあいを見て、メッセージを送ります。</p>' +
       '</div>' +
     '</section>';
   }
 
-  /* ---------- 会員ページの見本（4つ） ---------- */
-  function portal() {
-    var M = DATA.MEMBER;
-    var sns = byId(DATA.COURSES, 'sns-basic') || DATA.COURSES[0];
-    var les = sns.lessons[2] || sns.lessons[0];
-    var seen = 2;   // デモ会員が見終えた本数
-    var lockRows = [3, 4, 5].map(function (lv) { return courseAt(lv)[0]; }).filter(Boolean);
-    var gigs = ['g1', 'g5'].map(function (id) { return byId(DATA.GIGS, id); }).filter(Boolean);
-    var joined = new Date(DATA.D(-M.joinedDaysAgo));
-    var cohort = joined.getFullYear() + '年' + (joined.getMonth() + 1) + '月期';
-    var lv3 = DATA.LEVELS[2] || DATA.LEVELS[0];
-
-    function typeName(t) { var x = byId(DATA.GIG_TYPES, t); return x ? x.name : ''; }
-
-    var figs = [
-      { ico: 'play', go: 'home', ttl: '今日やること', txt: 'ホームのいちばん上には、続きの1本だけを出します。開いたら、何から見ればいいか迷いません。',
-        ui: '<div class="site-ui site-ui--today">' +
-          '<p class="site-ui__k">続きから</p>' +
-          '<div class="site-ui__row"><span class="site-ui__play">' + icon('play') + '</span>' +
-            '<span class="site-ui__t"><b>' + esc(sns.title) + ' 第' + (sns.lessons.indexOf(les) + 1) + '回</b><small>' + esc(les.title) + '・' + esc(les.min) + '分</small></span></div>' +
-          '<div class="site-ui__meter"><i data-w="' + Math.round(seen / sns.lessons.length * 100) + '"></i></div>' +
-          '<p class="site-ui__note">全' + sns.lessons.length + '本のうち ' + seen + '本 見終えました</p>' +
-        '</div>' },
-      { ico: 'unlock', go: 'courses', ttl: 'レベル', txt: '講座を見る・イベントに出ると経験値がたまり、次の講座が開きます。鍵のかかった講座も、題と開く条件は見えます。',
-        ui: '<div class="site-ui"><ul class="site-ui__list">' + lockRows.map(function (c) {
-          var open = c.level <= lv3.lv;
-          return '<li class="' + (open ? '' : 'is-locked') + '">' + icon(open ? 'unlock' : 'lock', 'ico-s') +
-            '<span>' + esc(c.title) + '</span><small>' + (open ? '開いています' : 'Lv' + esc(c.level) + 'で開く') + '</small></li>';
-        }).join('') + '</ul></div>' },
-      { ico: 'briefcase', go: 'gigs', ttl: '案件', txt: 'お小遣い案件から業務委託まで、会員ページから応募できます。報酬はどれも目安で、案件の数や内容は時期によって変わります。',
-        ui: '<div class="site-ui"><ul class="site-ui__gigs">' + gigs.map(function (g) {
-          return '<li><span class="site-ui__type">' + esc(typeName(g.type)) + (g.level > 1 ? '・Lv' + esc(g.level) + 'から' : '') + '</span>' +
-            '<b>' + esc(g.title) + '</b><small>' + esc(g.reward) + '（目安）・' + esc(g.time) + '</small></li>';
-        }).join('') + '</ul></div>' },
-      { ico: 'card', go: 'card', ttl: '会員証', txt: '会員番号・期・レベルが入ったデジタル会員証。福利厚生の提携先で、スマホの画面を見せて使います。',
-        ui: '<div class="site-ui-card">' +
-          '<div class="site-ui-card__top"><span class="site-ui-card__seal">' + esc(SITE.seal) + '</span><span>' + esc(SITE.name) + '<small>MEMBER</small></span></div>' +
-          '<p class="site-ui-card__name">' + esc(M.name) + '</p>' +
-          '<div class="site-ui-card__foot"><span class="mono">' + esc(M.id) + '</span><span>' + esc(cohort) + '</span>' +
-            '<span class="site-ui-card__lv">Lv' + esc(lv3.lv) + ' ' + esc(lv3.name) + '</span></div>' +
-        '</div>' }
-    ];
-
-    return '<section class="site-sec" id="sec-portal">' +
-      '<div class="site-wrap">' +
-        secHead('会員ページ', '毎日開く場所なので、迷わず使えることをいちばんに考えました。いま、試作版を実際に触れます。') +
-        // 見本は押せる形をしているので、押したらデモが開くようにする（飾りのボタンにしない）
-        '<div class="site-figs">' + figs.map(function (f) {
-          return '<figure class="site-fig">' +
-            '<a class="site-fig__stage" href="member.html?demo=1#/' + (f.go || 'home') + '" aria-label="' + esc(f.ttl) + 'をデモで見る">' + f.ui + '</a>' +
-            '<figcaption><p class="site-fig__ttl">' + icon(f.ico, 'ico-s') + esc(f.ttl) + '</p><p class="site-fig__txt">' + esc(f.txt) + '</p></figcaption>' +
-          '</figure>';
-        }).join('') + '</div>' +
-        '<div class="site-portal__foot">' +
-          '<a class="site-btn site-btn--ghost" href="member.html?demo=1#/home">デモを触ってみる' + icon('arrow') + '</a>' +
-          '<p>ログインの画面で「デモ会員で入る」を押すと、' + esc(M.name) + 'さん（入会' + (M.joinedDaysAgo + 1) + '日目）として見られます。人物・数値はすべて架空です。</p>' +
-        '</div>' +
-      '</div>' +
-    '</section>';
-  }
-
-  /* ---------- 向き・不向き（正直に書く） ---------- */
+  /* ---------- 向いている人・向いていない人 ---------- */
   function fit() {
     var YES = [
-      '副業を始めたいけれど、何から手をつければいいか分からない方',
-      '家事や仕事の合間に、1日10〜30分ずつ学びたい方',
-      '近くに、同じように挑戦している仲間がいない方',
-      '学んだことを、小さな案件で実際に試してみたい方',
-      'すでに事業をしていて、学び直しと横のつながりがほしい方'
+      '副業を始めたいが、何からやればいいか分からない',
+      '1日10〜30分なら時間が取れる',
+      '近くに同じことをしている仲間がいない',
+      '学んだことを小さな案件で試したい',
+      'すでに事業をしていて、学び直しや横のつながりがほしい'
     ];
     var NO = [
-      'すぐに大きな収入がほしい方',
-      '動画を見るだけで変われると思っている方',
-      '人を強く勧誘して稼ぎたい方',
-      '借入れをしてまで始めようとしている方'
+      'すぐに大きな収入がほしい',
+      '動画を見るだけで何とかなると思っている',
+      '人を勧誘して稼ぎたい',
+      '借金をしてまで始めようとしている'
     ];
+    function list(a) { return '<ul class="site-bullets">' + a.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; }
     return '<section class="site-sec" id="sec-fit">' +
       '<div class="site-wrap">' +
-        secHead('入る前に、正直にお伝えします', 'ここが合うかどうかを、先に確かめてください。入ってから「思っていたのと違う」とならないように。') +
         '<div class="site-fit">' +
-          '<div class="site-fit__col">' +
-            '<p class="site-fit__ttl">こんな方に</p>' +
-            '<ul class="site-fit__list">' + YES.map(function (t) { return '<li>' + icon('check') + '<span>' + esc(t) + '</span></li>'; }).join('') + '</ul>' +
-          '</div>' +
-          '<div class="site-fit__col site-fit__col--no">' +
-            '<p class="site-fit__ttl">向いていないかもしれない方</p>' +
-            '<ul class="site-fit__list">' + NO.map(function (t) { return '<li><i class="site-fit__mark" aria-hidden="true"></i><span>' + esc(t) + '</span></li>'; }).join('') + '</ul>' +
-            '<p class="site-fit__note">ここは、学んで、小さく試して、仲間と続ける場所です。生活のお金を削ってまで入る場所ではありません。</p>' +
-          '</div>' +
+          '<div>' + h2('向いている人') + list(YES) + '</div>' +
+          '<div>' + h2('向いていない人') + list(NO) + '</div>' +
         '</div>' +
       '</div>' +
     '</section>';
@@ -440,6 +278,8 @@
   /* ---------- 料金（プランはひとつ） ---------- */
   function planRows() {
     return [
+      ['内容', '全' + DATA.COURSES.length + '講座と勉強会の録画、案件への応募、イベント、運営への相談（回数の制限なし）、' +
+        '税理士・司法書士などの紹介（' + EXPERT_NOTE + '）、福利厚生と会員証、入会後30日のスタートガイド'],
       ['月額以外にかかる費用', COND.extra],
       ['お支払い', COND.payment],
       ['課金日', COND.billing],
@@ -448,37 +288,21 @@
     ];
   }
   function price() {
-    var INC = [
-      '全' + DATA.COURSES.length + '講座と、勉強会の録画（アーカイブ）',
-      'お小遣い案件・業務委託・紹介できる商材への応募',
-      'タイムライン・オンライン勉強会・地域のオフ会',
-      '運営への相談（回数の制限なし）',
-      '税理士・司法書士などの紹介（' + EXPERT_NOTE + '）',
-      '福利厚生とデジタル会員証',
-      '最初の30日のスタートガイドと、担当スタッフの伴走'
-    ];
-    return '<section class="site-sec site-sec--desk" id="sec-price">' +
-      '<div class="site-wrap site-split">' +
-        '<div class="site-split__head">' +
-          secHead('料金', 'プランはひとつだけです。講座の数やレベルで、料金が変わることはありません。') +
-          '<p class="site-split__links"><a class="site-link" href="#/tokushoho">特定商取引法に基づく表記</a><a class="site-link" href="#/terms">利用規約</a></p>' +
-        '</div>' +
+    return '<section class="site-sec site-sec--band" id="sec-price">' +
+      '<div class="site-wrap">' +
+        h2('料金') +
         '<div class="site-plan">' +
           '<div class="site-plan__head">' +
-            '<div><p class="site-plan__name">' + esc(COND.service) + '</p>' +
-              '<p class="site-plan__price"><span>月額</span><b>' + esc(U.num(SITE.price)) + '</b><span>円（税込）</span></p></div>' +
-            '<p class="site-plan__entry">入会金 <b>' + esc(COND.entry) + '</b></p>' +
-          '</div>' +
-          '<div class="site-plan__inc">' +
-            '<p class="site-plan__k">含まれるもの</p>' +
-            '<ul>' + INC.map(function (t) { return '<li>' + icon('check', 'ico-s') + '<span>' + esc(t) + '</span></li>'; }).join('') + '</ul>' +
+            '<p class="site-plan__name">' + esc(COND.service) + '</p>' +
+            '<p class="site-plan__price">月額<b>' + esc(U.num(SITE.price)) + '</b>円（税込）</p>' +
+            '<p class="site-plan__entry">入会金 ' + esc(COND.entry) + '</p>' +
           '</div>' +
           '<table class="site-kv site-plan__kv"><tbody>' + planRows().map(function (r) {
             return '<tr><th scope="row">' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td></tr>';
           }).join('') + '</tbody></table>' +
           '<div class="site-plan__foot">' +
-            '<a class="site-btn site-btn--primary site-btn--l" href="#/join">入会する' + icon('arrow') + '</a>' +
-            '<p>申込みの最後に、この内容をもう一度確認できます。</p>' +
+            '<a class="site-btn site-btn--primary site-btn--l" href="#/join">入会する</a>' +
+            '<p class="site-plan__links"><a class="site-link" href="#/tokushoho">特定商取引法に基づく表記</a><a class="site-link" href="#/terms">利用規約</a></p>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -489,44 +313,42 @@
   function faqItems() {
     return [
       ['入会の手順を教えてください。',
-        'このページの「入会する」から、お名前とメールアドレスを入力してください。確認画面で料金と解約の条件をご確認のうえ、クレジットカードでお支払いいただくと、その場でログインIDが表示されます（同じ内容をメールでもお送りします）。あとは会員ページの「スタートガイド」を上から進めるだけです。'],
-      ['ビジネスの経験がなくても大丈夫ですか。',
-        '大丈夫です。はじめての方を前提に作っています。最初はレベル1の講座だけが開いていて、言葉の意味から順に学べます。分からないことは、運営に何度でも聞けます。'],
+        'このページの「入会する」から、お名前とメールアドレスを入力します。確認画面で料金と解約の条件を確かめてからカードで支払うと、その場でログインIDが表示されます（同じ内容をメールでもお送りします）。'],
+      ['ビジネスの経験がなくても始められますか。',
+        '始められます。最初はレベル1の講座だけが開いていて、言葉の意味から学べます。分からないことは運営に何度でも聞けます。'],
       ['仕事や家事で忙しくても続けられますか。',
-        '講座は1本10分前後（長いものでも' + LONGEST + '分ほど）です。1日1本、週に数本のペースでも進められるようにしています。ライブの勉強会は録画が残るので、あとから見られます。'],
-      ['地方に住んでいても大丈夫ですか。',
-        '学ぶことも相談も、オンラインで完結します。オフ会は各地で開いています。参加は任意なので、近くで開かれるときに気が向いたらどうぞ。'],
+        '講座は1本10分前後（長いものでも' + LONGEST + '分ほど）です。ライブの勉強会は録画が残るので、あとから見られます。'],
+      ['地方に住んでいても参加できますか。',
+        '講座も相談もオンラインです。オフ会は各地で開いていて、参加は任意です。'],
       ['どんな年齢の方がいますか。',
-        '年齢の区切りはありません。会社員の方、子育て中の方、すでにお店や会社をしている方など、さまざまな立場の方に向けて作っています。未成年の方は、保護者の同意が必要です。'],
+        '年齢の制限はありません。会社員の方、子育て中の方、お店や会社をしている方などに向けたスクールです。未成年の方は保護者の同意が必要です。'],
       ['ほかのスクールやオンラインサロンとの違いは何ですか。',
-        '大きく3つです。ひとつの会員ページで全部が済むこと、講座がレベルに合わせて順に開くこと、最初の30日を担当スタッフが伴走すること。「講座はここ、連絡はLINE、資料は別のサイト」ということがありません。'],
+        '講座、運営からの連絡、イベントや案件の申込み、相談が会員ページにまとまっていて、LINEグループや別のサイトを行き来しなくて済みます。講座はレベルに合わせて順に開きます。'],
       ['交流会はありますか。',
-        'あります。オンラインの勉強会や作業会のほか、各地でオフ会を開いています。月末には成果発表会があり、見るだけの参加もできます。どれも参加は任意で、飲食代などは実費です。'],
+        'あります。オンラインの勉強会・作業会と、各地のオフ会です。月末には成果発表会があり、見るだけの参加もできます。どれも参加は任意で、飲食代などは実費です。'],
       ['支払い方法は何がありますか。',
         COND.payment + 'のみです。カード情報は Stripe が管理し、運営はカード番号を持ちません。' + COND.billing + 'です。'],
       ['解約や返金はどうなりますか。',
-        '解約は、' + COND.cancel + '。アカウントの画面から2回の操作で済み、電話や面談の必要はありません。' + COND.refund + '。'],
+        '解約は' + COND.cancel + '。アカウントの画面から2回の操作で済み、電話や面談は要りません。' + COND.refund + '。'],
       ['収入は保証されますか。',
-        'いいえ。学びと小さく試す機会を提供するもので、収入を保証するものではありません。案件の報酬も、すべて目安です。'],
+        'いいえ。学ぶ場と小さく試す機会を提供するもので、収入を保証するものではありません。案件の報酬も、すべて目安です。'],
       ['会費は経費になりますか。',
-        '事業の内容によって変わるため、ここでは一律にお答えできません。経費にできるかどうかは、提携の税理士に無料で相談できます（' + EXPERT_NOTE.replace(/無料$/, '') + '）。'],
+        '事業の内容によって変わるため、一律にはお答えできません。経費にできるかどうかは、提携の税理士に無料で相談できます（' + EXPERT_NOTE.replace(/無料$/, '') + '）。'],
       ['会社で副業が禁止されている場合はどうすればいいですか。',
-        'まずは、お勤め先の就業規則をご確認ください。講座で学ぶだけなら問題にならないことが多いですが、案件で報酬を受け取る前には、規則に沿っているかを必ず確かめてください。']
+        'まず、お勤め先の就業規則を確認してください。講座で学ぶだけなら問題にならないことが多いですが、案件で報酬を受け取る前には、規則に沿っているかを必ず確かめてください。']
     ];
   }
   function faq() {
     return '<section class="site-sec" id="sec-faq">' +
-      '<div class="site-wrap site-split">' +
-        '<div class="site-split__head">' + secHead('よくある質問', '') + '</div>' +
-        '<div>' +
-          '<div class="site-faq">' + faqItems().map(function (f) {
-            return '<details><summary><span class="site-faq__q" aria-hidden="true">Q</span><span class="site-faq__s">' + esc(f[0]) + '</span>' +
-              '<span class="site-faq__pm" aria-hidden="true"></span></summary><div class="site-faq__a">' + esc(f[1]) + '</div></details>';
-          }).join('') + '</div>' +
-          '<p class="site-faq__more">ここにない質問は、' +
-            '<button type="button" class="site-textbtn" data-act="line">' + icon('line', 'ico-s') + esc(SITE.lineName) + '</button>' +
-            'からどうぞ。</p>' +
-        '</div>' +
+      '<div class="site-wrap">' +
+        h2('よくある質問') +
+        '<div class="site-faq">' + faqItems().map(function (f) {
+          return '<details><summary><span class="site-faq__q" aria-hidden="true">Q</span><span class="site-faq__s">' + esc(f[0]) + '</span>' +
+            '<span class="site-faq__pm" aria-hidden="true"></span></summary><div class="site-faq__a">' + esc(f[1]) + '</div></details>';
+        }).join('') + '</div>' +
+        '<p class="site-faq__more">ここにない質問は' +
+          '<button type="button" class="site-textbtn" data-act="line">' + esc(SITE.lineName) + '</button>' +
+          'へどうぞ。</p>' +
       '</div>' +
     '</section>';
   }
@@ -534,19 +356,12 @@
   function refBar() {
     var code = getRef();
     if (!code) return '';
-    return '<div class="site-refbar" role="note"><div class="site-wrap">' + icon('link', 'ico-s') +
+    return '<div class="site-refbar" role="note"><div class="site-wrap">' +
       '<span>紹介リンクから開いています（紹介コード：<b class="mono">' + esc(code) + '</b>）</span></div></div>';
   }
 
   function lp() {
-    return refBar() + hero() + why() + pillars() + levels() + days() + portal() + fit() + price() + faq();
-  }
-
-  /** 進みぐあいの棒を 0 から伸ばす（最初の表示に少しだけ動きを付ける） */
-  function mountLp(root) {
-    var bars = U.$$('[data-w]', root);
-    function fill() { bars.forEach(function (b) { b.style.width = b.getAttribute('data-w') + '%'; }); }
-    if (reduceMotion()) fill(); else setTimeout(fill, 180);
+    return refBar() + hero() + can() + portal() + levels() + days() + fit() + price() + faq();
   }
 
   /* ============================================================
@@ -615,25 +430,23 @@
   }
 
   function stepInput() {
-    var f = J.f, fromLink = f.ref && f.ref === getRef();
+    var f = J.f;
     return '<div class="site-join__head">' +
         '<h1 class="site-join__ttl">入会のお申込み</h1>' +
-        '<p class="site-join__lead">入力は1分ほどで終わります。次の画面で内容を確認できるので、まだお申込みは確定しません。</p>' +
       '</div>' +
-      '<div class="site-join__plan">' + icon('receipt') + '<p><b>' + esc(COND.service) + '</b><span>' + phrases(COND.short, '・') + '</span></p></div>' +
+      '<p class="site-join__plan"><b>' + esc(COND.service) + '</b><span>' + phrases(COND.short, '・') + '</span></p>' +
       '<form class="site-panel site-form" id="site-join-form" novalidate>' +
         '<div class="site-field-row">' +
           field('name', 'お名前', true, input('name', 'text', f.name, ' autocomplete="name" placeholder="例：山田 はな" maxlength="40"')) +
           field('kana', 'ふりがな', false, input('kana', 'text', f.kana, ' placeholder="例：やまだ はな" maxlength="60"')) +
         '</div>' +
         field('email', 'メールアドレス', true, input('email', 'email', f.email, ' autocomplete="email" inputmode="email" placeholder="例：hana@example.com"'),
-          'ログインIDとパスワードをお送りします。') +
+          'ログインIDをこのアドレスに送ります。') +
         '<div class="site-field-row">' +
-          field('pref', '住んでいる地域', false, select('pref', PREFS, f.pref, '選択してください'), '近くのオフ会をご案内するのに使います。') +
+          field('pref', '住んでいる地域', false, select('pref', PREFS, f.pref, '選択してください')) +
           field('job', 'いまのお仕事', false, select('job', JOBS, f.job, '選択してください')) +
         '</div>' +
-        field('ref', '紹介コード', false, input('ref', 'text', f.ref, ' autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="32" placeholder="お持ちの方のみ"'),
-          fromLink ? '紹介リンクから開いたので、最初から入れてあります。' : '') +
+        field('ref', '紹介コード', false, input('ref', 'text', f.ref, ' autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="32" placeholder="お持ちの方のみ"')) +
         '<div class="site-field site-agree' + (J.err.agree ? ' is-err' : '') + '" data-field="agree">' +
           '<label class="site-check"><input type="checkbox" id="f-agree" name="agree"' + (f.agree ? ' checked' : '') + ' aria-describedby="e-agree"' + (J.err.agree ? ' aria-invalid="true"' : '') + '>' +
             '<span><a class="site-link" href="index.html#/terms" target="_blank" rel="noopener">利用規約</a>と' +
@@ -643,7 +456,7 @@
         '</div>' +
         '<div class="site-form__foot">' +
           '<p class="site-form__sum" id="site-form-sum" aria-live="polite"></p>' +
-          '<button type="submit" class="site-btn site-btn--ink site-btn--l site-btn--block">確認画面へ' + icon('arrow') + '</button>' +
+          '<button type="submit" class="site-btn site-btn--ink site-btn--l site-btn--block">確認画面へ進む</button>' +
         '</div>' +
       '</form>';
   }
@@ -662,22 +475,22 @@
       ['契約期間', COND.term], ['解約', COND.cancel], ['返金', COND.refund]
     ];
     var you = [
-      ['お名前', f.name], ['ふりがな', f.kana || '（未入力）'], ['メールアドレス', f.email],
-      ['住んでいる地域', f.pref || '（未選択）'], ['いまのお仕事', f.job || '（未選択）'], ['紹介コード', f.ref || 'なし']
+      ['お名前', f.name], ['ふりがな', f.kana || '未入力'], ['メールアドレス', f.email],
+      ['住んでいる地域', f.pref || '未選択'], ['いまのお仕事', f.job || '未選択'], ['紹介コード', f.ref || 'なし']
     ];
     return '<div class="site-join__head">' +
         '<h1 class="site-join__ttl">お申込み内容の確認</h1>' +
-        '<p class="site-join__lead">まだお申込みは確定していません。内容をご確認のうえ、いちばん下のボタンを押してください。</p>' +
+        '<p class="site-join__lead">まだお申込みは確定していません。</p>' +
       '</div>' +
       '<div class="site-panel">' +
         '<h2 class="site-panel__ttl">ご契約の内容</h2>' + kvTable(deal, 'site-kv--confirm') +
       '</div>' +
       '<div class="site-panel">' +
         '<div class="site-panel__head"><h2 class="site-panel__ttl">お客さまの情報</h2>' +
-          '<button type="button" class="site-textbtn" data-act="join-edit">' + icon('pen', 'ico-s') + '訂正する</button></div>' +
+          '<button type="button" class="site-textbtn" data-act="join-edit">訂正する</button></div>' +
         kvTable(you, 'site-kv--confirm') +
       '</div>' +
-      '<p class="site-join__notice">「申込みを確定する」を押すと、決済の画面に進みます。決済が完了した時点でお申込みが確定し、月額の継続課金が始まります。' +
+      '<p class="site-join__notice">「申込みを確定する」を押すと、決済の画面に進みます。決済が完了した時点でお申込みが確定し、月額の継続課金が始まります。<br>' +
         '<a class="site-link" href="index.html#/tokushoho" target="_blank" rel="noopener">特定商取引法に基づく表記</a></p>' +
       '<div class="site-join__btns">' +
         '<button type="button" class="site-btn site-btn--ghost site-btn--l" data-act="join-edit">' + icon('back') + '内容を訂正する</button>' +
@@ -690,11 +503,9 @@
   function stepPay() {
     return '<div class="site-join__head">' +
         '<h1 class="site-join__ttl">お支払い</h1>' +
-        '<p class="site-join__lead">お支払いが終わると、すぐにログインIDを発行します。</p>' +
       '</div>' +
       '<div class="site-panel site-pay">' +
-        '<div class="site-pay__demo">' + icon('shield', 'ico-l') +
-          '<p>本番ではここで Stripe の決済画面が開きます。試作版ではカード情報は入力しません。</p></div>' +
+        '<p class="site-pay__demo">本番ではここで Stripe の決済画面が開きます。試作版ではカード情報は入力しません。</p>' +
         kvTable([
           ['本日のお支払い', COND.monthly],
           ['次回から', '毎月' + CLG.now().getDate() + '日（該当日がない月は月末）に ' + COND.monthly],
@@ -709,22 +520,21 @@
     var f = J.f;
     var week1 = DATA.ONBOARDING.filter(function (s) { return s.week === 1; });
     return '<div class="site-done">' +
-      '<span class="site-done__seal" aria-hidden="true">' + esc(SITE.seal) + '</span>' +
-      '<h1 class="site-join__ttl">ようこそ、' + esc(f.name) + 'さん</h1>' +
-      '<p class="site-join__lead">お申込みと決済が完了しました。今日から会員ページのすべての機能を使えます。</p>' +
+      '<div class="site-join__head">' +
+        '<h1 class="site-join__ttl">お申込みが完了しました</h1>' +
+        '<p class="site-join__lead">' + esc(f.name) + 'さん、ご入会ありがとうございます。今日から会員ページを使えます。</p>' +
+      '</div>' +
       '<div class="site-panel site-idbox">' +
-        '<p class="site-idbox__k">あなたのログインID</p>' +
+        '<h2 class="site-panel__ttl">ログインID</h2>' +
         '<div class="site-idbox__row"><b class="mono" id="site-login-id">' + esc(J.id) + '</b>' +
           '<button type="button" class="site-btn site-btn--ghost site-btn--s" data-act="copy-id">' + icon('copy', 'ico-s') + 'コピー</button></div>' +
-        '<p class="site-idbox__pw">パスワードは登録のメールアドレスにお送りしました（試作版：demo1234）</p>' +
-        '<p class="site-idbox__mail">' + icon('message', 'ico-s') + '<span>送り先：' + esc(f.email) + '（試作版ではメールは送信されません）</span></p>' +
+        '<p class="site-idbox__pw">パスワードを ' + esc(f.email) + ' に送りました（試作版では送られません。demo1234 で入れます）。</p>' +
       '</div>' +
       '<div class="site-done__next">' +
-        '<p class="site-done__k">会員ページで、最初にやること</p>' +
-        '<ul>' + week1.map(function (s) { return '<li>' + icon('circle', 'ico-s') + '<span>' + esc(s.title) + '</span></li>'; }).join('') + '</ul>' +
-        '<p class="site-done__hint">「スタートガイド」に、上から順に並んでいます。担当スタッフからのメッセージも届いています。</p>' +
+        '<h2 class="site-panel__ttl">最初にやること</h2>' +
+        '<ol>' + week1.map(function (s) { return '<li>' + esc(s.title) + '</li>'; }).join('') + '</ol>' +
       '</div>' +
-      '<a class="site-btn site-btn--primary site-btn--l site-btn--block" href="member.html#/start">会員ページへ' + icon('arrow') + '</a>' +
+      '<a class="site-btn site-btn--primary site-btn--l site-btn--block" href="member.html#/start">会員ページへ進む</a>' +
     '</div>';
   }
 
@@ -821,8 +631,7 @@
     return '<article class="site-wrap site-doc">' +
       '<p class="site-doc__back"><a href="#/">' + icon('back', 'ico-s') + 'トップへ戻る</a></p>' +
       '<h1 class="site-doc__ttl">' + esc(title) + '</h1>' +
-      '<p class="site-doc__draft">' + icon('info', 'ico-s') +
-        '<span><b>ひな形・専門家の確認前</b>　試作版のための下書きです。本番の前に、弁護士などの専門家の確認を受けて差し替えます。</span></p>' +
+      '<p class="site-doc__draft"><b>ひな形です。</b>試作版のための下書きで、本番の前に弁護士などの確認を受けて差し替えます。</p>' +
       body +
       '<p class="site-doc__others">' + others.map(function (o) {
         return '<a class="site-link" href="' + o[0] + '">' + esc(o[1]) + '</a>';
@@ -933,7 +742,7 @@
      画面の切り替え
      ============================================================ */
   var ROUTES = {
-    '': { title: '', render: lp, mount: mountLp },
+    '': { title: '', render: lp },
     join: { title: '入会のお申込み', render: joinPage },
     tokushoho: { title: '特定商取引法に基づく表記', render: tokushoho },
     terms: { title: '利用規約', render: terms },

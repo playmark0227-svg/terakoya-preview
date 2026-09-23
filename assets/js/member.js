@@ -18,10 +18,10 @@
 
   var NAV = [
     { items: [['home', 'ホーム', 'home'], ['start', 'スタートガイド', 'flag']] },
-    { label: '学ぶ', items: [['courses', '講座', 'play'], ['feed', 'タイムライン', 'feed']] },
-    { label: '稼ぐ', items: [['gigs', '案件', 'briefcase'], ['referral', '紹介・報酬', 'gift'], ['ranking', 'ランキング', 'trophy']] },
-    { label: 'つながる', items: [['events', 'イベント', 'calendar'], ['messages', '相談・メッセージ', 'message']] },
-    { label: '暮らし', items: [['perks', '福利厚生・専門家', 'ticket'], ['card', '会員証', 'card']] },
+    { label: '講座', items: [['courses', '講座', 'play'], ['feed', 'タイムライン', 'feed']] },
+    { label: '案件・紹介', items: [['gigs', '案件', 'briefcase'], ['referral', '紹介・報酬', 'gift'], ['ranking', 'ランキング', 'trophy']] },
+    { label: 'コミュニティ', items: [['events', 'イベント', 'calendar'], ['messages', '相談・メッセージ', 'message']] },
+    { label: '特典', items: [['perks', '福利厚生・専門家', 'ticket'], ['card', '会員証', 'card']] },
     { items: [['account', 'アカウント', 'user']] }
   ];
   var TABS = [['home', 'ホーム', 'home'], ['courses', '講座', 'play'], ['feed', 'タイムライン', 'feed'], ['gigs', '案件', 'briefcase'], ['menu', 'メニュー', 'grid']];
@@ -165,7 +165,7 @@
         '<div style="text-align:center;margin-bottom:22px">' + U.brandmark(DATA.SITE, '会員ページ') + '</div>' +
         '<div class="login__card">' +
           '<h1 class="h2" style="margin-bottom:4px">ログイン</h1>' +
-          '<p class="sub" style="margin-bottom:20px">入会のときにお送りしたIDでログインしてください。</p>' +
+          '<p class="sub" style="margin-bottom:20px">入会時にメールでお送りしたIDとパスワードを入れてください。</p>' +
           '<form id="loginForm" novalidate>' +
             '<label class="field"><span>会員ID または メールアドレス</span>' +
               '<input class="input" name="id" autocomplete="username" value="' + esc(fresh ? store.state.me.id : DATA.MEMBER.id) + '"></label>' +
@@ -215,21 +215,20 @@
     var m = U.modal(
       '<div class="lvup">' +
         '<div class="lvup__seal"><span>Lv</span><b class="num">' + up.to + '</b></div>' +
-        '<p class="lvup__eyebrow">レベルが上がりました</p>' +
-        '<h3 class="lvup__ttl">「' + esc(up.name) + '」になりました</h3>' +
+        '<p class="lvup__eyebrow">レベルアップ</p>' +
+        '<h3 class="lvup__ttl">Lv' + up.to + '「' + esc(up.name) + '」になりました</h3>' +
         (r.courseCompleted ? '<p class="sub" style="margin-top:6px">講座「' + esc(r.courseCompleted.title) + '」も修了しました。</p>' : '') +
       '</div>' +
       (up.unlocked.length ?
-        '<p class="sec-ttl" style="margin:18px 0 8px">新しく開いた講座</p>' +
+        '<p class="sec-ttl" style="margin:18px 0 8px">見られるようになった講座</p>' +
         '<div class="list">' + up.unlocked.map(function (c) {
-          return '<a class="li has-ico" href="#/courses/' + esc(c.id) + '" data-close><span class="li__ico" style="color:var(--accent)">' + icon('unlock') + '</span>' +
+          return '<a class="li" href="#/courses/' + esc(c.id) + '" data-close>' +
             '<span class="li__body"><span class="li__ttl">' + esc(c.title) + '</span><span class="li__sub">' + esc(c.summary) + '</span></span>' + U.chevron() + '</a>';
         }).join('') + '</div>' : '') +
       (gigs.length ? '<p class="sub" style="margin-top:12px">' + icon('briefcase', 'ico-s') + ' 応募できる案件も ' + gigs.length + ' 件増えました。</p>' : '') +
       '<div class="modal__foot"><button class="btn btn-soft" data-close>閉じる</button>' +
       (up.unlocked.length ? '<a class="btn btn-primary" href="#/courses" data-close>講座を見る</a>' : '') + '</div>'
     );
-    confetti(m.querySelector('.lvup'));
     CLG.store.update(function (s) { s.seenLevel = up.to; });
   }
 
@@ -238,37 +237,20 @@
     var m = U.modal(
       '<div class="lvup">' +
         '<div class="lvup__seal lvup__seal-ok">' + icon('check', 'ico-l') + '</div>' +
-        '<p class="lvup__eyebrow">修了しました</p>' +
+        '<p class="lvup__eyebrow">修了</p>' +
         '<h3 class="lvup__ttl">' + esc(c.title) + '</h3>' +
         '<p class="sub" style="margin-top:6px">全' + c.lessons.length + '本を見終えました。+' + r.xp + ' XP</p>' +
       '</div>' +
-      '<div class="card-flat" style="margin-top:16px"><p class="small">修了をタイムラインで報告すると、仲間の励みになります。</p></div>' +
+
       '<div class="modal__foot"><button class="btn btn-soft" data-close>閉じる</button>' +
-      '<button class="btn btn-primary" data-share>タイムラインで報告する</button></div>'
+      '<button class="btn btn-primary" data-share>タイムラインに投稿する</button></div>'
     );
-    confetti(m.querySelector('.lvup'));
     m.querySelector('[data-share]').addEventListener('click', function () {
       var res = R.addPost('講座「' + c.title + '」を修了しました！', 'win');
       m.close(); U.toast('タイムラインに投稿しました', 'ok');
       if (res && res.levelUp) reward(res);
       go('#/feed');
     });
-  }
-
-  /** 小さな紙吹雪（動きを減らす設定の人には出さない） */
-  function confetti(host) {
-    if (!host || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
-    var colors = ['#c63f25', '#a07d2c', '#274868', '#2c7a53'];
-    for (var i = 0; i < 26; i++) {
-      var p = document.createElement('i');
-      p.className = 'confetti';
-      p.style.left = (10 + Math.random() * 80) + '%';
-      p.style.background = colors[i % colors.length];
-      p.style.animationDelay = (Math.random() * 0.25) + 's';
-      p.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
-      p.style.setProperty('--rot', (Math.random() * 540 - 270) + 'deg');
-      host.appendChild(p);
-    }
   }
 
   /** 経験値のしくみと、これまでの記録 */
@@ -279,7 +261,7 @@
       '<div class="row-between" style="margin-bottom:8px">' + U.lvBadge(lv.lv, lv.name) +
         '<span class="small"><b class="num">' + lv.xp + '</b> XP' + (lv.next ? '　/　Lv' + lv.next.lv + 'まで あと <b class="num">' + lv.toNext + '</b>' : '') + '</span></div>' +
       U.progressBar(lv.pct, 'gold') +
-      '<p class="sub" style="margin-top:14px">講座を見る・イベントに出る・タイムラインに書く・案件をやり終えると、経験値（XP）がたまります。レベルが上がると、次の講座と案件が開きます。</p>' +
+      '<p class="sub" style="margin-top:14px">講座やイベントに参加するとXPがたまります。レベルが上がると見られる講座と応募できる案件が増えます。</p>' +
       '<div class="tbl-wrap"><table class="tbl" style="margin-top:12px"><thead><tr><th>すること</th><th class="r">XP</th></tr></thead><tbody>' +
         '<tr><td>講座を1本見終える</td><td class="r num">+' + DATA.XP.lesson + '</td></tr>' +
         '<tr><td>勉強会アーカイブを1本見る</td><td class="r num">+' + DATA.XP.archive + '</td></tr>' +
@@ -324,6 +306,8 @@
       }).join('') +
       '<div class="list" style="margin-top:18px">' +
         '<button class="li has-ico" data-g><span class="li__ico">' + icon('info') + '</span><span class="li__body"><span class="li__ttl">この試作版について</span></span>' + U.chevron() + '</button>' +
+        '<button class="li has-ico" data-act="fresh"><span class="li__ico">' + icon('user') + '</span><span class="li__body"><span class="li__ttl">入会したての状態で見る（試作版）</span></span></button>' +
+        '<button class="li has-ico" data-act="reset"><span class="li__ico">' + icon('back') + '</span><span class="li__body"><span class="li__ttl">デモを最初から（試作版）</span></span></button>' +
         '<a class="li has-ico" href="index.html"><span class="li__ico">' + icon('external') + '</span><span class="li__body"><span class="li__ttl">サービス紹介ページ</span></span>' + U.chevron() + '</a>' +
         '<button class="li has-ico" data-lo><span class="li__ico">' + icon('logout') + '</span><span class="li__body"><span class="li__ttl">ログアウト</span></span></button>' +
       '</div>' +
@@ -337,14 +321,13 @@
     U.modal(
       '<p class="tag tag-accent" style="margin-bottom:10px">試作版 v0.1</p>' +
       '<h3 class="modal__ttl">この画面の見かた</h3>' +
-      '<p class="sub">打ち合わせで話した「入会したら、ログインして全部ここで見られる」会員ページの試作です。' +
-      'いまは <b>' + esc(R.me().name) + '</b> さん（' + (CLG.store.state.kind === 'demo' ? '入会24日目・Lv3' : '入会したて') + '）として見ています。</p>' +
-      '<p class="sec-ttl" style="margin:18px 0 8px">まず触ってほしいところ</p>' +
+      '<p class="sub">会員ページの試作です。いまは <b>' + esc(R.me().name) + '</b> さん（' + (CLG.store.state.kind === 'demo' ? '入会24日目・Lv3' : '入会したて') + '）として見ています。</p>' +
+      '<p class="sec-ttl" style="margin:18px 0 8px">試してほしいところ</p>' +
       '<ol class="guide-list">' +
-        '<li><b>講座 → 「SNS発信入門」の続きを2本見る。</b><br>Lv4に上がり、その場で講座が4つ開きます（レベルで動画が開くしくみ）。</li>' +
-        '<li><b>紹介・報酬／ランキング。</b><br>専用URL、#PR入りの紹介文、報酬が保留→確定→支払予定になる流れ。ランキングは紹介とは関係なく、貢献ポイントと学びで決まります。</li>' +
-        '<li><b>スタートガイド。</b><br>入会から30日の進みぐあい。右下の「入会したての状態で見る」で1日目の画面も見られます。</li>' +
-        '<li><b>公開サイト → 入会する。</b><br>申込 → 決済 → ログインID発行 → この会員ページまで、ひと続きで動きます。</li>' +
+        '<li><b>講座 → 「SNS発信入門」の続きを2本見る</b><br>Lv4に上がって、講座が4つ見られるようになります。</li>' +
+        '<li><b>紹介・報酬、ランキング</b><br>紹介リンク、報酬の明細、今月の順位。ランキングは紹介の人数とは関係ありません。</li>' +
+        '<li><b>スタートガイド</b><br>入会後30日でやることの一覧。「入会したての状態で見る」で1日目の画面になります。</li>' +
+        '<li><b>公開サイト → 入会する</b><br>申込、決済（デモ）、ログインIDの発行、会員ページまで通しで動きます。</li>' +
       '</ol>' +
       '<div class="card-flat" style="margin-top:16px"><p class="xsmall" style="line-height:1.9">' +
         '人物・案件・数値はすべて架空です。動画は入っていません（再生画面の形だけ）。<br>' +
@@ -367,7 +350,8 @@
     else if (act === 'level') levelInfo();
     else if (act === 'logout') logout();
     else if (act === 'guide') guide();
-    else if (act === 'reset') {
+    else if (act === 'reset' || act === 'fresh') { U.$$('.modal-bg').forEach(function (m) { if (m.close) m.close(); }); }
+    if (act === 'reset') {
       U.confirmBox('デモを最初からにする', '高橋さくらさん（入会24日目）の状態に戻します。この試作版で操作した内容は消えます。', '最初からにする').then(function (ok) {
         if (!ok) return; store.resetDemo(true); lastRoute = null; location.hash = '#/home'; render(); U.toast('デモを最初の状態に戻しました');
       });

@@ -1,6 +1,6 @@
-# TERAKOYA（仮称）プレビュー
+# テラコヤ（仮称）プレビュー
 
-月額制のオンラインスクール兼コミュニティ「TERAKOYA（仮称）」の試作です。
+月額制のオンラインスクール兼コミュニティ「テラコヤ（仮称）」の試作です。
 公開サイト（LP・入会の申込）と、会員ページの動く見本で構成されています。
 
 - 公開サイト: https://playmark0227-svg.github.io/terakoya-preview/
@@ -30,5 +30,7 @@ member.html         会員ページ
 assets/css/         色・部品・画面ごとのスタイル
 assets/js/          データ・ルール・各画面
 tools/render-check.js  各画面が例外なく描けるかを Node で確かめる
+tools/shoot.js      全画面のスクリーンショットを撮る
+tools/lp-images.js  公開サイトに載せる会員ページの画像を作る
 bump.sh             公開前に ?v= の版番号を上げる（キャッシュ対策）
 ```

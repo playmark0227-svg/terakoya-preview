@@ -1,40 +1,27 @@
 /* ============================================================
    相談・メッセージ（#/messages）
-   上から：相談の窓口 → やりとり（中だけスクロール）→ 書く欄。
+   1枚の面に、上から：返信する人の帯 → やりとり（中だけスクロール）→ 書く欄。
    書く欄はふつうの流れに置く（スマホの下のタブに隠れないように）。
    ============================================================ */
 .scr-messages { max-width: 760px; }
+.scr-messages .page-lead a { color: var(--indigo); }
+.scr-messages .msg-box { overflow: hidden; }
 
-/* 相談の窓口 */
-.scr-messages .msg-staff { overflow: hidden; }
-.scr-messages .msg-staff__main { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 20px; }
-.scr-messages .msg-staff__body { flex: 1; min-width: 190px; }
-.scr-messages .msg-staff__eyebrow { font-size: 11.5px; font-weight: 700; color: var(--ink-3); letter-spacing: .06em; }
-.scr-messages .msg-staff__name { font-size: 17px; font-weight: 800; line-height: 1.45; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.scr-messages .msg-staff__role { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
-.scr-messages .msg-staff__eta { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; color: var(--ink-2); }
-.scr-messages .msg-staff__eta .ico { color: var(--ink-3); }
-.scr-messages .msg-staff__experts { border-top: 1px solid var(--line); }
-/* app.css の .li__ttl / .li__sub は span のままだと横に並んでしまうので、ここで段にする */
-.scr-messages .li__ttl, .scr-messages .li__sub { display: block; }
-.scr-messages .msg-staff__experts .li__ico { color: var(--indigo); }
-@media (max-width: 640px) {
-  .scr-messages .msg-staff__main { padding: 16px; gap: 12px; }
-  .scr-messages .msg-staff .avatar-l { width: 52px; height: 52px; font-size: 18px; }
-  .scr-messages .msg-staff__meet { width: 100%; }
-}
+/* 返信する人の帯 */
+.scr-messages .msg-head { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.scr-messages .msg-head__who { flex: 1; min-width: 0; line-height: 1.4; }
+.scr-messages .msg-head__who b { display: block; font-size: 14.5px; font-weight: 700; }
+.scr-messages .msg-head__who span { display: block; font-size: 12px; color: var(--ink-3); }
+.scr-messages .msg-head .btn { flex: none; }
 
 /* やりとり */
-.scr-messages .msg-thread { background: var(--surface-2); border-color: var(--line); overflow: hidden; }
 .scr-messages .msg-thread__scroll {
   max-height: min(62vh, 580px); min-height: 220px; overflow-y: auto; overscroll-behavior: contain;
-  padding: 14px 18px 18px;
+  padding: 6px 18px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line);
 }
 .scr-messages .msg-thread__scroll:focus-visible { outline-offset: -2px; }
-@media (max-width: 640px) { .scr-messages .msg-thread__scroll { max-height: 56vh; padding: 12px 12px 16px; } }
+@media (max-width: 640px) { .scr-messages .msg-thread__scroll { max-height: 56vh; padding: 4px 12px 16px; } }
 
-.scr-messages .msg-private { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--ink-3); text-align: center; }
-.scr-messages .msg-private .ico { width: 13px; height: 13px; }
 .scr-messages .msg-day { display: flex; justify-content: center; margin: 18px 0 4px; }
 .scr-messages .msg-day span { font-size: 11.5px; font-weight: 600; color: var(--ink-3); background: rgba(29, 27, 24, .05); padding: 2px 10px; border-radius: 10px; }
 .scr-messages .msg-new { display: flex; align-items: center; gap: 10px; margin: 16px 0 2px; font-size: 11.5px; font-weight: 700; color: var(--accent-ink); }
@@ -47,15 +34,13 @@
 .scr-messages .msg__col { display: flex; flex-direction: column; align-items: flex-start; max-width: min(78%, 520px); min-width: 0; }
 .scr-messages .msg-me .msg__col { align-items: flex-end; }
 .scr-messages .msg__name { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 0 4px 3px; }
-.scr-messages .msg__name small { font-size: 11px; font-weight: 500; color: var(--ink-3); margin-left: 6px; }
 .scr-messages .msg__bubble {
   padding: 10px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.7;
   overflow-wrap: anywhere; word-break: normal;
 }
-.scr-messages .msg-them .msg__bubble { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); border-top-left-radius: 6px; }
+.scr-messages .msg-them .msg__bubble { background: var(--surface); border: 1px solid var(--line); border-top-left-radius: 6px; }
 .scr-messages .msg-me .msg__bubble { background: var(--ink); color: var(--ink-inv); border-top-right-radius: 6px; }
-.scr-messages .msg__meta { display: flex; align-items: center; gap: 6px; margin: 4px 4px 0; font-size: 11px; color: var(--ink-3); }
-.scr-messages .msg__kind { padding: 0 6px; border-radius: 5px; background: rgba(29, 27, 24, .06); color: var(--ink-2); font-weight: 600; }
+.scr-messages .msg__meta { margin: 4px 4px 0; font-size: 11px; color: var(--ink-3); }
 
 /* 入力中 */
 .scr-messages .msg-typing .msg__bubble { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; color: var(--ink-3); font-size: 13px; }
@@ -66,24 +51,26 @@
 @keyframes msg-dot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
 
 /* 書く欄 */
-.scr-messages .msg-compose__lbl { font-size: 12px; font-weight: 700; color: var(--ink-3); margin-bottom: 8px; }
+.scr-messages .msg-compose { padding: 14px 18px 16px; }
+.scr-messages .msg-compose__lbl { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.scr-messages .msg-kinds-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .scr-messages .msg-kinds { gap: 6px; }
 .scr-messages .msg-kinds .chip { height: 32px; padding: 0 12px; }
-.scr-messages .msg-compose__hint { font-size: 12.5px; color: var(--ink-2); margin: 10px 2px 8px; min-height: 1.6em; }
-.scr-messages .msg-compose .textarea { min-height: 112px; }
-.scr-messages .msg-tpl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-.scr-messages .msg-tpl__lbl { font-size: 12px; color: var(--ink-3); margin-right: 2px; }
-.scr-messages .msg-tpl .btn { font-weight: 600; }
-.scr-messages .msg-compose__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-.scr-messages .msg-compose__kbd { font-size: 12px; color: var(--ink-3); }
-.scr-messages .msg-compose__foot .btn { min-width: 120px; }
-@media (max-width: 640px) {
-  .scr-messages .msg-tpl__lbl { width: 100%; }
-  .scr-messages .msg-compose__kbd { display: none; }
-  .scr-messages .msg-compose__foot .btn { flex: 1; }
-  /* 指で押しやすい高さ（40px以上）にそろえる */
-  .scr-messages .msg-kinds .chip, .scr-messages .msg-tpl .btn, .scr-messages .msg-staff__meet { height: 40px; }
+.scr-messages .msg-compose .textarea { min-height: 104px; }
+.scr-messages .msg-compose__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; flex-wrap: wrap; margin-top: 10px; }
+.scr-messages .msg-tpl { display: flex; align-items: center; gap: 2px 4px; flex-wrap: wrap; min-width: 0; }
+.scr-messages .msg-tpl .msg-compose__lbl { margin-right: 4px; }
+.scr-messages .msg-tpl__btn {
+  background: none; border: 0; padding: 4px 6px; font: inherit; font-size: 13px; color: var(--indigo);
+  cursor: pointer; border-radius: 6px;
 }
-@media (hover: none) { .scr-messages .msg-compose__kbd { display: none; } }
-
-.scr-messages .msg-proto { margin: 12px 4px 0; }
+.scr-messages .msg-tpl__btn:hover { background: var(--indigo-weak); }
+.scr-messages .msg-compose__foot .btn { min-width: 120px; margin-left: auto; }
+@media (max-width: 640px) {
+  .scr-messages .msg-head { padding: 10px 12px; }
+  .scr-messages .msg-compose { padding: 12px 12px 14px; }
+  .scr-messages .msg-compose__foot .btn { flex: 1 1 100%; }
+  /* 指で押しやすい高さ（40px以上）にそろえる */
+  .scr-messages .msg-kinds .chip, .scr-messages .msg-head .btn { height: 40px; }
+  .scr-messages .msg-tpl__btn { min-height: 40px; }
+}

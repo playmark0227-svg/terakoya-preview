@@ -2,93 +2,49 @@
    講座
    .scr-courses … 一覧・講座の中身・勉強会アーカイブ（窓の中も）
    .scr-lesson  … 1本の再生画面
-   共通部品（.card .list .li .btn .tag .chips .seg .stats）で足りないところだけ書く。
+   共通部品（.card .list .li .btn .tag .chips .seg）で足りないところだけ書く。
    ============================================================ */
 
 /* ---------- 両方の画面で使うもの ---------- */
-/* app.css の .li__ttl / .li__sub は span のままだと横に並んでしまうので、ここで段にする */
-:is(.scr-courses, .scr-lesson) .li__ttl,
-:is(.scr-courses, .scr-lesson) .li__sub { display: block; }
 :is(.scr-courses, .scr-lesson) .crumb { flex-wrap: wrap; row-gap: 0; }
 :is(.scr-courses, .scr-lesson) .crumb .chev { width: 12px; height: 12px; }
 :is(.scr-courses, .scr-lesson) .crumb [aria-current] { color: var(--ink-3); }
-:is(.scr-courses, .scr-lesson) .tag .ico { width: 13px; height: 13px; }
 :is(.scr-courses, .scr-lesson) .sec-ttl .cr-ttlnote,
-:is(.scr-courses, .scr-lesson) .sec-ttl .cr-saved { font-weight: 500; letter-spacing: 0; font-size: 12px; }
+:is(.scr-courses, .scr-lesson) .sec-ttl .cr-saved { font-weight: 500; letter-spacing: 0; font-size: 12.5px; }
 
-/* 再生画面の枠（講座・アーカイブ共通）。動画の代わりに、墨の地に朱と藍をうっすら差す */
+/* 進みの細い棒＋本数 */
+:is(.scr-courses, .scr-lesson) .cr-prog { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
+:is(.scr-courses, .scr-lesson) .cr-prog .bar { flex: 1; max-width: 220px; height: 4px; }
+
+/* 再生画面の枠（講座・アーカイブ共通）。黒い16:9に再生ボタン */
 :is(.scr-courses, .scr-lesson) .cr-player {
-  position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-l); overflow: hidden; isolation: isolate;
-  display: grid; place-items: center; color: var(--ink-inv); background: var(--deep);
-}
-:is(.scr-courses, .scr-lesson) .cr-player::before {
-  content: ""; position: absolute; inset: 0; z-index: -1;
-  background:
-    radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--accent) 34%, transparent), transparent 60%),
-    radial-gradient(80% 110% at 0% 100%, color-mix(in srgb, var(--indigo) 55%, transparent), transparent 62%),
-    linear-gradient(150deg, color-mix(in srgb, var(--deep) 94%, white), color-mix(in srgb, var(--deep) 70%, black));
-}
-:is(.scr-courses, .scr-lesson) .cr-player__seal {
-  position: absolute; right: 5%; bottom: 10%; z-index: -1; pointer-events: none;
-  font-family: var(--font-serif); font-weight: 700; font-size: 150px; line-height: 1; color: var(--ink-inv); opacity: .05;
-}
-:is(.scr-courses, .scr-lesson) .cr-player__head {
-  position: absolute; left: 0; right: 0; top: 0; padding: 16px 20px 32px;
-  display: flex; flex-direction: column; gap: 2px;
-  background: linear-gradient(rgba(0, 0, 0, .38), transparent);
-}
-:is(.scr-courses, .scr-lesson) .cr-player__eyebrow { font-size: 12px; color: rgba(255, 255, 255, .72); letter-spacing: .03em; }
-:is(.scr-courses, .scr-lesson) .cr-player__ttl {
-  font-size: 17px; font-weight: 700; line-height: 1.45;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
+  display: grid; place-items: center; background: #151412; color: #fff;
 }
 :is(.scr-courses, .scr-lesson) .cr-player__play {
-  width: 76px; height: 76px; border-radius: 50%; padding: 0;
-  border: 1px solid rgba(255, 255, 255, .42); background: rgba(255, 255, 255, .14); color: var(--ink-inv);
-  display: grid; place-items: center; transition: background .2s, opacity .3s;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  width: 64px; height: 64px; border-radius: 50%; padding: 0; border: 0;
+  background: rgba(255, 255, 255, .92); color: var(--ink);
+  display: grid; place-items: center;
 }
-:is(.scr-courses, .scr-lesson) .cr-player__play svg { width: 30px; height: 30px; margin-left: 3px; }
-:is(.scr-courses, .scr-lesson) .cr-player__play:hover { background: rgba(255, 255, 255, .24); }
-:is(.scr-courses, .scr-lesson) .cr-player__play:focus-visible { outline: 2px solid var(--ink-inv); outline-offset: 3px; border-radius: 50%; }
-:is(.scr-courses, .scr-lesson) .cr-player__again,
-:is(.scr-courses, .scr-lesson) .cr-player__now {
-  display: none; position: absolute; left: 0; right: 0; top: calc(50% + 48px);
-  text-align: center; font-size: 12px; color: rgba(255, 255, 255, .78); pointer-events: none;
+:is(.scr-courses, .scr-lesson) .cr-player__play svg { width: 26px; height: 26px; margin-left: 3px; }
+:is(.scr-courses, .scr-lesson) .cr-player__play:hover { background: #fff; }
+:is(.scr-courses, .scr-lesson) .cr-player__play:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+:is(.scr-courses, .scr-lesson) .cr-player.is-playing .cr-player__play { visibility: hidden; }
+:is(.scr-courses, .scr-lesson) .cr-player__time {
+  position: absolute; right: 12px; bottom: 12px; font-size: 12px; color: rgba(255, 255, 255, .85); white-space: nowrap;
 }
-:is(.scr-courses, .scr-lesson) .cr-player.is-ended .cr-player__again { display: block; }
-:is(.scr-courses, .scr-lesson) .cr-player.is-playing .cr-player__now { display: block; top: 50%; transform: translateY(-50%); }
-:is(.scr-courses, .scr-lesson) .cr-player.is-playing .cr-player__play { opacity: 0; pointer-events: none; }
-:is(.scr-courses, .scr-lesson) .cr-player__foot {
-  position: absolute; left: 0; right: 0; bottom: 4px; padding: 10px 16px;
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
-  font-size: 11.5px; color: rgba(255, 255, 255, .7);
-}
-:is(.scr-courses, .scr-lesson) .cr-player__time { font-size: 12px; color: rgba(255, 255, 255, .92); white-space: nowrap; }
-:is(.scr-courses, .scr-lesson) .cr-player__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255, 255, 255, .16); }
+:is(.scr-courses, .scr-lesson) .cr-player__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .2); }
 :is(.scr-courses, .scr-lesson) .cr-player__bar i { display: block; height: 100%; background: var(--accent); }
 :is(.scr-courses, .scr-lesson) .cr-player.is-playing .cr-player__bar i { transition: width 2.5s linear; }
-:is(.scr-courses, .scr-lesson) .cr-player.is-locked::before { filter: saturate(.3) brightness(.85); }
-:is(.scr-courses, .scr-lesson) .cr-player__lock { display: grid; justify-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .8); }
-:is(.scr-courses, .scr-lesson) .cr-player__lockico {
-  width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
-  background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .2);
-}
+:is(.scr-courses, .scr-lesson) .cr-player__lock { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: rgba(255, 255, 255, .7); }
 @media (max-width: 640px) {
-  :is(.scr-courses, .scr-lesson) .cr-player { border-radius: var(--r); }
-  :is(.scr-courses, .scr-lesson) .cr-player__head { padding: 10px 14px 24px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__eyebrow { font-size: 11px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__ttl { font-size: 14px; -webkit-line-clamp: 1; }
-  :is(.scr-courses, .scr-lesson) .cr-player__play { width: 58px; height: 58px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__play svg { width: 24px; height: 24px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__again { top: calc(50% + 36px); font-size: 11px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__foot { padding: 8px 12px; font-size: 10.5px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__seal { font-size: 96px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__lockico { width: 52px; height: 52px; }
+  :is(.scr-courses, .scr-lesson) .cr-player { border-radius: 8px; }
+  :is(.scr-courses, .scr-lesson) .cr-player__play { width: 54px; height: 54px; }
+  :is(.scr-courses, .scr-lesson) .cr-player__play svg { width: 22px; height: 22px; }
+  :is(.scr-courses, .scr-lesson) .cr-player__time { right: 10px; bottom: 9px; font-size: 11px; }
 }
 
 /* 鍵の知らせ（講座の中身・再生画面） */
-:is(.scr-courses, .scr-lesson) .cr-lock__sub { display: block; margin-top: 4px; font-size: 12.5px; opacity: .88; }
 :is(.scr-courses, .scr-lesson) .cr-lock__btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 @media (max-width: 640px) {
   :is(.scr-courses, .scr-lesson) .cr-lock__btns .btn { flex: 1 1 100%; }
@@ -114,37 +70,26 @@
 .scr-courses .cr-lvline:hover { border-color: var(--line-2); }
 .scr-courses .cr-lvline b { color: var(--ink); font-size: 14px; margin: 0 1px; }
 .scr-courses .cr-seg { margin-top: -4px; }
-/* 指で押す画面では、切り替えと絞り込みの札を40pxにする（共通部品は34px前後） */
 @media (max-width: 860px) {
   .scr-courses .cr-seg button { height: 38px; }
   .scr-courses .cr-chips .chip { height: 40px; border-radius: 20px; }
 }
 
 /* 続きから */
-.scr-courses .cr-rrow { gap: 16px; padding: 14px 16px 14px 14px; }
-.scr-courses .cr-rrow .li__ttl { font-size: 16px; }
+.scr-courses .cr-rrow { gap: 14px; padding: 12px 16px 12px 12px; }
 .scr-courses .cr-thumb {
-  width: 112px; aspect-ratio: 16 / 9; flex: none; border-radius: 10px; display: grid; place-items: center; color: var(--ink-inv);
-  background:
-    radial-gradient(90% 140% at 100% 0%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 60%),
-    linear-gradient(150deg, color-mix(in srgb, var(--deep) 92%, white), color-mix(in srgb, var(--deep) 75%, black));
+  width: 104px; aspect-ratio: 16 / 9; flex: none; border-radius: 6px; display: grid; place-items: center;
+  background: #151412; color: #fff;
 }
-.scr-courses .cr-thumb svg { width: 22px; height: 22px; margin-left: 2px; }
-.scr-courses .cr-rrow__prog { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
-.scr-courses .cr-rrow__prog .bar { flex: 1; max-width: 240px; height: 6px; }
-.scr-courses .cr-inlink { display: flex; width: fit-content; align-items: center; gap: 4px; min-height: 40px; font-weight: 700; color: inherit; }
-.scr-courses .cr-inlink .ico { margin-top: 0; }
-.scr-courses .cr-hint { display: flex; align-items: flex-start; gap: 8px; margin: 12px 4px 0; font-size: 13px; color: var(--ink-2); }
-.scr-courses .cr-hint .ico { color: var(--gold); margin-top: 3px; }
-.scr-courses .cr-hint b { color: var(--ink); font-size: 14px; }
+.scr-courses .cr-thumb svg { width: 20px; height: 20px; margin-left: 2px; }
+.scr-courses .cr-inlink { display: inline-block; margin-left: 4px; font-weight: 700; color: inherit; }
+.scr-courses .cr-alldone { display: block; }
 @media (max-width: 640px) {
-  .scr-courses .cr-rrow { gap: 12px; padding: 12px 14px 12px 12px; }
-  .scr-courses .cr-thumb { width: 76px; border-radius: 8px; }
-  .scr-courses .cr-rrow .li__ttl { font-size: 15px; }
+  .scr-courses .cr-rrow { gap: 12px; }
+  .scr-courses .cr-thumb { width: 72px; }
 }
 
 /* 学部の絞り込み（スマホでは横に流す。ページ全体は横に動かさない） */
-.scr-courses .cr-facdesc { margin: 10px 4px 0; font-size: 13px; color: var(--ink-2); }
 @media (max-width: 640px) {
   .scr-courses .cr-chips {
     flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 4px;
@@ -155,96 +100,48 @@
 }
 
 /* レベルごとのまとまり */
-.scr-courses .cr-lvsec { margin-top: 26px; }
-.scr-courses .cr-lvhead { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0 4px 12px; }
-.scr-courses .cr-lvhead__ttl { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; line-height: 1.4; }
-.scr-courses .cr-lvnum {
-  display: inline-grid; place-items: center; min-width: 38px; height: 24px; padding: 0 7px; border-radius: 7px;
-  background: var(--ink); color: var(--ink-inv); font-family: var(--font-num); font-size: 12px; font-weight: 700; letter-spacing: .02em;
-}
-.scr-courses .cr-lvsec.is-cur .cr-lvnum { background: var(--gold); }
-.scr-courses .cr-lvsec.is-locked .cr-lvnum { background: rgba(29, 27, 24, .1); color: var(--ink-2); }
+.scr-courses .cr-lvsec { margin-top: 24px; }
+.scr-courses .cr-lvhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin: 0 4px 10px; }
+.scr-courses .cr-lvhead__ttl { font-size: 16px; font-weight: 800; line-height: 1.4; }
+.scr-courses .cr-lvhead__n { margin-left: 8px; font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
+.scr-courses .cr-lvhead__need { margin-left: auto; font-size: 12.5px; color: var(--ink-2); }
 .scr-courses .cr-lvsec.is-locked .cr-lvhead__ttl { color: var(--ink-2); }
-.scr-courses .cr-lvhead__n { font-size: 12px; font-weight: 500; color: var(--ink-3); margin-left: 2px; }
-.scr-courses .cr-lvstate { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--ink-3); }
-.scr-courses .cr-lvstate b { color: var(--ink-2); }
-.scr-courses .cr-lvstate.is-open { color: var(--ok); }
-.scr-courses .cr-lvhead .tag-gold { margin-left: auto; }
-.scr-courses .cr-lvnext { flex-basis: 100%; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-2); }
-.scr-courses .cr-lvnext .bar { flex: 1; max-width: 300px; height: 6px; }
 
-/* 講座のカード（.card + .card の余白は格子では要らない） */
+/* 開いている講座のカード */
+.scr-courses .cr-grid { gap: 10px; }
 .scr-courses .cr-grid > .card { margin-top: 0; }
-.scr-courses .cr-card { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px 16px; color: inherit; }
-.scr-courses .cr-card__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.scr-courses .cr-card__ttl { font-size: 16.5px; font-weight: 800; line-height: 1.45; }
-.scr-courses .cr-card__sum {
-  font-size: 13px; line-height: 1.65; color: var(--ink-2);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.scr-courses .cr-card__meta { display: flex; flex-wrap: wrap; gap: 2px 0; font-size: 12.5px; color: var(--ink-3); }
-.scr-courses .cr-card__meta span + span::before { content: "・"; }
-.scr-courses .cr-card__foot { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 6px; }
-.scr-courses .cr-card__foot .bar { flex: 1; height: 6px; }
-.scr-courses .cr-card__foot .chev { margin-left: auto; }
-.scr-courses .cr-card__count { font-size: 12px; color: var(--ink-3); }
-/* 鍵つき：隠さず、ひかえめに */
-.scr-courses .cr-card.is-locked { background: var(--surface-2); box-shadow: none; border: 1px dashed var(--line-2); }
-.scr-courses .cr-card.is-locked:hover { box-shadow: none; border-color: var(--ink-3); }
-.scr-courses .cr-card.is-locked .cr-card__ttl { color: var(--ink-2); }
-.scr-courses .cr-card.is-locked .cr-card__sum { color: var(--ink-3); }
-@media (max-width: 640px) {
-  .scr-courses .cr-card { gap: 6px; padding: 14px 16px; }
-  .scr-courses .cr-card__ttl { font-size: 16px; }
-  .scr-courses .cr-card__foot { padding-top: 4px; }
-}
+.scr-courses .cr-card { display: flex; align-items: center; gap: 10px; padding: 14px 14px 14px 18px; color: inherit; }
+.scr-courses .cr-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.scr-courses .cr-card__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.45; }
+.scr-courses .cr-card__meta { margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
+.scr-courses .cr-card .tag { flex: none; }
+
+/* まだ開いていない講座（行の一覧） */
+.scr-courses .cr-lrow .li__ttl { font-weight: 600; color: var(--ink-2); }
 
 /* ============================================================
    講座の中身
    ============================================================ */
-.scr-courses .cr-tags { gap: 6px; margin-bottom: 10px; }
-.scr-courses .cr-hero { overflow: hidden; }
-.scr-courses .cr-hero__who { display: flex; align-items: center; gap: 12px; padding: 18px 22px; }
-.scr-courses .cr-hero__who b { display: block; font-size: 15px; line-height: 1.4; }
-.scr-courses .cr-hero__role { display: block; font-size: 12.5px; color: var(--ink-3); }
-.scr-courses .cr-stats { margin: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.scr-courses .cr-stats > div { padding: 14px 22px; }
-.scr-courses .cr-hero__act { padding: 18px 22px 20px; }
-.scr-courses .cr-prog { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 12.5px; color: var(--ink-3); }
-.scr-courses .cr-prog .bar { flex: 1; }
-.scr-courses .cr-hero__btns { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
-.scr-courses .cr-hero .notice + .cr-hero__btns { margin-top: 14px; }
-.scr-courses .cr-hero__next { font-size: 13px; color: var(--ink-2); }
-.scr-courses .cr-hero__btns + .cr-hero__next { margin-top: 10px; }
-.scr-courses .cr-nextcourse { min-height: 40px; white-space: normal; text-align: left; line-height: 1.5; gap: 4px; }
-.scr-courses .cr-note { margin: 8px 4px 0; font-size: 12px; color: var(--ink-3); }
+.scr-courses .cr-meta { margin-top: 6px; font-size: 13px; color: var(--ink-3); }
+.scr-courses .cr-start { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 26px; }
+.scr-courses .cr-start__next { font-size: 13.5px; color: var(--ink-2); }
+.scr-courses .cr-start__done { flex-basis: 100%; font-size: 14px; font-weight: 700; color: var(--ok); }
+.scr-courses .cr-lock { margin-bottom: 12px; }
+.scr-courses .cr-lock + .cr-start { margin-bottom: 26px; }
+.scr-courses .cr-nextcourse { white-space: normal; text-align: left; line-height: 1.5; gap: 4px; }
 @media (max-width: 640px) {
-  .scr-courses .cr-hero__who, .scr-courses .cr-hero__act { padding-left: 16px; padding-right: 16px; }
-  .scr-courses .cr-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .scr-courses .cr-stats > div { padding: 12px 14px; }
-  .scr-courses .cr-stats > div:nth-child(3) { border-left: 1px solid var(--line); }
-  .scr-courses .cr-stats > div:nth-child(n+3) { border-top: 0; }
-  .scr-courses .cr-stats dd { font-size: 20px; }
-  .scr-courses .cr-hero__btns .btn:not(.btn-text) { width: 100%; }
-  .scr-courses .cr-nextcourse { margin: 0 auto; }
+  .scr-courses .cr-start .btn:not(.btn-text) { width: 100%; }
 }
 
 /* ============================================================
    勉強会アーカイブ
    ============================================================ */
 .scr-courses .cr-alist { margin-top: 12px; }
-.scr-courses .cr-arow .li__ico { color: var(--ink-2); }
-.scr-courses .cr-arow.is-seen .li__ico { color: var(--ok); }
 .scr-courses .cr-arow.is-seen .li__ttl { color: var(--ink-2); }
-.scr-courses .cr-arow__tag.is-narrow { display: none; }
-@media (max-width: 640px) {
-  .scr-courses .cr-arow__tag.is-wide { display: none; }
-  .scr-courses .cr-arow__tag.is-narrow { display: block; margin-top: 6px; }
-}
+.scr-courses .cr-seen { color: var(--ok); font-weight: 600; white-space: nowrap; }
 .scr-courses.cr-amodal .cr-player { margin-bottom: 16px; }
 .scr-courses.cr-amodal .modal__ttl { margin-bottom: 2px; }
-.scr-courses.cr-amodal .notice,
-.scr-courses.cr-amodal .cr-amodal__hint { margin-top: 12px; }
+.scr-courses.cr-amodal .cr-amodal__seen { display: block; margin-top: 4px; font-size: 13px; }
 
 /* ============================================================
    1本の再生画面
@@ -254,83 +151,32 @@
   .scr-lesson .cr-lesson { grid-template-columns: minmax(0, 1fr) 272px; align-items: start; }
   .scr-lesson .cr-lesson__side { position: sticky; top: 24px; }
 }
-.scr-lesson .cr-lesson__head { margin: 18px 4px 16px; }
-.scr-lesson .cr-lesson__ttl { font-size: 22px; font-weight: 800; line-height: 1.45; }
-.scr-lesson .cr-lesson__meta { display: flex; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--ink-3); }
-.scr-lesson .cr-lesson__meta span + span::before { content: "・"; }
-.scr-lesson .sec { margin-top: 26px; }
+.scr-lesson .cr-lesson__head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin: 16px 4px 0; }
+.scr-lesson .cr-lesson__hbody { flex: 1 1 280px; min-width: 0; }
+.scr-lesson .cr-lesson__ttl { font-size: 21px; font-weight: 800; line-height: 1.45; }
+.scr-lesson .cr-lesson__meta { margin-top: 4px; font-size: 13px; color: var(--ink-3); }
+.scr-lesson .cr-lesson__done { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--ok); }
+.scr-lesson .cr-lesson__btn { flex: none; }
+.scr-lesson .cr-lesson__btn[aria-disabled="true"] { color: var(--ink-3); cursor: default; }
+.scr-lesson .cr-lock { margin-top: 16px; }
+.scr-lesson .sec { margin-top: 28px; }
 @media (max-width: 640px) {
-  .scr-lesson .cr-lesson__head { margin: 14px 2px 14px; }
+  .scr-lesson .cr-lesson__head { margin: 14px 2px 0; }
   .scr-lesson .cr-lesson__ttl { font-size: 19px; }
+  .scr-lesson .cr-lesson__btn { width: 100%; }
 }
-
-/* 見終わったボタンのかたまり */
-.scr-lesson .cr-act { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 16px 18px 16px 20px; }
-.scr-lesson .cr-act__body { flex: 1 1 220px; min-width: 0; }
-.scr-lesson .cr-act__hint { font-size: 13.5px; color: var(--ink-2); }
-.scr-lesson .cr-act__up { display: flex; align-items: flex-start; gap: 6px; margin-top: 4px; font-size: 12.5px; color: var(--ink-2); }
-.scr-lesson .cr-act__up .ico { color: var(--gold); margin-top: 2px; }
-.scr-lesson .cr-done { align-items: center; flex-wrap: wrap; }
-.scr-lesson .cr-done__body { flex: 1 1 160px; }
-.scr-lesson .cr-done__body b { display: block; font-size: 15px; }
-.scr-lesson .cr-done__body span { font-size: 12.5px; }
-.scr-lesson .cr-done .btn { flex: none; }
-@media (max-width: 640px) {
-  .scr-lesson .cr-act { padding: 16px; }
-  .scr-lesson .cr-act__btn, .scr-lesson .cr-done .btn { width: 100%; }
-}
-
-/* この回でやること */
-.scr-lesson .cr-todo__list { display: grid; gap: 8px; }
-.scr-lesson .cr-todo__list li { position: relative; padding-left: 18px; font-size: 14px; }
-.scr-lesson .cr-todo__list li::before {
-  content: ""; position: absolute; left: 3px; top: .72em; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3);
-}
-.scr-lesson .cr-todo__aim { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
-.scr-lesson .cr-todo__aim b { display: block; margin-bottom: 2px; font-size: 12px; color: var(--ink-3); }
 
 /* メモ */
+.scr-lesson .cr-memo .sec-ttl label { cursor: pointer; }
+.scr-lesson .cr-memo .textarea { display: block; width: 100%; background: var(--surface); }
 .scr-lesson .cr-saved { color: var(--ok); opacity: 0; transition: opacity .3s; }
 .scr-lesson .cr-saved.is-on { opacity: 1; }
-.scr-lesson .cr-memo__note { margin-top: 8px; }
-
-/* 前後の回 */
-.scr-lesson .cr-pager { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 30px; }
-.scr-lesson .cr-pager__a {
-  display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 14px 16px;
-  border-radius: var(--r-l); background: var(--surface); border: 1px solid rgba(29, 27, 24, .04); box-shadow: var(--shadow-1);
-  text-decoration: none; color: inherit;
-}
-.scr-lesson a.cr-pager__a:hover { background: var(--surface-2); }
-.scr-lesson .cr-pager__a.is-next { align-items: flex-end; text-align: right; }
-.scr-lesson .cr-pager__dir { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
-.scr-lesson .cr-pager__ttl {
-  font-size: 14px; font-weight: 700; line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.scr-lesson .cr-pager__sub { font-size: 11.5px; color: var(--ink-3); }
-.scr-lesson .cr-pager__a.is-locked { background: var(--surface-2); box-shadow: none; border: 1px dashed var(--line-2); cursor: default; }
-.scr-lesson .cr-pager__a.is-locked .cr-pager__ttl { color: var(--ink-3); }
-@media (max-width: 640px) {
-  .scr-lesson .cr-pager { gap: 10px; }
-  .scr-lesson .cr-pager__a { padding: 12px; }
-  .scr-lesson .cr-pager__ttl { font-size: 13px; }
-}
 
 /* 目次（広い画面では右に、狭い画面では下に） */
-.scr-lesson .cr-toc__head {
-  display: flex; align-items: center; gap: 10px; padding: 14px 16px;
-  border-bottom: 1px solid var(--line); text-decoration: none; color: inherit;
-}
-.scr-lesson .cr-toc__head:hover { background: var(--surface-2); }
-.scr-lesson .cr-toc__headbody { flex: 1; min-width: 0; }
-.scr-lesson .cr-toc__ttl { display: block; font-size: 14px; font-weight: 700; line-height: 1.45; }
-.scr-lesson .cr-toc__prog { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11.5px; color: var(--ink-3); }
-.scr-lesson .cr-toc__prog .bar { flex: 1; height: 5px; }
+.scr-lesson .cr-toc__head .li__ttl { font-size: 14px; font-weight: 700; }
 .scr-lesson .cr-toc .li { gap: 12px; min-height: 48px; padding: 10px 16px; }
 .scr-lesson .cr-toc .li.has-ico + .li::before { left: 48px; }
 .scr-lesson .cr-toc .li__ttl { font-size: 13.5px; font-weight: 600; }
 .scr-lesson .cr-toc .li__sub { font-size: 11.5px; }
-.scr-lesson .cr-toc .li.is-current { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent); }
-.scr-lesson .cr-toc .li.is-current .li__ttl { color: var(--ink); font-weight: 700; }
-.scr-lesson .cr-toc__now { flex: none; font-size: 11.5px; font-weight: 700; color: var(--accent-ink); }
+.scr-lesson .cr-toc .li.is-current { background: var(--surface-2); }
+.scr-lesson .cr-toc .li.is-current .li__ttl { color: var(--ink); font-weight: 800; }

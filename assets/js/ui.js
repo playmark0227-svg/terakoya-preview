@@ -22,7 +22,9 @@
   function toDate(d) { return d instanceof Date ? d : new Date(d); }
   /** 2026年9月23日(水) */
   function fmtDate(d, opt) {
+    if (d == null || d === '') return '';
     d = toDate(d); opt = opt || {};
+    if (isNaN(d)) return '';
     var s = (opt.noYear ? '' : d.getFullYear() + '年') + (d.getMonth() + 1) + '月' + d.getDate() + '日';
     if (opt.wd !== false) s += '(' + WD[d.getDay()] + ')';
     if (opt.time) s += ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
@@ -157,15 +159,11 @@
     pct = Math.max(0, Math.min(100, pct || 0));
     return '<div class="bar' + (kind ? ' bar-' + kind : '') + '" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div>';
   }
-  /** 丸い進み。kind: 'ok' / 'ink' / 'gold'（省略すると朱） */
-  function ring(pct, label, size, kind) {
-    return '<div class="ring' + (kind ? ' ring-' + kind : '') + '" style="--p:' + Math.round(pct) + (size ? ';--size:' + size + 'px' : '') + '"><span>' + esc(label == null ? Math.round(pct) + '%' : label) + '</span></div>';
-  }
   function lvBadge(lv, name) {
     return '<span class="lv"><b>Lv' + esc(lv) + '</b>' + esc(name || '') + '</span>';
   }
   function empty(iconName, text) {
-    return '<div class="empty">' + icon(iconName || 'sparkle') + '<p>' + esc(text) + '</p></div>';
+    return '<div class="empty">' + (iconName ? icon(iconName) : '') + '<p>' + esc(text) + '</p></div>';
   }
 
   /* ---------- 記号 ----------
@@ -210,7 +208,6 @@
     yen:      '<path d="M6.2 3.8 10 9.2l3.8-5.4M10 9.2v7M6.8 10.6h6.4M6.8 13.2h6.4"/>',
     star:     '<path d="m10 3 2.1 4.4 4.8.6-3.5 3.3.9 4.8L10 13.8l-4.3 2.3.9-4.8L3.1 8l4.8-.6z"/>',
     fire:     '<path d="M10 17.2c-3 0-5.2-2-5.2-4.8 0-3.4 3.2-4.6 3.4-8.6 2.2 1.2 3.4 3.2 3.4 5 .8-.4 1.3-1.2 1.4-2.2 1.4 1.2 2.2 3 2.2 5.2 0 3.2-2.2 5.4-5.2 5.4z"/>',
-    sparkle:  '<path d="M10 2.8c.5 3.6 1.6 4.7 5.2 5.2-3.6.5-4.7 1.6-5.2 5.2-.5-3.6-1.6-4.7-5.2-5.2 3.6-.5 4.7-1.6 5.2-5.2zM15.4 12.6c.2 1.5.7 2 2.2 2.2-1.5.2-2 .7-2.2 2.2-.2-1.5-.7-2-2.2-2.2 1.5-.2 2-.7 2.2-2.2z"/>',
     logout:   '<path d="M8 16.6H4.6a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1H8M12.4 13.6 16 10l-3.6-3.6M16 10H7.6"/>',
     receipt:  '<path d="M4.6 2.8h10.8v14.4l-2.2-1.4-2 1.4-1.2-.9-1.2.9-2-1.4-2.2 1.4z"/><path d="M7.4 6.6h5.2M7.4 9.4h5.2M7.4 12.2h3"/>',
     shield:   '<path d="M10 2.8 16 5v4.6c0 3.8-2.6 6.4-6 7.6-3.4-1.2-6-3.8-6-7.6V5z"/><path d="m7.4 10 1.8 1.8 3.6-3.8"/>',
@@ -239,18 +236,17 @@
       'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 4.5 13 10l-5.2 5.5"/></svg>';
   }
 
-  /** 屋号の判子。サイト名の頭の1文字を朱の角印にする */
+  /** 屋号。文字だけで出す（判子などの飾りは付けない） */
   function brandmark(site, sub) {
-    return '<span class="brandmark"><span class="brandmark__seal">' + esc(site.seal) + '</span>' +
-      '<span><span class="brandmark__name">' + esc(site.name) + '</span>' +
-      (sub ? '<span class="brandmark__sub">' + esc(sub) + '</span>' : '') + '</span></span>';
+    return '<span class="brandmark"><span class="brandmark__name">' + esc(site.name) + '</span>' +
+      (sub ? '<span class="brandmark__sub">' + esc(sub) + '</span>' : '') + '</span>';
   }
 
   CLG.ui = {
     esc: esc, nl2br: nl2br, $: $, $$: $$,
     yen: yen, num: num, fmtDate: fmtDate, fmtShort: fmtShort, relTime: relTime, pad: pad,
     toast: toast, modal: modal, confirmBox: confirmBox, copyText: copyText, download: download,
-    initials: initials, avatar: avatar, progressBar: progressBar, ring: ring, lvBadge: lvBadge, empty: empty,
+    initials: initials, avatar: avatar, progressBar: progressBar, lvBadge: lvBadge, empty: empty,
     icon: icon, chevron: chevron, brandmark: brandmark, ICONS: ICONS
   };
 })(window);

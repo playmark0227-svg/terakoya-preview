@@ -1,8 +1,8 @@
 /* ============================================================
    福利厚生・専門家（#/perks、#/perks?tab=experts）
-   - 福利厚生：種類で絞り込み、「使う」で使い方ごとの窓を出す
+   - 福利厚生：種類で絞り込み、行を押すと使い方ごとの窓を出す
    - 専門家に相談：申し込みは運営へのメッセージとして送る（運営が日程を調整する）
-   #/perks?focus=pk4 で来たときは、その福利厚生の位置まで送って目印を付ける（会員証の画面から）。
+   #/perks?focus=pk4 で来たときは、その福利厚生の行まで送って目印を付ける（会員証の画面から）。
    ============================================================ */
 (function () {
   'use strict';
@@ -11,10 +11,9 @@
 
   var cat = 'all';   // 絞り込みは画面を離れても覚えておく（戻ってきたとき同じ一覧が出るように）
 
-  var CAT_ICON = { '暮らし': 'home', '子育て': 'heart', '遊び': 'sparkle', '仕事': 'briefcase', '学び': 'book' };
-  var HOW_ICON = { id: 'user', coupon: 'ticket', card: 'card', site: 'external', other: 'info' };
-  var EX_ICON = { '税理士': 'yen', '司法書士': 'pen', '社会保険労務士': 'users', '行政書士': 'receipt' };
-  /* 何を書けばいいか迷わないように、専門家ごとの書き出しの例 */
+  /* 一覧の右端に出す、使い方の短い名前 */
+  var HOW_SHORT = { id: 'ID発行', coupon: 'クーポン', card: '会員証を提示', site: '提携サイト', other: '' };
+  /* 相談の入力欄に薄く出す例 */
   var EX_HINT = {
     '税理士': '例：副業の収入が年20万円を超えそうです。確定申告までに何を準備すればいいか知りたいです。',
     '司法書士': '例：来年、合同会社をつくりたいと考えています。登記の流れと費用の目安を知りたいです。',
@@ -66,19 +65,14 @@
   }
 
   /* ---------- 描く ---------- */
-  function perkCard(p) {
+  function perkRow(p) {
     var k = kind(p.how);
-    return '<article class="card pk" data-perk="' + esc(p.id) + '">' +
-      '<div class="pk__head"><span class="pk__ico">' + icon(CAT_ICON[p.cat] || 'gift') + '</span>' +
-        '<span class="tag">' + esc(p.cat) + '</span></div>' +
-      '<h3 class="pk__ttl">' + esc(p.title) + '</h3>' +
-      '<p class="pk__desc">' + esc(p.desc) + '</p>' +
-      '<div class="pk__foot">' +
-        '<span class="tag tag-line pk__how">' + icon(HOW_ICON[k], 'ico-s') + esc(p.how) + '</span>' +
-        '<button class="btn btn-soft btn-s" data-use="' + esc(p.id) + '" aria-label="' + esc(p.title + 'を使う') + '">使う' +
-          (k === 'site' ? icon('external', 'ico-s') : '') + '</button>' +
-      '</div>' +
-    '</article>';
+    return '<button class="li pk" data-use="' + esc(p.id) + '" data-perk="' + esc(p.id) + '">' +
+      '<span class="li__body"><span class="li__ttl">' + esc(p.title) + '</span>' +
+        '<span class="li__sub">' + esc(p.desc) + '</span></span>' +
+      (HOW_SHORT[k] ? '<span class="li__end pk__how">' + esc(HOW_SHORT[k]) + '</span>' : '') +
+      (k === 'site' ? '<span class="pk__ext">' + icon('external', 'ico-s') + '</span>' : U.chevron()) +
+    '</button>';
   }
 
   function renderPerks() {
@@ -91,69 +85,49 @@
       return '<button class="chip' + (on ? ' is-on' : '') + '" data-cat="' + esc(id) + '" aria-pressed="' + on + '">' +
         esc(label) + '<span class="n num">' + n + '</span></button>';
     }
-    return '<div class="pk-bar">' +
-        '<div class="chips" role="group" aria-label="種類で絞り込む">' + chip('all', 'すべて', list.length) +
-          cats.map(function (c) { return chip(c, c, list.filter(function (p) { return p.cat === c; }).length); }).join('') +
-        '</div>' +
-        '<p class="pk-note">' + icon('info') + '<span>提携先は調整中です。割引率は商品・店舗・時期によって異なります。</span></p>' +
+    return '<div class="chips pk-chips" role="group" aria-label="種類で絞り込む">' + chip('all', 'すべて', list.length) +
+        cats.map(function (c) { return chip(c, c, list.filter(function (p) { return p.cat === c; }).length); }).join('') +
       '</div>' +
-      (shown.length ? '<div class="grid-2 pk-grid">' + shown.map(perkCard).join('') + '</div>'
-        : '<div class="card">' + U.empty('ticket', 'この種類の福利厚生は準備中です') + '</div>') +
-      '<section class="sec"><div class="list">' +
-        '<a class="li has-ico" href="#/card"><span class="li__ico">' + icon('card') + '</span>' +
-          '<span class="li__body"><span class="li__ttl">会員証を表示する</span>' +
-          '<span class="li__sub">店頭で使う福利厚生は、会員ページの会員証を見せて使います</span></span>' + U.chevron() + '</a>' +
-        '<button class="li has-ico" data-wish><span class="li__ico">' + icon('pen') + '</span>' +
-          '<span class="li__body"><span class="li__ttl">ほしい福利厚生を運営に伝える</span>' +
-          '<span class="li__sub">「こんな割引があったら」を募集しています。提携先を探すときの参考にします</span></span>' + U.chevron() + '</button>' +
-      '</div></section>';
+      (shown.length ? '<div class="list pk-list">' + shown.map(perkRow).join('') + '</div>'
+        : '<div class="card">' + U.empty('', 'この種類の福利厚生は準備中です') + '</div>') +
+      '<p class="pk-note">割引率は商品・店舗・時期によって異なります。</p>' +
+      '<div class="list pk-more">' +
+        '<a class="li" href="#/card"><span class="li__body"><span class="li__ttl">会員証を表示</span></span>' + U.chevron() + '</a>' +
+        '<button class="li" data-wish><span class="li__body"><span class="li__ttl">ほしい福利厚生を運営に伝える</span></span>' + U.chevron() + '</button>' +
+      '</div>';
   }
 
   function expertRow(ex) {
-    return '<button class="li has-ico ex-row" data-consult="' + esc(ex.id) + '" aria-label="' + esc(ex.title + 'への相談を申し込む') + '">' +
-      '<span class="li__ico">' + icon(EX_ICON[ex.title] || 'user') + '</span>' +
-      '<span class="li__body"><span class="li__ttl">' + esc(ex.title) +
-        (ex.note ? '<span class="tag tag-indigo">' + esc(ex.note) + '</span>' : '') + '</span>' +
+    return '<button class="li ex-row" data-consult="' + esc(ex.id) + '" aria-label="' + esc(ex.title + 'に相談する') + '">' +
+      '<span class="li__body"><span class="li__ttl">' + esc(ex.title) + '</span>' +
         '<span class="li__sub">' + esc(ex.desc) + '</span></span>' +
-      '<span class="li__end"><span class="ex-row__cta">相談を申し込む</span>' + U.chevron() + '</span>' +
+      U.chevron() +
     '</button>';
   }
 
   function renderExperts() {
     var list = DATA.EXPERTS || [], tax = byTitle(list, '税理士');
-    var arrow = '<span class="ex-flow__arrow" aria-hidden="true">' + icon('arrow', 'ico-s') + '</span>';
-    return '<div class="card-flat ex-flow">' +
-        '<p class="ex-flow__lead">提携の専門家を、運営がおつなぎします。</p>' +
-        '<p class="ex-flow__steps"><span>申し込む</span>' + arrow + '<span>運営が日程を調整</span>' + arrow + '<span>専門家と相談（初回30分は無料）</span></p>' +
-      '</div>' +
+    return '<p class="ex-lead">申し込むと運営が日程を調整して、提携の専門家につなぎます。初回30分は無料、2回目からは各事務所の料金です。</p>' +
       (list.length ? '<div class="list ex-list">' + list.map(expertRow).join('') + '</div>'
-        : '<div class="card">' + U.empty('users', '提携の専門家は準備中です') + '</div>') +
-      '<p class="ex-fee">2回目からは各事務所の料金です。続けるかどうかは、初回の相談のあとで決められます。</p>' +
-      '<section class="sec"><h2 class="sec-ttl">よくある質問</h2>' +
-        '<div class="card card-pad ex-faq">' +
-          '<p class="ex-faq__q"><span class="ex-faq__mark" aria-hidden="true">Q</span>会費は経費になりますか？</p>' +
-          '<p class="ex-faq__a">事業の内容によって変わります。提携の税理士に無料で相談できます。領収書はアカウントからダウンロードできます。</p>' +
-          '<div class="row ex-faq__acts">' +
-            (tax ? '<button class="btn btn-ghost btn-s" data-consult="' + esc(tax.id) + '" data-preset="fee">' + icon('yen', 'ico-s') + '税理士に相談する</button>' : '') +
-            '<a class="btn btn-text btn-s" href="#/account">' + icon('receipt', 'ico-s') + '領収書を見る</a>' +
+        : '<div class="card">' + U.empty('', '提携の専門家は準備中です') + '</div>') +
+      '<div class="list ex-more">' +
+        '<a class="li" href="#/messages"><span class="li__body"><span class="li__ttl">どこに聞くか分からないときは運営へ</span></span>' + U.chevron() + '</a>' +
+      '</div>' +
+      '<section class="sec"><h2 class="sec-ttl">会費と経費</h2>' +
+        '<div class="card card-pad ex-fee">' +
+          '<p>経費にできるかは事業の内容によります。提携の税理士に無料で相談できます。</p>' +
+          '<div class="row ex-fee__acts">' +
+            (tax ? '<button class="btn btn-ghost btn-s" data-consult="' + esc(tax.id) + '" data-preset="fee">税理士に相談する</button>' : '') +
+            '<a class="btn btn-text btn-s" href="#/account">領収書を見る</a>' +
           '</div>' +
         '</div>' +
-      '</section>' +
-      '<section class="sec"><div class="list">' +
-        '<a class="li has-ico" href="#/messages"><span class="li__ico">' + icon('message') + '</span>' +
-          '<span class="li__body"><span class="li__ttl">どの専門家に聞けばいいか迷ったら</span>' +
-          '<span class="li__sub">まずは運営に相談してください。回数の制限はありません</span></span>' + U.chevron() + '</a>' +
-      '</div></section>';
+      '</section>';
   }
 
   /* ---------- 窓 ---------- */
-  function mhead(ico, eyebrow, title) {
-    return '<div class="pk-mhead"><span class="pk__ico">' + icon(ico) + '</span>' +
-      '<div><p class="pk-mhead__eyebrow">' + esc(eyebrow) + '</p><h3 class="modal__ttl">' + esc(title) + '</h3></div></div>';
-  }
-  function codeBox(label, code, done) {
+  function codeBox(label, code) {
     return '<div class="pk-code">' +
-      '<div class="pk-code__main"><span class="pk-code__label">' + esc(label) + (done ? '<span class="tag tag-ok">' + esc(done) + '</span>' : '') + '</span>' +
+      '<div class="pk-code__main"><span class="pk-code__label">' + esc(label) + '</span>' +
         '<span class="pk-code__val">' + esc(code) + '</span></div>' +
       '<button class="btn btn-ghost btn-s" data-copy>' + icon('copy', 'ico-s') + '<span>コピー</span></button>' +
     '</div>';
@@ -162,29 +136,23 @@
   function usePerk(p) {
     var k = kind(p.how);
     if (k === 'site') { U.toast('本番では提携サイトが開きます'); return; }
-    if (k === 'other') { U.toast('本番では、この福利厚生の使い方をここでご案内します'); return; }
-    var head = mhead(CAT_ICON[p.cat] || 'gift', p.cat + 'の福利厚生', p.title) + '<p class="sub">' + esc(p.desc) + '</p>';
+    if (k === 'other') { U.toast('本番では、この福利厚生の使い方をここに出します'); return; }
     var code = '', body = '', foot = '';
     if (k === 'id') {
       code = perkCode(p, 'id');
       // ログインの「会員ID」と取り違えないよう、提携サイト用だと名前で分かるようにする
-      body = codeBox('提携サイトで使うあなたのID', code, '発行済み') +
-        '<p class="pk-mnote">提携サイトの登録画面で入力します（本番では提携先のURLが開きます）</p>';
+      body = '<p class="sub">提携サイトの登録画面で、このIDを入力してください。</p>' + codeBox('提携サイト用のID', code);
       foot = '<button class="btn btn-ink" data-open-site>' + icon('external', 'ico-s') + '提携サイトを開く</button>';
     } else if (k === 'coupon') {
       code = perkCode(p, 'coupon');
-      body = codeBox('クーポンコード', code, '') +
-        '<p class="pk-mnote">提携先の予約・申込の画面で入力してください。本番では、提携先ごとの使える条件と期限もここに出します。</p>';
-      foot = '<button class="btn btn-ink" data-open-site>' + icon('external', 'ico-s') + '提携先の申込画面へ</button>';
+      body = '<p class="sub">提携先の予約・申込の画面で、このコードを入力してください。</p>' + codeBox('クーポンコード', code);
+      foot = '<button class="btn btn-ink" data-open-site>' + icon('external', 'ico-s') + '申込画面を開く</button>';
     } else {
-      body = '<div class="card-flat pk-how">' +
-          '<p class="pk-how__ttl">' + icon('card', 'ico-s') + '会員証を見せて使います</p>' +
-          '<p class="small">お店の受付で、会員ページの会員証を見せてください。お店が会員番号を確かめたうえで、割引の料金になります。</p>' +
-        '</div>' +
-        '<p class="pk-mnote">下のボタンで、お店で見せるための明るい会員証がすぐに開きます。</p>';
-      foot = '<a class="btn btn-ink" href="#/card?show=1" data-close>' + icon('qr', 'ico-s') + '提示用の会員証を開く</a>';
+      body = '<p class="sub">受付で会員証の画面を見せてください。</p>';
+      foot = '<a class="btn btn-ink" href="#/card?show=1" data-close>' + icon('qr', 'ico-s') + '会員証を表示</a>';
     }
-    var m = U.modal('<div class="scr-perks">' + head + body +
+    var m = U.modal('<div class="scr-perks">' +
+      '<h3 class="modal__ttl">' + esc(p.title) + '</h3>' + body +
       '<div class="modal__foot"><button class="btn btn-soft" data-close>閉じる</button>' + foot + '</div></div>');
 
     var copyBtn = m.querySelector('[data-copy]');
@@ -205,11 +173,10 @@
   function showSent(m, ctx, title, lead, msg) {
     var box = m.querySelector('.modal');
     box.innerHTML = '<div class="scr-perks">' +
-      '<div class="pk-done"><span class="pk-done__ico">' + icon('checkc') + '</span>' +
-        '<h3 class="modal__ttl">' + esc(title) + '</h3><p class="sub">' + esc(lead) + '</p></div>' +
-      '<div class="card-flat pk-done__sent"><p class="pk-done__label">送った内容</p><p class="small">' + U.nl2br(msg) + '</p></div>' +
+      '<h3 class="modal__ttl">' + esc(title) + '</h3><p class="sub">' + esc(lead) + '</p>' +
+      '<p class="pk-sent small">' + U.nl2br(msg) + '</p>' +
       '<div class="modal__foot"><button class="btn btn-soft" data-x-close>閉じる</button>' +
-        '<button class="btn btn-ink" data-x-msg>' + icon('message', 'ico-s') + 'メッセージを見る</button></div>' +
+        '<button class="btn btn-ink" data-x-msg>メッセージを見る</button></div>' +
     '</div>';
     box.querySelector('[data-x-close]').addEventListener('click', m.close);
     box.querySelector('[data-x-msg]').addEventListener('click', function () { m.close(); ctx.go('#/messages'); });
@@ -230,7 +197,6 @@
       var sent = onSend(text, form);
       // 自動返信（試作版）が届いたら、スタートガイドなどの達成を共通の見せ方で知らせる
       R.sendMessage(sent.msg, sent.kind).then(function (r) { CLG.app.reward(r); });
-      U.toast(sent.toast, 'ok');
       showSent(m, ctx, sent.title, sent.lead, sent.msg);
       ctx.refresh();
     });
@@ -240,15 +206,13 @@
   function openConsult(ex, preset, ctx) {
     var ways = WAYS.map(function (w) { return '<option value="' + esc(w) + '">' + esc(w) + '</option>'; }).join('');
     formModal(
-      mhead(EX_ICON[ex.title] || 'user', '専門家に相談', ex.title + 'への相談を申し込む') +
-      '<p class="sub">' + esc(ex.desc) + (ex.note ? ' <span class="tag tag-indigo">' + esc(ex.note) + '</span>' : '') + '</p>' +
+      '<h3 class="modal__ttl">' + esc(ex.title) + 'に相談する</h3>' +
       '<form class="pk-form" novalidate>' +
         '<label class="field"><span>相談したいこと</span>' +
-          '<textarea class="textarea" name="text" rows="5" data-empty="相談したいことを書いてください" placeholder="' + esc(EX_HINT[ex.title] || '例：相談したいことを、分かる範囲で書いてください。') + '">' + esc(preset || '') + '</textarea>' +
-          '<small>分かる範囲で大丈夫です。運営が専門家に伝えます。</small></label>' +
+          '<textarea class="textarea" name="text" rows="5" data-empty="相談したいことを書いてください" placeholder="' + esc(EX_HINT[ex.title] || '例：相談したいことを書いてください。') + '">' + esc(preset || '') + '</textarea></label>' +
         '<label class="field"><span>希望の連絡方法</span><select class="select" name="way">' + ways + '</select></label>' +
         '<p class="pk-err xsmall" role="alert"></p>' +
-        '<p class="pk-mnote">初回30分の相談は無料です。2回目からは各事務所の料金で、続けるかどうかはあなたが決められます。</p>' +
+        '<p class="pk-mnote">' + esc(ex.note || '初回30分無料') + '。2回目からは各事務所の料金です。</p>' +
         '<div class="modal__foot"><button type="button" class="btn btn-soft" data-close>やめる</button>' +
           '<button type="submit" class="btn btn-primary">申し込む</button></div>' +
       '</form>',
@@ -258,32 +222,29 @@
         return {
           msg: '【専門家への相談：' + ex.title + '】\n' + text + '\n希望の連絡方法：' + way,
           kind: '壁打ち・相談',
-          toast: '運営が専門家との日程を調整します',
           title: '申し込みました',
-          lead: '運営が' + ex.title + 'との日程を調整して、候補の日時を「相談・メッセージ」にお送りします。'
+          lead: '運営が' + ex.title + 'と日程を調整して、候補の日時を「相談・メッセージ」に送ります。'
         };
       });
   }
 
   function openWish(ctx) {
     formModal(
-      mhead('pen', '福利厚生', 'ほしい福利厚生を伝える') +
-      '<p class="sub">暮らしや仕事で「これが安くなったら助かる」を教えてください。提携先を探すときの参考にします。</p>' +
+      '<h3 class="modal__ttl">ほしい福利厚生を伝える</h3>' +
       '<form class="pk-form" novalidate>' +
-        '<label class="field"><span>ほしい福利厚生</span>' +
+        '<label class="field"><span>内容</span>' +
           '<textarea class="textarea" name="text" rows="4" data-empty="ほしい福利厚生を書いてください" placeholder="例：子どもの習い事（スイミングなど）の割引があるとうれしいです。"></textarea></label>' +
         '<p class="pk-err xsmall" role="alert"></p>' +
         '<div class="modal__foot"><button type="button" class="btn btn-soft" data-close>やめる</button>' +
-          '<button type="submit" class="btn btn-primary">運営に送る</button></div>' +
+          '<button type="submit" class="btn btn-primary">送る</button></div>' +
       '</form>',
       ctx,
       function (text) {
         return {
           msg: '【ほしい福利厚生】\n' + text,
           kind: 'その他',
-          toast: '運営に届きました',
           title: '送りました',
-          lead: 'ありがとうございます。提携先を探すときの参考にします。返信は「相談・メッセージ」に届きます。'
+          lead: 'ありがとうございます。返信は「相談・メッセージ」に届きます。'
         };
       });
   }
@@ -305,8 +266,7 @@
         return '<button role="tab" aria-selected="' + on + '" class="' + (on ? 'is-on' : '') + '" data-tab="' + id + '">' + esc(label) + '</button>';
       }
       return '<div class="scr-perks">' +
-        '<div class="page-head"><h1 class="page-ttl">福利厚生・専門家</h1>' +
-          '<p class="page-lead">毎月の暮らしと、仕事の困りごとに。</p></div>' +
+        '<div class="page-head"><h1 class="page-ttl">福利厚生・専門家</h1></div>' +
         '<div class="seg pk-seg" role="tablist" aria-label="表示の切り替え">' + segBtn('perks', '福利厚生') + segBtn('experts', '専門家に相談') + '</div>' +
         (tab === 'experts' ? renderExperts() : renderPerks()) +
       '</div>';
@@ -336,13 +296,13 @@
       var focus = ctx.query && ctx.query.focus;
       // 専門家のタブを開いているときは目印を付けない（URLを #/perks に戻すと、表示とタブがずれるため）
       if (focus && ctx.query.tab !== 'experts' && byId(DATA.PERKS || [], focus)) {
-        var card = el.querySelector('[data-perk="' + focus + '"]');
+        var row = el.querySelector('[data-perk="' + focus + '"]');
         // 描き直しのたびに同じ場所へ飛ばないよう、URLから目印を外しておく（hashchange は起きない）
         try { history.replaceState(null, '', '#/perks'); } catch (e) {}
-        if (card) {
-          card.classList.add('is-focus');
+        if (row) {
+          row.classList.add('is-focus');
           setTimeout(function () {
-            try { card.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { card.scrollIntoView(); }
+            try { row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { row.scrollIntoView(); }
           }, 60);
         }
       }

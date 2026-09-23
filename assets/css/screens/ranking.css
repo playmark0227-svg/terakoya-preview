@@ -1,110 +1,75 @@
 /* ============================================================
    ランキング（#/ranking）
-   1〜3位の丸は金・銀・銅。どれも tokens.css の色から作る（黄土 --warn は「気をつけて」専用なので使わない）。
-   白い数字を載せる丸と、白地の小さな数字は、少し墨を混ぜて読みやすさ（4.5:1）を確保する。
+   順位は表のまま見せる。自分の行だけ薄い地と太字で示す。
+   金色はレベル章と会員証だけのものなので、ここでは使わない。
    ============================================================ */
-.scr-ranking {
-  --rk-gold: var(--gold);
-  --rk-gold-ink: color-mix(in srgb, var(--gold) 85%, var(--ink));
-  --rk-silver: color-mix(in srgb, var(--ink-3) 80%, var(--ink));
-  --rk-bronze: color-mix(in srgb, var(--gold) 50%, var(--accent-ink));
-}
-.scr-ranking .rk-seg { margin-bottom: 16px; }
+.scr-ranking .rk-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.scr-ranking .rk-how { font-size: 13px; height: 40px; }
 /* 指で押す切り替えは、見た目を変えずに押せる範囲を上下に足して 40px にする */
 .scr-ranking .rk-seg button { position: relative; }
 .scr-ranking .rk-seg button::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px; }
 
-/* ---------- 自分の順位 ---------- */
-.scr-ranking .rk-me { padding: 18px 22px 20px; }
-.scr-ranking .rk-me__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.scr-ranking .rk-me__eyebrow { font-size: 12.5px; font-weight: 600; color: var(--ink-3); min-width: 0; }
-.scr-ranking .rk-me__how { font-size: 12.5px; flex: none; height: 40px; margin: -10px -6px; }   /* 押せる範囲だけ広げる */
-.scr-ranking .rk-me__main { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 10px; }
-.scr-ranking .rk-me__who { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.scr-ranking .rk-me__rank { line-height: 1; white-space: nowrap; }
-.scr-ranking .rk-me__rank b { font-size: 44px; font-weight: 800; letter-spacing: -.01em; }
-.scr-ranking .rk-me__rank small { font-size: 15px; font-weight: 700; color: var(--ink-2); margin-left: 3px; }
-.scr-ranking .rk-me__rank--1 b { color: var(--rk-gold); }
-.scr-ranking .rk-me__rank--2 b { color: var(--rk-silver); }
-.scr-ranking .rk-me__rank--3 b { color: var(--rk-bronze); }
-.scr-ranking .rk-me__val { text-align: right; line-height: 1.1; white-space: nowrap; }
-.scr-ranking .rk-me__val b { font-size: 26px; font-weight: 800; }
-.scr-ranking .rk-me__val small { font-size: 13px; font-weight: 700; color: var(--ink-3); margin-left: 3px; }
-.scr-ranking .rk-me__next { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
-.scr-ranking .rk-me__nextrow { margin-bottom: 8px; }
-/* 朱は「押すところ」に取っておく。順位の進みは金で見せる（progressBar の 'gold'） */
-.scr-ranking .rk-me__next .bar { height: 6px; }
-.scr-ranking .rk-me__msg { font-size: 13px; color: var(--ink-2); margin-top: 10px; line-height: 1.7; }
-.scr-ranking .rk-me__msg > .ico { color: var(--rk-gold); margin: -2px 6px 0 0; }
-.scr-ranking .rk-me__go { display: inline-flex; align-items: center; gap: 2px; padding: 10px 0; margin: -10px 0; color: var(--indigo); font-weight: 600; text-decoration: none; white-space: nowrap; }
-.scr-ranking .rk-me__go:hover { text-decoration: underline; }
-.scr-ranking .rk-me__go .chev { width: 14px; height: 14px; color: currentColor; }
-@media (max-width: 560px) {
-  .scr-ranking .rk-me { padding: 16px 16px 18px; }
-  .scr-ranking .rk-me__rank b { font-size: 38px; }
-  .scr-ranking .rk-me__val b { font-size: 22px; }
+.scr-ranking .rk-sec-ttl {
+  display: flex; align-items: baseline; gap: 10px; margin: 0 2px 10px;
+  font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.5;
 }
+.scr-ranking .rk-sec-ttl__sum { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.scr-ranking .rk-sec-ttl .rk-more { margin: -10px -6px -10px auto; height: 40px; font-size: 13px; }
 
-/* ---------- 順位の一覧 ---------- */
-/* app.css の .li__ttl / .li__sub は span のままだと横に並んでしまうため、ここで段にする */
-.scr-ranking .li__ttl, .scr-ranking .li__sub { display: block; }
-.scr-ranking .sec-ttl .rk-sec-note { font-weight: 500; letter-spacing: 0; font-size: 12px; }
-.scr-ranking .rk-row { gap: 12px; padding: 10px 18px; min-height: 60px; }
-.scr-ranking .rk-row + .rk-row::before, .scr-ranking .rk-gap + .rk-row::before { left: 58px; }
-.scr-ranking .rk-row.is-me { background: color-mix(in srgb, var(--gold-weak) 75%, var(--surface)); box-shadow: inset 3px 0 0 var(--rk-gold); }
-.scr-ranking .rk-row__name { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.scr-ranking .rk-row__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.scr-ranking .rk-row__lv { flex: none; }
-.scr-ranking .rk-row__lv .lv { height: auto; padding: 0; background: none; }
-.scr-ranking .rk-row__val { flex: none; min-width: 64px; text-align: right; white-space: nowrap; }
-.scr-ranking .rk-row__val b { font-size: 16px; font-weight: 800; }
-.scr-ranking .rk-row__val small { font-size: 11.5px; font-weight: 600; color: var(--ink-3); margin-left: 2px; }
-.scr-ranking .rk-no {
-  width: 28px; height: 28px; border-radius: 50%; flex: none;
-  display: inline-grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--ink-3);
-}
-.scr-ranking .rk-no--1, .scr-ranking .rk-no--2, .scr-ranking .rk-no--3 { color: var(--ink-inv); }
-.scr-ranking .rk-no--1 { background: var(--rk-gold-ink); }
-.scr-ranking .rk-no--2 { background: var(--rk-silver); }
-.scr-ranking .rk-no--3 { background: var(--rk-bronze); }
-.scr-ranking .rk-gap { min-height: 30px; padding: 2px 18px; justify-content: flex-start; color: var(--ink-3); letter-spacing: .2em; }
-.scr-ranking .rk-gap > span[aria-hidden] { width: 28px; text-align: center; }
+/* ---------- 順位の表 ---------- */
+.scr-ranking .rk-board { overflow: hidden; }
+.scr-ranking .rk-tbl { font-size: 14px; }
+.scr-ranking .rk-tbl th { padding: 10px 12px; background: var(--surface-2); }
+.scr-ranking .rk-tbl td { padding: 9px 12px; }
+.scr-ranking .rk-tbl th:first-child, .scr-ranking .rk-tbl td:first-child { padding-left: 18px; }
+.scr-ranking .rk-tbl th:last-child, .scr-ranking .rk-tbl td:last-child { padding-right: 18px; }
+.scr-ranking .rk-no { width: 64px; white-space: nowrap; }
+.scr-ranking td.rk-no { font-weight: 700; font-size: 15px; }
+.scr-ranking .rk-who__in { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scr-ranking .rk-who__txt { min-width: 0; }
+.scr-ranking .rk-who__name { display: block; font-weight: 600; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-ranking .rk-who__sub { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-ranking .rk-lv { width: 80px; text-align: right; white-space: nowrap; }
+.scr-ranking td.rk-lv { color: var(--ink-2); }
+.scr-ranking .rk-val { width: 88px; white-space: nowrap; }
+.scr-ranking td.rk-val { font-weight: 700; font-size: 15px; }
+.scr-ranking .rk-row.is-me td { background: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
+.scr-ranking .rk-row.is-me .rk-who__name { font-weight: 800; }
+.scr-ranking .rk-row.is-me .rk-who__sub { color: var(--ink-2); }
+.scr-ranking .rk-gap td { padding-top: 2px; padding-bottom: 2px; color: var(--ink-3); }
+/* 名前の列は、表の幅に合わせて縮める（長い名前は…で省略） */
+.scr-ranking .rk-tbl { table-layout: fixed; }
+.scr-ranking .rk-who { width: auto; }
 @media (max-width: 560px) {
-  .scr-ranking .rk-row { gap: 10px; padding: 10px 14px; }
-  .scr-ranking .rk-row + .rk-row::before, .scr-ranking .rk-gap + .rk-row::before { left: 52px; }
-  .scr-ranking .rk-row__val { min-width: 54px; }
-  .scr-ranking .rk-gap { padding: 2px 14px; }
+  .scr-ranking .rk-tbl th, .scr-ranking .rk-tbl td { padding-left: 8px; padding-right: 8px; }
+  .scr-ranking .rk-tbl th:first-child, .scr-ranking .rk-tbl td:first-child { padding-left: 14px; }
+  .scr-ranking .rk-tbl th:last-child, .scr-ranking .rk-tbl td:last-child { padding-right: 14px; }
+  .scr-ranking .rk-no { width: 46px; }
+  .scr-ranking .rk-lv { width: 48px; }
+  .scr-ranking .rk-val { width: 60px; }
+  .scr-ranking .rk-who__in { gap: 8px; }
 }
 
 /* ---------- 特典とポイントのつき方 ---------- */
-.scr-ranking .rk-cards { margin-top: 30px; align-items: start; }
+.scr-ranking .rk-cards { margin-top: 28px; align-items: start; }
 .scr-ranking .rk-cards > .card { margin-top: 0; }
-.scr-ranking .rk-card__ttl { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.scr-ranking .rk-card__ttl .ico { color: var(--rk-gold); }
-.scr-ranking .rk-prize__list { display: grid; gap: 2px; }
-.scr-ranking .rk-prize__li { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); gap: 10px; padding: 9px 10px; margin: 0 -10px; border-radius: 10px; font-size: 14px; line-height: 1.6; }
-.scr-ranking .rk-prize__li.is-mine { background: var(--gold-weak); }
-.scr-ranking .rk-prize__who { font-weight: 700; white-space: nowrap; }
-.scr-ranking .rk-prize__what { color: var(--ink-2); }
-.scr-ranking .rk-prize__tag { height: 20px; padding: 0 7px; font-size: 11px; margin-left: 8px; vertical-align: 1px; background: var(--surface); }
-.scr-ranking .rk-prize__close { display: flex; align-items: flex-start; gap: 6px; margin-top: 12px; line-height: 1.6; }
-.scr-ranking .rk-prize__close .ico { margin-top: 1px; }
-.scr-ranking .rk-rules { scroll-margin-top: 20px; }
-@media (max-width: 860px) { .scr-ranking .rk-rules { scroll-margin-top: 72px; } }   /* スマホの上の帯に隠れないように */
-.scr-ranking .rk-rules .sub { margin-bottom: 6px; }
-.scr-ranking .rk-tbl th:first-child, .scr-ranking .rk-tbl td:first-child { padding-left: 0; }
-.scr-ranking .rk-tbl th:last-child, .scr-ranking .rk-tbl td:last-child { padding-right: 0; white-space: nowrap; }
-.scr-ranking .rk-tbl td { padding-top: 10px; padding-bottom: 10px; }
-.scr-ranking .rk-note { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); line-height: 1.7; }
-.scr-ranking .rk-note .ico { margin-top: 3px; color: var(--ink-3); }
+.scr-ranking .rk-card__ttl { margin-bottom: 4px; }
+.scr-ranking .rk-kv th { width: 5.5em; color: var(--ink); font-weight: 700; white-space: nowrap; padding-right: 12px; }
+.scr-ranking .rk-kv td { color: var(--ink-2); }
+.scr-ranking .rk-ptbl td { padding: 10px 0; }
+.scr-ranking .rk-ptbl td.r { width: 4em; font-weight: 700; }
+.scr-ranking .rk-foot { margin-top: 10px; font-size: 13px; color: var(--ink-2); line-height: 1.7; }
 
 /* ---------- ポイントの記録 ---------- */
-.scr-ranking .rk-more { font-size: 12.5px; letter-spacing: 0; height: 40px; margin: -10px -6px; }
-.scr-ranking .rk-log { min-height: 52px; padding: 11px 18px; }
-.scr-ranking .rk-log__ttl { font-weight: 500; font-size: 14px; }
-.scr-ranking .rk-log__pt { gap: 2px; align-items: baseline; color: var(--rk-gold-ink); font-weight: 800; font-size: 15px; }
-.scr-ranking .rk-log__pt small { font-size: 11px; font-weight: 600; margin-left: 2px; font-family: var(--font-sans); }
-.scr-ranking .rk-history__sum { margin: 10px 4px 0; text-align: right; }
-.scr-ranking .rk-modal__lead { margin-bottom: 12px; }
-.scr-ranking .rk-modal__list { max-height: 55vh; overflow-y: auto; }
-@media (max-width: 560px) { .scr-ranking .rk-log { padding: 11px 14px; } }
+.scr-ranking .rk-history { margin-top: 30px; }
+.scr-ranking .rk-loglist { margin: 0; padding: 0; list-style: none; }
+.scr-ranking .rk-log { display: flex; align-items: baseline; gap: 14px; padding: 11px 18px; font-size: 14px; line-height: 1.5; }
+.scr-ranking .rk-log + .rk-log { border-top: 1px solid var(--line); }
+.scr-ranking .rk-log__date { flex: none; width: 5.2em; color: var(--ink-3); font-size: 13px; }
+.scr-ranking .rk-log__why { flex: 1; min-width: 0; }
+.scr-ranking .rk-log__pt { flex: none; font-weight: 700; }
+.scr-ranking .rk-modal__list { max-height: 55vh; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r); }
+@media (max-width: 560px) {
+  .scr-ranking .rk-log { padding: 11px 14px; gap: 10px; }
+  .scr-ranking .rk-modal__list .rk-log { padding: 10px 12px; }
+}

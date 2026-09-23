@@ -254,7 +254,7 @@
     if (g.requires && !courseState(g.requires).completed) return { locked: true, reason: '講座「' + course(g.requires).title + '」の修了で応募できます', course: g.requires };
     return { locked: false };
   }
-  var GIG_STATUS = { applied: '応募済み・運営が確認中', meeting: '面談の日程調整中', active: '稼働中', done: 'やり終えた' };
+  var GIG_STATUS = { applied: '応募済み・運営が確認中', meeting: '面談の日程調整中', active: '稼働中', done: '完了' };
   var GIG_APPLIED = { refer: 'つなぎ依頼済み・運営が確認中', peer: '応募済み・募集した会員に連絡中' };
   function gigState(id) {
     var x = S().gigs[id], g = gig(id);
@@ -426,10 +426,10 @@
         // 待っているあいだに「デモを最初から」などで別の会員になっていたら、返事は捨てる
         if (S() !== sentFrom) { resolve(null); return; }
         var reply = kind === '面談の予約'
-          ? '面談のご予約ありがとうございます。候補の日時を3つお送りしますね。\n（試作版の自動返信です。本番では運営が返信します）'
+          ? '面談の件、ありがとうございます。候補の日時を3つ送りますね。'
           : kind === '壁打ち・相談'
-            ? 'ありがとうございます。じっくり読んで、今日中にお返事します。必要なら15分だけ通話もできます。\n（試作版の自動返信です。本番では運営が返信します）'
-            : 'メッセージありがとうございます。確認して、今日中にお返事します。\n（試作版の自動返信です。本番では運営が返信します）';
+            ? 'ありがとうございます。今日中に返信します。必要なら15分くらい通話もできます。'
+            : 'ありがとうございます。確認して今日中に返信します。';
         // 既読にはしない。メッセージ画面を開いていれば、その画面が既読にする
         CLG.store.update(function (s) { s.thread.push({ from: 'staff2', at: nowIso(), text: reply }); });
         resolve(step);
@@ -441,7 +441,7 @@
   function notices() {
     var s = S(), since = s.noticesRead ? new Date(s.noticesRead) : null;
     var list = s.kind === 'demo' ? DATA.NOTICES.slice() : [
-      { id: 'w1', icon: 'flag', text: 'ようこそ！まずはスタートガイドから進めてみましょう', at: s.me.joinedAt, go: '#/start' }
+      { id: 'w1', icon: 'flag', text: 'スタートガイドに、入会後30日でやることが並んでいます', at: s.me.joinedAt, go: '#/start' }
     ];
     list.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
     return list.map(function (n) { return Object.assign({ unread: !since || new Date(n.at) > since }, n); });
