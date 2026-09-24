@@ -1,6 +1,6 @@
 /* ============================================================
    イベント（#/events）
-   1枚の面に、日付の順で1行ずつ並べる（左に日時、右に予約。スマホは日時を上に）。
+   1枚の面に、日付の順で1行ずつ並べる（左から日時・写真・本文・予約。スマホは写真の右に日時と本文）。
    詳細の窓は body 直下に出るので、中身も .scr-events で包んである。
    ============================================================ */
 
@@ -19,20 +19,25 @@
 /* 一覧 */
 .scr-events .ev-list { overflow: hidden; }
 .scr-events .ev {
-  display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 2px 16px; align-items: start;
-  padding: 14px 18px; cursor: pointer;
+  display: grid; grid-template-columns: 76px 120px minmax(0, 1fr) auto; grid-template-areas: "when photo body act";
+  gap: 2px 16px; align-items: start; padding: 14px 18px; cursor: pointer;
 }
 .scr-events .ev + .ev { border-top: 1px solid var(--line); }
 .scr-events .ev:hover { background: var(--surface-2); }
-.scr-events .ev-past { cursor: default; align-items: center; }
+/* 参加した：写真なし */
+.scr-events .ev-past { grid-template-columns: 76px minmax(0, 1fr) auto; grid-template-areas: "when body act"; cursor: default; align-items: center; }
 .scr-events .ev-past:hover { background: none; }
 
-.scr-events .ev__when { line-height: 1.5; }
+.scr-events .ev__when { grid-area: when; line-height: 1.5; }
 .scr-events .ev__when b { display: block; font-size: 14px; font-weight: 700; }
 .scr-events .ev__when .num { display: block; font-size: 13px; color: var(--ink-2); }
 .scr-events .ev__rel { margin-left: 6px; font-weight: 700; color: var(--ink); }
+.scr-events .ev__photo {
+  grid-area: photo; display: block; width: 120px; height: 80px; object-fit: cover;
+  border-radius: 6px; background: var(--line);
+}
 
-.scr-events .ev__body { min-width: 0; }
+.scr-events .ev__body { grid-area: body; min-width: 0; }
 .scr-events .ev__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.5; }
 .scr-events .ev__link {
   background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit;
@@ -43,20 +48,24 @@
 .scr-events .ev__host { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
 .scr-events .ev.is-done .ev__ttl { color: var(--ink-2); }
 
-.scr-events .ev__act { display: flex; align-items: center; justify-content: flex-end; gap: 10px; align-self: center; white-space: nowrap; }
+.scr-events .ev__act { grid-area: act; display: flex; align-items: center; justify-content: flex-end; gap: 10px; align-self: center; white-space: nowrap; }
 .scr-events .ev__seats { font-size: 12.5px; color: var(--ink-2); }
 .scr-events .ev__seats.is-few { color: var(--warn); font-weight: 700; }
 .scr-events .ev__act .btn-text { padding-left: 6px; padding-right: 6px; }
 .scr-events .ev__xp { font-size: 12.5px; color: var(--ink-2); }
 
-/* スマホ：日時は1行にして上に置き、本文を横いっぱいに使う */
+/* スマホ：写真を左に、日時（1行）と本文を右に。予約の行は下に横いっぱい */
 @media (max-width: 640px) {
-  .scr-events .ev { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 14px 16px; }
+  .scr-events .ev {
+    grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: auto 1fr auto;
+    grid-template-areas: "photo when" "photo body" "act act"; gap: 0 12px; padding: 14px 16px;
+  }
+  .scr-events .ev__photo { width: 96px; height: 64px; }
   .scr-events .ev__when { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
   .scr-events .ev__when b, .scr-events .ev__when .num { display: inline; font-size: 13px; }
   .scr-events .ev__act { justify-content: flex-start; margin-top: 10px; }
   .scr-events .ev__act .btn { margin-left: auto; }
-  .scr-events .ev-past { grid-template-columns: 64px minmax(0, 1fr) auto; gap: 0 10px; }
+  .scr-events .ev-past { grid-template-columns: 64px minmax(0, 1fr) auto; grid-template-rows: none; grid-template-areas: "when body act"; gap: 0 10px; }
   .scr-events .ev-past .ev__when { display: block; margin: 0; }
   .scr-events .ev-past .ev__act { margin-top: 0; }
 }
@@ -66,7 +75,11 @@
 .scr-events .ev-empty .btn { margin-top: 14px; }
 .scr-events .ev-foot-note { margin: 12px 4px 0; font-size: 12.5px; color: var(--ink-3); }
 
-/* 詳細の窓 */
+/* 詳細の窓：写真は窓の上端に横いっぱい（窓の余白 26px の分だけ外へ出す） */
+.scr-events .ev-detail__photo {
+  display: block; width: calc(100% + 52px); max-width: none; height: auto; aspect-ratio: 16 / 9; max-height: 220px;
+  margin: -26px -26px 18px; object-fit: cover; background: var(--line);
+}
 .scr-events.ev-detail .modal__ttl { margin-bottom: 4px; }
 .scr-events .ev-detail__when { font-size: 14.5px; font-weight: 700; margin-bottom: 10px; }
 .scr-events .ev-detail__min { font-weight: 500; color: var(--ink-2); }
@@ -82,7 +95,21 @@
 .scr-events .ev-detail__state b { margin-right: 4px; }
 .scr-events .ev-detail__proto { margin-top: 6px; padding-left: 0; }
 .scr-events .ev-detail__cancel { margin-right: auto; }
+/* 写真のぶん窓が長くなり、予約済みのときは窓の中がスクロールする。押すボタンの行は窓の下に留める。
+   sticky は窓の余白の内側で止まるので、余白の分だけ下へずらして窓の下端にそろえる */
+.scr-events.ev-detail .modal__foot {
+  position: sticky; bottom: -22px; z-index: 1;
+  margin: 18px -26px -22px; padding: 12px 26px 22px;
+  background: var(--surface); border-top: 1px solid var(--line);
+}
 @media (max-width: 640px) {
+  /* スマホの窓は余白が上 22px・左右 18px・下 18px（＋ホームバーの分） */
+  .scr-events .ev-detail__photo { width: calc(100% + 36px); margin: -22px -18px 16px; max-height: 180px; }
+  .scr-events.ev-detail .modal__foot {
+    bottom: calc(-18px - env(safe-area-inset-bottom));
+    margin: 16px -18px calc(-18px - env(safe-area-inset-bottom));
+    padding: 12px 18px calc(18px + env(safe-area-inset-bottom));
+  }
   .scr-events.ev-detail .modal__foot .btn:not(.btn-text) { flex: 1 1 auto; }
   .scr-events .ev-detail__cancel { width: 100%; justify-content: flex-start; padding: 6px 0; }
 }

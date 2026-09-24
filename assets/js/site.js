@@ -31,11 +31,18 @@
     try { return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; }
   }
   /** 会員ページのスクリーンショット（390×844 を2倍で撮ったもの。1枚50KB前後なので遅延読み込みはしない：
-      印刷やページ全体のスクリーンショットで枠だけになるため） */
-  function shotImg(name, alt, first) {
+      印刷やページ全体のスクリーンショットで枠だけになるため）。attrs は img に足す属性。 */
+  function shotImg(name, alt, attrs) {
     return '<img src="assets/img/shot-' + name + '.webp" width="390" height="844" alt="' + esc(alt) + '"' +
-      (first ? '' : ' fetchpriority="low"') + ' decoding="async">';
+      (attrs == null ? ' fetchpriority="low"' : attrs) + ' decoding="async">';
   }
+  /** 写真（生成したイメージ写真。人物は実在の会員ではない。docs/生成画像 → tools/prep-images.js）。
+      最初の画面の1枚だけ先に読み、ほかは遅延読み込み。 */
+  function photoImg(src, w, h, alt, first) {
+    return '<img src="' + esc(src) + '" width="' + w + '" height="' + h + '" alt="' + esc(alt) + '"' +
+      (first ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"') + ' decoding="async">';
+  }
+  var EVENT_IMG = DATA.EVENT_IMG || {};
 
   var LESSONS = DATA.COURSES.reduce(function (a, c) { return a.concat(c.lessons); }, []);
   var LONGEST = LESSONS.reduce(function (a, l) { return Math.max(a, l.min); }, 0);
@@ -163,7 +170,13 @@
             '<a class="site-btn site-btn--ghost site-btn--l" href="member.html?demo=1#/home">デモを見る</a>' +
           '</div>' +
         '</div>' +
-        '<a class="site-phone site-hero__shot" href="member.html?demo=1#/home">' + shotImg('home', '会員ページのホーム画面', true) + '</a>' +
+        // 写真の左下に、会員ページのホーム画面を小さく重ねる（スマホ幅では隠す。遅延読み込みなので隠れている間は読まない）
+        '<div class="site-hero__media">' +
+          '<div class="site-hero__photo">' +
+            photoImg('assets/img/photo-hero.webp', 1200, 900, '夜、自宅の机でヘッドホンをつけてノートパソコンに向かう女性の後ろ姿', true) +
+          '</div>' +
+          '<a class="site-phone site-hero__shot" href="member.html?demo=1#/home">' + shotImg('home', '会員ページのホーム画面', ' loading="lazy"') + '</a>' +
+        '</div>' +
       '</div>' +
     '</section>';
   }
@@ -184,8 +197,25 @@
         '<dl class="site-can">' + rows.map(function (r) {
           return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>';
         }).join('') + '</dl>' +
+        photoRow() +
       '</div>' +
     '</section>';
+  }
+
+  /* ---------- 写真の並び（できることの下）。「写真はイメージです。」はページの中でここだけ ---------- */
+  function photoRow() {
+    var P = [
+      [EVENT_IMG.online || 'assets/img/photo-online.webp', '自宅からオンラインで参加', '夜、自宅の机でイヤホンをつけ、ノートパソコンを見ながらメモを取る男性'],
+      [EVENT_IMG.offline || 'assets/img/photo-meetup.webp', '地域のオフ会', 'カフェのテーブルでノートパソコンを広げて話す数人と、ベビーカーの赤ちゃん'],
+      [EVENT_IMG.showcase || 'assets/img/photo-showcase.webp', '月末の成果発表会', '器の写真を映したテレビの前で、座っている人たちに話す女性']
+    ];
+    return '<ul class="site-photos">' + P.map(function (p) {
+      return '<li><figure>' +
+        '<div class="site-photos__img">' + photoImg(p[0], 1200, 800, p[2]) + '</div>' +
+        '<figcaption>' + esc(p[1]) + '</figcaption>' +
+      '</figure></li>';
+    }).join('') + '</ul>' +
+    '<p class="site-photos__note">写真はイメージです。</p>';
   }
 
   /* ---------- 会員ページ（実際の画面のスクリーンショット） ---------- */

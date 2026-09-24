@@ -2,6 +2,7 @@
    イベント（#/events）
    ------------------------------------------------------------
    これから / 予約済み / 参加した を切り替え、日付の順に1枚の一覧で並べる。
+   写真は種類ごとの1枚（DATA.EVENT_IMG）を一覧の行と詳細の窓に出す。参加したの一覧には出さない。
    予約・取り消し・参加は R.reserve / R.unreserve / R.attend だけで行う。
    #/events/e2 のように開くと、そのイベントの詳細を最初から開く。
    ============================================================ */
@@ -58,6 +59,21 @@
   }
   function byKind(list) {
     return view.kind === 'all' ? list : list.filter(function (e) { return e.kind === view.kind; });
+  }
+
+  /* ---------- 写真（種類ごとに1枚。DATA.EVENT_IMG） ---------- */
+  var PHOTO_ALT = {
+    online: '夜、自宅でパソコンを見ながらメモを取る男性',
+    offline: 'カフェのテーブルを囲んで話す人たち',
+    showcase: 'テレビの前で話す女性と、座って聞く人たち'
+  };
+  /** w・h は枠の比率を先に決めておくための値（読み込みでずれないように） */
+  function photo(e, cls, w, h) {
+    // イベントごとの写真（e.img）があればそれ、なければ種類ごとの写真
+    var src = e.img || (DATA.EVENT_IMG && DATA.EVENT_IMG[e.kind]);
+    if (!src) return '';
+    return '<img class="' + cls + '" src="' + esc(src) + '" width="' + w + '" height="' + h + '"' +
+      ' alt="' + esc((e.img && e.alt) || PHOTO_ALT[e.kind] || '') + '" loading="lazy" decoding="async">';
   }
 
   /* ---------- カレンダー（.ics） ---------- */
@@ -150,6 +166,7 @@
     var reserved = R.isReserved(e.id), done = !!att[e.id], st = seats(e), h = host(e);
     return '<article class="ev' + (reserved ? ' is-reserved' : '') + (done ? ' is-done' : '') + '" data-open="' + esc(e.id) + '">' +
       whenCol(e) +
+      photo(e, 'ev__photo', 120, 80) +
       '<div class="ev__body">' +
         '<h3 class="ev__ttl"><button type="button" class="ev__link" aria-haspopup="dialog">' + esc(e.title) + '</button></h3>' +
         '<p class="ev__meta">' + e.min + '分・' + esc(e.place) + '・' + esc(fee(e)) + (e.recording ? '・録画あり' : '') + '</p>' +
@@ -243,6 +260,7 @@
     }
 
     return '<div class="scr-events ev-detail">' +
+      photo(e, 'ev-detail__photo', 480, 270) +
       '<h3 class="modal__ttl">' + esc(e.title) + '</h3>' +
       '<p class="ev-detail__when">' + U.fmtDate(start, { noYear: true }) + ' <span class="num">' + timeRange(e) + '</span>' +
         '<span class="ev-detail__min">（' + e.min + '分）</span>' + (rel ? '<span class="ev-detail__rel">' + rel + '</span>' : '') + '</p>' +
@@ -271,11 +289,26 @@
     var confirming = false;
     var m = U.modal(detailHtml(e, false));
     var box = m.querySelector('.modal');
+    // ボタンの行は窓の下に留めてある（events.css）。その下に隠れた要素を、行の上まで窓をずらして見せる
+    function reveal(el) {
+      var ft = box.querySelector('.modal__foot');
+      if (!el || el === box || !ft || ft.contains(el)) return;
+      var over = el.getBoundingClientRect().bottom - ft.getBoundingClientRect().top + 12;
+      if (over > 0) box.scrollTop += over;
+    }
+    // Tab で進んだ先（「参加したことにする」など）がボタンの行に隠れないように
+    box.addEventListener('focusin', function (ev) { reveal(ev.target); });
     // 描き直すと押したボタンが消えて焦点が迷子になるので、次に押しそうなボタンへ移す
+    // 写真は読み込み済みの要素をそのまま戻す（描き直しで一瞬白くならないように）
+    // 「予約済みです」「取り消しますか」は窓の下のほうに出るので、ボタンの行の上に見えるところまでずらす
     function redraw(sel) {
       if (!m.parentNode) return;
+      var img = box.querySelector('.ev-detail__photo');
       box.innerHTML = detailHtml(e, confirming);
+      var fresh = box.querySelector('.ev-detail__photo');
+      if (img && fresh) fresh.parentNode.replaceChild(img, fresh);
       focusIn(box, sel || '.modal__foot [data-close]');
+      reveal(box.querySelector('.ev-detail__state'));
     }
     // U.modal は最初のボタンに焦点を置く。試作用や取り消しのボタンに置かないよう「閉じる」へ移す
     setTimeout(function () { if (m.parentNode) focusIn(box, '.modal__foot [data-close]'); }, 60);

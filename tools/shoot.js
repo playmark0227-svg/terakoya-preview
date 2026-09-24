@@ -33,6 +33,12 @@ const MEMBER = [
 
 async function settle(page) {
   await page.addStyleTag({ content: NO_MOTION }).catch(() => {});
+  // 遅延読み込み（loading=lazy）の写真は、一度スクロールしないと読み込まれず空白で写る
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.documentElement.scrollHeight; y += 400) { scrollTo(0, y); await new Promise(r => setTimeout(r, 40)); }
+    scrollTo(0, 0);
+    await Promise.all([...document.images].filter(i => !i.complete).map(i => new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 3000); })));
+  }).catch(() => {});
   await new Promise(r => setTimeout(r, 350));
 }
 

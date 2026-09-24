@@ -17,6 +17,14 @@
   /* 案件の状態（ホームでは短く） */
   var GIG_SHORT = { applied: '確認中', meeting: '面談の調整中', active: '稼働中', done: '完了' };
   var WD = ['日', '月', '火', '水', '木', '金', '土'];
+  /* 学部の写真の alt（写っている人は会員ではないので、場面だけ書く） */
+  var FAC_ALT = {
+    basic: '電卓で計算している手元',
+    sns: 'カフェでスマートフォンを構える女性',
+    skill: '夜、自宅でノートパソコンを見ながらメモを取る男性',
+    sales: 'タブレットを見ながら話す二人',
+    biz: '店の棚に器を並べる女性'
+  };
 
   /* ---------- 小さな道具 ---------- */
   var firstLine = function (text) { return String(text || '').split('\n')[0]; };
@@ -38,6 +46,16 @@
       if (sc) return '#/events/' + sc.id;
     }
     return s.go;
+  };
+  /** 講座の学部の写真（16:9の小さな画像）。写真がない学部は空文字 */
+  var coursePhoto = function (c) {
+    var f = null;
+    for (var i = 0; i < DATA.FACULTIES.length; i++) if (DATA.FACULTIES[i].id === c.faculty) f = DATA.FACULTIES[i];
+    // 講座ごとの写真（c.img）があればそれ、なければ学部の写真
+    var src = c.img || (f && f.img), alt = c.img ? c.alt : f && (f.alt || FAC_ALT[f.id] || f.name + 'の写真');
+    if (!src) return '';
+    return '<img src="' + esc(src) + '" alt="' + esc(alt || '') + '"' +
+      ' width="960" height="540" loading="lazy" decoding="async">';
   };
   var stepBtn = function (s) {
     if (s.id === 'orient') {
@@ -75,7 +93,9 @@
   var nextCard = function (o) {
     return '<section class="home-sec home-next" aria-labelledby="homeNextTtl">' +
       '<h2 class="sec-ttl" id="homeNextTtl">' + esc(o.label) + (o.link ? '<a href="' + esc(o.link[0]) + '">' + esc(o.link[1]) + '</a>' : '') + '</h2>' +
-      '<div class="card home-next__card">' +
+      '<div class="card home-next__card' + (o.img ? ' has-img' : '') + '">' +
+        // 写真は題名と同じ行き先。読み上げとキーボードでは題名のリンクだけにする
+        (o.img ? '<a class="home-next__img" href="' + esc(o.href) + '" tabindex="-1" aria-hidden="true">' + o.img + '</a>' : '') +
         '<div class="home-next__body">' +
           (o.over ? '<p class="home-next__over">' + o.over + '</p>' : '') +
           '<h3 class="home-next__ttl"><a href="' + esc(o.href) + '">' + o.ttl + '</a></h3>' +
@@ -97,6 +117,7 @@
       href: '#/lesson/' + c.id + '/' + l.id,
       sub: esc(l.min + '分' + (teacher ? '・講師 ' + teacher.name : '')),
       prog: [st.pct, st.done + '/' + st.total + '本'],
+      img: coursePhoto(c),
       btn: st.started ? '続きを見る' : '見る', btnIco: 'play'
     });
   };

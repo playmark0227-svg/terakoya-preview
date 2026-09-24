@@ -63,11 +63,11 @@
      level: その講座が開くレベル
      lessons: [id, 題, 分] */
   var FACULTIES = [
-    { id: 'basic', name: 'はじめの学部', desc: '副業の基礎、お金と税金' },
-    { id: 'sns',   name: '発信の学部',   desc: 'SNS・Instagram・ショート動画' },
-    { id: 'skill', name: '在宅スキルの学部', desc: 'AI・動画編集・デザイン・ライティング' },
-    { id: 'sales', name: '営業の学部',   desc: '営業、紹介、フリーランスの案件獲得' },
-    { id: 'biz',   name: '起業の学部',   desc: 'マーケティング、起業、法人化' }
+    { id: 'basic', name: 'はじめの学部', desc: '副業の基礎、お金と税金', img: 'assets/img/fac-basic.webp', alt: '電卓で計算している手元' },
+    { id: 'sns',   name: '発信の学部',   desc: 'SNS・Instagram・ショート動画', img: 'assets/img/fac-sns.webp', alt: 'カフェでスマートフォンを構える女性' },
+    { id: 'skill', name: '在宅スキルの学部', desc: 'AI・動画編集・デザイン・ライティング', img: 'assets/img/fac-skill.webp', alt: '夜、自宅でノートパソコンを見ながらメモを取る男性' },
+    { id: 'sales', name: '営業の学部',   desc: '営業、紹介、フリーランスの案件獲得', img: 'assets/img/fac-sales.webp', alt: 'タブレットを見ながら話す二人' },
+    { id: 'biz',   name: '起業の学部',   desc: 'マーケティング、起業、法人化', img: 'assets/img/fac-biz.webp', alt: '店の棚に器を並べる女性' }
   ];
 
   function L(prefix, rows) {
@@ -75,61 +75,61 @@
   }
 
   var COURSES = [
-    { id: 'orientation', faculty: 'basic', level: 1, title: 'オリエンテーション', teacher: 'staff2',
+    { id: 'orientation', img: 'assets/img/course-orientation.webp', alt: '夜、自宅でノートパソコンの動画を見る女性', faculty: 'basic', level: 1, title: 'オリエンテーション', teacher: 'staff2',
       summary: '会員ページの使い方と、入会後30日でやること。最初に見てください。',
       lessons: L('ori', [['会員ページでできること', 8], ['会員ページの使い方（5分で全部）', 6], ['最初の30日で目指すところ', 9], ['コミュニティと紹介のルール', 7]]) },
-    { id: 'business-basic', faculty: 'basic', level: 1, title: 'ビジネスの基礎', teacher: 'staff1',
+    { id: 'business-basic', img: 'assets/img/course-business-basic.webp', alt: '朝の電車でスマートフォンを見る女性', faculty: 'basic', level: 1, title: 'ビジネスの基礎', teacher: 'staff1',
       summary: 'お金の流れ、副業の種類、1日30分で回す方法。',
       lessons: L('bb', [['お金はどこから生まれるか', 14], ['売れる人がやっていること', 12], ['副業の種類と、向き不向き', 16], ['1日30分でできる副業の設計', 11], ['やらないことを決める', 9]]) },
-    { id: 'okozukai', faculty: 'basic', level: 1, title: 'お小遣い案件の始め方', teacher: 'staff2',
+    { id: 'okozukai', img: 'assets/img/course-okozukai.webp', alt: '小包の横でスマートフォンを操作する手元', faculty: 'basic', level: 1, title: 'お小遣い案件の始め方', teacher: 'staff2',
       summary: 'アンケートやモニターなど、スマホで完結する案件のやり方。',
       lessons: L('ok', [['お小遣い案件って何？安全に選ぶ3つの目', 10], ['モニター・アンケート案件の進め方', 8], ['報酬の受け取りと記録のつけ方', 7]]) },
-    { id: 'money-tax', faculty: 'basic', level: 1, title: 'お金と税金の基礎', teacher: 'guest1',
+    { id: 'money-tax', img: 'assets/img/fac-basic.webp', alt: '電卓で計算している手元', faculty: 'basic', level: 1, title: 'お金と税金の基礎', teacher: 'guest1',
       summary: '確定申告、経費、20万円のライン、開業届。提携の税理士が話します。',
       lessons: L('mt', [['副業と確定申告、最初に知っておくこと', 15], ['経費になるもの・ならないもの', 13], ['帳簿は「スマホで週1」で足りる', 10], ['開業届はいつ出す？', 9]]) },
-    { id: 'sns-basic', faculty: 'sns', level: 1, title: 'SNS発信入門', teacher: 'staff4',
+    { id: 'sns-basic', img: 'assets/img/fac-sns.webp', alt: 'カフェでスマートフォンを構える女性', faculty: 'sns', level: 1, title: 'SNS発信入門', teacher: 'staff4',
       summary: 'プロフィールの作り方と、投稿を続けるコツ。',
       lessons: L('sb', [['発信で得られるもの・失うもの', 10], ['自分の「軸」を一行で言う', 12], ['プロフィールの整え方', 9], ['投稿を続けるための型', 11], ['数字の見方（週1でOK）', 8]]) },
-    { id: 'ai', faculty: 'skill', level: 2, title: 'AI活用', teacher: 'staff3',
+    { id: 'ai', img: 'assets/img/course-ai.webp', alt: 'カフェの窓際でノートパソコンに向かう女性', faculty: 'skill', level: 2, title: 'AI活用', teacher: 'staff3',
       summary: 'ChatGPTなどの生成AIで、文章・企画・表計算の作業を減らす。',
       lessons: L('ai', [['生成AIでできること・できないこと', 12], ['指示の出し方（プロンプト）の基本', 15], ['文章・企画・表計算をAIと作る', 18], ['画像と動画のAI', 14], ['AIで副業の作業を減らす実例', 16]]) },
-    { id: 'writing', faculty: 'skill', level: 2, title: 'ライティング', teacher: 'guest2',
+    { id: 'writing', img: 'assets/img/course-writing.webp', alt: '本棚の前でノートパソコンに文章を打つ男性', faculty: 'skill', level: 2, title: 'ライティング', teacher: 'guest2',
       summary: '記事の書き方、見出しと要約、納品前のチェック。',
       lessons: L('wr', [['「読まれる」文章の型', 12], ['見出しと要約の作り方', 10], ['取材して書く', 14], ['納品前のチェック表', 8]]) },
-    { id: 'instagram', faculty: 'sns', level: 3, title: 'Instagram運用', teacher: 'staff4',
+    { id: 'instagram', img: 'assets/img/course-instagram.webp', alt: 'パン屋でパンをスマートフォンで撮る女性', faculty: 'sns', level: 3, title: 'Instagram運用', teacher: 'staff4',
       summary: 'アカウント設計、投稿、リール、運用代行の受け方。',
       lessons: L('ig', [['アカウント設計（誰に、何を）', 14], ['保存される投稿の作り方', 16], ['リールの基本', 13], ['ストーリーズで関係を深める', 11], ['運用代行として仕事にする', 15]]) },
-    { id: 'video', faculty: 'skill', level: 3, title: '動画編集', teacher: 'staff3',
+    { id: 'video', img: 'assets/img/course-video.webp', alt: '三脚のスマートフォンで花を生ける手元を撮影しているところ', faculty: 'skill', level: 3, title: '動画編集', teacher: 'staff3',
       summary: 'カット、テロップ、音入れ。60秒の縦動画を1本作るまで。',
       lessons: L('vd', [['編集ソフトの準備と基本操作', 16], ['カットとテンポ', 14], ['テロップの入れ方', 15], ['音と効果音', 11], ['ポートフォリオを作る', 12], ['はじめての納品', 10]]) },
-    { id: 'design', faculty: 'skill', level: 3, title: 'Webデザイン', teacher: 'staff4',
+    { id: 'design', img: 'assets/img/course-design.webp', alt: '色見本を持つ女性', faculty: 'skill', level: 3, title: 'Webデザイン', teacher: 'staff4',
       summary: 'バナー、チラシ、ノーコードのホームページ。見積もりの出し方まで。',
       lessons: L('ds', [['デザインの4原則', 12], ['配色と文字の選び方', 13], ['バナーを1枚つくる', 18], ['ノーコードでホームページ', 20], ['見積もりと納品', 10]]) },
-    { id: 'sales-basic', faculty: 'sales', level: 3, title: '営業・セールスの基本', teacher: 'staff5',
+    { id: 'sales-basic', img: 'assets/img/fac-sales.webp', alt: 'タブレットを見ながら話す二人', faculty: 'sales', level: 3, title: '営業・セールスの基本', teacher: 'staff5',
       summary: 'ヒアリング、提案書、断られたときの対応。',
       lessons: L('sl', [['営業は「相手の困りごと」を聞く仕事', 12], ['最初の5分でやること', 11], ['提案書は1枚でいい', 14], ['断られたときの考え方', 9], ['紹介をお願いする作法', 10]]) },
-    { id: 'marketing', faculty: 'biz', level: 4, title: 'マーケティング', teacher: 'staff1',
+    { id: 'marketing', img: 'assets/img/course-marketing.webp', alt: 'ホワイトボードの付箋を前に話し合う三人', faculty: 'biz', level: 4, title: 'マーケティング', teacher: 'staff1',
       summary: 'お客さんの決め方、集客、LINEでのフォロー、数字の見方。',
       lessons: L('mk', [['市場と顧客を決める', 15], ['商品の価値を言葉にする', 14], ['集客の入口をつくる', 16], ['LINEでつながり続ける', 13], ['数字で改善する', 12]]) },
-    { id: 'affiliate', faculty: 'sales', level: 4, title: '紹介・営業代行の始め方', teacher: 'staff5',
+    { id: 'affiliate', img: 'assets/img/course-affiliate.webp', alt: 'キッチンのテーブルでタブレットを見せ合う二人', faculty: 'sales', level: 4, title: '紹介・営業代行の始め方', teacher: 'staff5',
       summary: '会員限定の商材を紹介するときの流れと、守るルール。',
       lessons: L('af', [['紹介と営業代行のしくみ', 11], ['法律とルール（やってはいけないこと）', 14], ['つなぐだけの「トスアップ」', 9], ['信頼を失わない紹介の仕方', 12]]) },
-    { id: 'freelance', faculty: 'sales', level: 4, title: 'フリーランスで案件を取る', teacher: 'staff5',
+    { id: 'freelance', img: 'assets/img/course-freelance.webp', alt: 'コワーキングスペースでビデオ通話をする男性', faculty: 'sales', level: 4, title: 'フリーランスで案件を取る', teacher: 'staff5',
       summary: '職務経歴の書き方、面談、単価の決め方。',
       lessons: L('fl', [['フリーランスという働き方', 12], ['職務経歴を「売れる形」に書き直す', 15], ['面談で聞かれること', 11], ['単価の決め方と交渉', 13], ['継続してもらう人の共通点', 10]]) },
-    { id: 'shortvideo', faculty: 'sns', level: 4, title: 'ショート動画で伸ばす', teacher: 'staff3',
+    { id: 'shortvideo', img: 'assets/img/course-shortvideo.webp', alt: 'スマートフォンで自分を撮影する女性', faculty: 'sns', level: 4, title: 'ショート動画で伸ばす', teacher: 'staff3',
       summary: 'TikTok・リール・YouTubeショートの企画と撮り方。',
       lessons: L('sv', [['ショート動画の視聴のされ方', 10], ['最初の2秒', 12], ['企画の出し方', 14], ['撮影から投稿まで30分', 15]]) },
-    { id: 'startup', faculty: 'biz', level: 5, title: '起業・法人化', teacher: 'staff1',
+    { id: 'startup', img: 'assets/img/fac-biz.webp', alt: '店の棚に器を並べる女性', faculty: 'biz', level: 5, title: '起業・法人化', teacher: 'staff1',
       summary: '個人事業と法人の違い、事業計画、資金、契約書。',
       lessons: L('su', [['個人事業と法人の違い', 14], ['事業計画を1枚にする', 16], ['資金の集め方', 15], ['契約書の読み方', 13], ['人に任せる', 12]]) },
-    { id: 'nocode', faculty: 'skill', level: 5, title: 'ノーコード・プログラミング', teacher: 'staff3',
+    { id: 'nocode', img: 'assets/img/course-nocode.webp', alt: '夜、自宅のスタンディングデスクで作業する男性', faculty: 'skill', level: 5, title: 'ノーコード・プログラミング', teacher: 'staff3',
       summary: '予約フォームや表計算の自動化。AIにコードを書かせる方法も。',
       lessons: L('nc', [['ノーコードでできること', 12], ['予約フォームを作る', 18], ['スプレッドシートを自動化する', 17], ['AIにコードを書いてもらう', 16], ['小さなWebアプリを公開する', 20]]) },
-    { id: 'coaching', faculty: 'biz', level: 5, title: 'コーチングと自分の育て方', teacher: 'staff2',
+    { id: 'coaching', img: 'assets/img/course-coaching.webp', alt: '向かい合って話す二人の女性', faculty: 'biz', level: 5, title: 'コーチングと自分の育て方', teacher: 'staff2',
       summary: '目標の立て方、習慣、人の話の聴き方。',
       lessons: L('co', [['目標は「行動」で立てる', 12], ['習慣を設計する', 11], ['人の話を聴く', 14], ['チームで進む', 12]]) },
-    { id: 'teacher', faculty: 'biz', level: 6, title: '師範代講座（講座を出す側へ）', teacher: 'staff1',
+    { id: 'teacher', img: 'assets/img/course-teacher.webp', alt: 'テーブルを囲む人たちに話す女性', faculty: 'biz', level: 6, title: '師範代講座（講座を出す側へ）', teacher: 'staff1',
       summary: '自分の講座を作って、テラコヤで教える側になるための講座。',
       lessons: L('tc', [['教える側になるとは', 10], ['講座の設計図', 16], ['収録と編集', 14], ['出店の手続きと分配のしくみ', 12]]) }
   ];
@@ -281,23 +281,26 @@
   /* ---------- イベント ----------
      kind: online / offline / showcase(成果発表会) */
   var EVENTS = [
-    { id: 'e1', kind: 'online', title: '新入生オリエンテーション', at: D(1, 20), min: 60, place: 'オンライン（Zoom）', cap: 50, count: 18, fee: '無料', host: 'staff2', recording: true,
+    { id: 'e1', img: 'assets/img/course-orientation.webp', alt: '夜、自宅でノートパソコンの動画を見る女性', kind: 'online', title: '新入生オリエンテーション', at: D(1, 20), min: 60, place: 'オンライン（Zoom）', cap: 50, count: 18, fee: '無料', host: 'staff2', recording: true,
       desc: '入会したばかりの方向けです。会員ページの使い方と、最初の30日でやることを説明します。' },
-    { id: 'e2', kind: 'online', title: 'AI勉強会（ライブ）：AIで見積書と提案書', at: D(3, 20, 30), min: 75, place: 'オンライン（Zoom）', cap: 100, count: 46, fee: '無料', host: 'staff3', recording: true,
+    { id: 'e2', img: 'assets/img/photo-hero.webp', alt: '夜、自宅でヘッドホンをしてパソコンに向かう女性', kind: 'online', title: 'AI勉強会（ライブ）：AIで見積書と提案書', at: D(3, 20, 30), min: 75, place: 'オンライン（Zoom）', cap: 100, count: 46, fee: '無料', host: 'staff3', recording: true,
       desc: '実際の案件の見積書と提案書を、AIと一緒に作るところを見せます。' },
-    { id: 'e3', kind: 'offline', title: '札幌オフ会（子連れOK）', at: D(5, 11), min: 150, place: '札幌市中央区（会場は予約後にお知らせ）', cap: 15, count: 11, fee: '実費（ランチ代）', host: 'm2',
+    { id: 'e3', img: 'assets/img/event-sapporo.webp', alt: '雪の見えるレストランで昼ごはんを食べる大人と子どもたち', kind: 'offline', title: '札幌オフ会（子連れOK）', at: D(5, 11), min: 150, place: '札幌市中央区（会場は予約後にお知らせ）', cap: 15, count: 11, fee: '実費（ランチ代）', host: 'm2',
       desc: 'ランチを食べながら近況を話す会です。はじめての方歓迎。' },
-    { id: 'e4', kind: 'showcase', title: '月末の成果発表会', at: D(6, 20), min: 120, place: 'オンライン＋札幌・那覇の会場', cap: 120, count: 64, fee: '無料（会場参加は実費）', host: 'staff1', recording: true,
+    { id: 'e4', img: 'assets/img/event-showcase.webp', alt: 'テレビの前で話す女性と、座って聞く人たち', kind: 'showcase', title: '月末の成果発表会', at: D(6, 20), min: 120, place: 'オンライン＋札幌・那覇の会場', cap: 120, count: 64, fee: '無料（会場参加は実費）', host: 'staff1', recording: true,
       desc: '1人3分で、この1か月でやったことを話します。見るだけの参加もできます。' },
-    { id: 'e5', kind: 'online', title: 'もくもく作業会（夜）', at: D(8, 21), min: 90, place: 'オンライン（Zoom・カメラ任意）', cap: 40, count: 12, fee: '無料', host: 'm5',
+    { id: 'e5', img: 'assets/img/photo-online.webp', alt: '夜、自宅でパソコンを見ながらメモを取る男性', kind: 'online', title: 'もくもく作業会（夜）', at: D(8, 21), min: 90, place: 'オンライン（Zoom・カメラ任意）', cap: 40, count: 12, fee: '無料', host: 'm5',
       desc: 'Zoomをつないで各自の作業をする会です。最初と最後に少しだけ話します。' },
-    { id: 'e6', kind: 'offline', title: '那覇オフ会', at: D(12, 19), min: 120, place: '那覇市（会場は予約後にお知らせ）', cap: 20, count: 9, fee: '実費（飲食代）', host: 'm3',
+    { id: 'e6', img: 'assets/img/event-naha.webp', alt: '海の見えるテラスで夕食を囲む人たち', kind: 'offline', title: '那覇オフ会', at: D(12, 19), min: 120, place: '那覇市（会場は予約後にお知らせ）', cap: 20, count: 9, fee: '実費（飲食代）', host: 'm3',
       desc: '沖縄在住の会員の交流会です。' },
-    { id: 'e7', kind: 'online', title: '確定申告に備える会（税理士と）', at: D(15, 20), min: 60, place: 'オンライン（Zoom）', cap: 100, count: 22, fee: '無料', host: 'guest1', recording: true,
+    { id: 'e7', img: 'assets/img/event-tax.webp', alt: '夜、ノートパソコンでビデオ通話をしながらメモを取る女性', kind: 'online', title: '確定申告に備える会（税理士と）', at: D(15, 20), min: 60, place: 'オンライン（Zoom）', cap: 100, count: 22, fee: '無料', host: 'guest1', recording: true,
       desc: '副業1年目の方向けです。年末までにやっておくことを税理士が話します。' },
-    { id: 'e8', kind: 'offline', title: '東京オフ会', at: D(19, 19), min: 120, place: '東京都内（会場は予約後にお知らせ）', cap: 30, count: 14, fee: '実費（飲食代）', host: 'staff1',
+    { id: 'e8', img: 'assets/img/event-tokyo.webp', alt: '飲み物を手に立ち話をする人たち', kind: 'offline', title: '東京オフ会', at: D(19, 19), min: 120, place: '東京都内（会場は予約後にお知らせ）', cap: 30, count: 14, fee: '実費（飲食代）', host: 'staff1',
       desc: '運営メンバーも参加します。' }
   ];
+
+  /* イベントの種類ごとの写真（Higgsfield で生成したイメージ写真。元画像は docs/生成画像/） */
+  var EVENT_IMG = { online: 'assets/img/photo-online.webp', offline: 'assets/img/photo-meetup.webp', showcase: 'assets/img/photo-showcase.webp' };
 
   /* デモ会員がすでに参加したイベント（XPの記録に使う） */
   var PAST_EVENTS = [
@@ -417,7 +420,7 @@
   CLG.DATA = {
     SITE: SITE, LEVELS: LEVELS, XP: XP, FACULTIES: FACULTIES, COURSES: COURSES, ARCHIVE: ARCHIVE,
     PEOPLE: PEOPLE, MEMBER: MEMBER, ONBOARDING: ONBOARDING, FEED: FEED, INTRO_TEMPLATE: INTRO_TEMPLATE,
-    GIGS: GIGS, GIG_TYPES: GIG_TYPES, EVENTS: EVENTS, PAST_EVENTS: PAST_EVENTS,
+    GIGS: GIGS, GIG_TYPES: GIG_TYPES, EVENTS: EVENTS, EVENT_IMG: EVENT_IMG, PAST_EVENTS: PAST_EVENTS,
     REFERRAL: REFERRAL, REFERRED: REFERRED, REF_CLICKS: REF_CLICKS, SHARE_TEMPLATE: SHARE_TEMPLATE,
     POINT_RULES: POINT_RULES, RANKING: RANKING, RANK_PRIZES: RANK_PRIZES,
     PERKS: PERKS, EXPERTS: EXPERTS, THREAD: THREAD, MESSAGE_KINDS: MESSAGE_KINDS,

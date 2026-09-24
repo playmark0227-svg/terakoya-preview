@@ -27,6 +27,29 @@
     return DATA.LEVELS[0];
   }
   function facName(id) { var f = byId(DATA.FACULTIES, id); return f ? f.name : ''; }
+
+  /* 学部の写真（DATA.FACULTIES の img）。写っている人は会員ではないので、alt は場面だけ書く */
+  var FAC_ALT = {
+    basic: '電卓で計算している手元',
+    sns: 'カフェでスマートフォンを構える女性',
+    skill: '夜、自宅でノートパソコンを見ながらメモを取る男性',
+    sales: 'タブレットを見ながら話す二人',
+    biz: '店の棚に器を並べる女性'
+  };
+  /** 講座の学部の写真（img だけ）。写真がない学部は空文字 */
+  function facPhoto(c, cls) {
+    var f = byId(DATA.FACULTIES, c.faculty);
+    // 講座ごとの写真（c.img）があればそれ、なければ学部の写真
+    var src = c.img || (f && f.img), alt = c.img ? c.alt : f && (f.alt || FAC_ALT[f.id] || f.name + 'の写真');
+    if (!src) return '';
+    return '<img' + (cls ? ' class="' + cls + '"' : '') + ' src="' + esc(src) + '" alt="' + esc(alt || '') + '"' +
+      ' width="960" height="540" loading="lazy" decoding="async">';
+  }
+  /** 16:9の枠に入れた写真。枠は並びの最後に置いて CSS で左に出す（読み上げは題名から始まるように） */
+  function photoBox(c, cls) {
+    var img = facPhoto(c, '');
+    return img ? '<span class="' + cls + '">' + img + '</span>' : '';
+  }
   function needXp(lv) { return Math.max(0, levelOf(lv).min - R.xp()); }
   /** 残りXPを講座の本数に直す */
   function lessonsFor(need) { return Math.max(1, Math.ceil(need / DATA.XP.lesson)); }
@@ -80,10 +103,11 @@
   }
 
   /* ---------- 再生画面の枠（講座とアーカイブで共通）。黒い16:9に再生ボタンだけ ----------
-     o: { key, min, ended, locked } */
+     o: { key, min, ended, locked, poster }。poster は学部の写真（img）。暗くして後ろに敷く */
   function player(o) {
     var total = clock(o.min * 60);
-    return '<div class="cr-player' + (o.locked ? ' is-locked' : o.ended ? ' is-ended' : '') + '" data-cr-player="' + esc(o.key) + '" data-min="' + (+o.min || 1) + '">' +
+    return '<div class="cr-player' + (o.poster ? ' has-poster' : '') + (o.locked ? ' is-locked' : o.ended ? ' is-ended' : '') + '" data-cr-player="' + esc(o.key) + '" data-min="' + (+o.min || 1) + '">' +
+      (o.poster || '') +
       (o.locked
         ? '<div class="cr-player__lock">' + icon('lock') + '<span>まだ見られません</span></div>'
         : '<button type="button" class="cr-player__play" data-cr-play aria-label="' + (o.ended ? 'もう一度再生する' : '再生する') + '">' + PLAY_SVG + '</button>' +
@@ -179,12 +203,12 @@
   function resumeRow(x) {
     var c = x.c, st = x.st, l = st.next, n = lessonIndex(c, l.id) + 1;
     return '<a class="li cr-rrow" href="' + lessonHref(c, l) + '">' +
-      '<span class="cr-thumb" aria-hidden="true">' + PLAY_SVG + '</span>' +
       '<span class="li__body">' +
         '<span class="li__sub">' + esc(c.title) + ' 第' + n + '回・' + l.min + '分</span>' +
         '<span class="li__ttl">' + esc(l.title) + '</span>' +
         (st.started ? '<span class="cr-prog">' + U.progressBar(st.pct) + '<span class="num">' + st.done + '/' + st.total + '本</span></span>' : '') +
       '</span>' + U.chevron() +
+      '<span class="cr-thumb">' + facPhoto(c, '') + '<span class="cr-thumb__play" aria-hidden="true">' + PLAY_SVG + '</span></span>' +
     '</a>';
   }
 
@@ -227,21 +251,24 @@
   function courseCard(c) {
     var st = R.courseState(c);
     var end = st.completed ? '<span class="tag tag-ok">修了</span>' : '';
-    return '<a class="card card-link cr-card" href="' + courseHref(c) + '">' +
+    var photo = photoBox(c, 'cr-card__img');
+    return '<a class="card card-link cr-card' + (photo ? ' has-img' : '') + '" href="' + courseHref(c) + '">' +
       '<span class="cr-card__body">' +
         '<span class="cr-card__ttl">' + esc(c.title) + '</span>' +
         '<span class="cr-card__meta">' + courseMeta(c, st) + '</span>' +
         (st.started && !st.completed ? '<span class="cr-prog">' + U.progressBar(st.pct) + '<span class="num">' + st.done + '/' + st.total + '</span></span>' : '') +
       '</span>' +
-      end + U.chevron() +
+      end + U.chevron() + photo +
     '</a>';
   }
 
+  /** まだ開いていない講座。写真は同じものを薄くして、鍵がかかっていると分かるようにする */
   function lockedRow(c) {
     var st = R.courseState(c);
-    return '<a class="li cr-lrow" href="' + courseHref(c) + '">' +
+    var photo = photoBox(c, 'cr-lrow__img');
+    return '<a class="li cr-lrow' + (photo ? ' has-img' : '') + '" href="' + courseHref(c) + '">' +
       '<span class="li__body"><span class="li__ttl">' + esc(c.title) + '</span>' +
-      '<span class="li__sub">' + courseMeta(c, st) + '</span></span>' + U.chevron() +
+      '<span class="li__sub">' + courseMeta(c, st) + '</span></span>' + U.chevron() + photo +
     '</a>';
   }
 
@@ -252,11 +279,15 @@
     var c = R.course(id);
     if (!c) return notFound('講座が見つかりませんでした。', [['講座', '#/courses'], ['見つかりません']]);
     var st = R.courseState(c), t = R.person(c.teacher), notes = readNotes();
+    var photo = photoBox(c, 'cr-dhead__img');
     return crumb([['講座', '#/courses'], [c.title]]) +
-      '<div class="page-head">' +
-        '<h1 class="page-ttl">' + esc(c.title) + '</h1>' +
-        '<p class="page-lead">' + esc(c.summary) + '</p>' +
-        '<p class="cr-meta">' + esc(facName(c.faculty)) + '・全' + st.total + '回・' + st.minutes + '分・講師 ' + esc(t.name) + '</p>' +
+      '<div class="page-head cr-dhead' + (photo ? ' has-img' : '') + (st.locked ? ' is-locked' : '') + '">' +
+        '<div class="cr-dhead__body">' +
+          '<h1 class="page-ttl">' + esc(c.title) + '</h1>' +
+          '<p class="page-lead">' + esc(c.summary) + '</p>' +
+          '<p class="cr-meta">' + esc(facName(c.faculty)) + '・全' + st.total + '回・' + st.minutes + '分・講師 ' + esc(t.name) + '</p>' +
+        '</div>' +
+        photo +
       '</div>' +
       startArea(c, st) +
       '<section class="sec">' +
@@ -453,7 +484,7 @@
     return crumb([['講座', '#/courses'], [c.title, '#/courses/' + c.id], ['第' + n + '回']]) +
       '<div class="cr-lesson">' +
         '<div class="cr-lesson__main">' +
-          player({ key: l.id, min: l.min, ended: ls === 'done' || !!played[l.id], locked: ls === 'locked' }) +
+          player({ key: l.id, min: l.min, ended: ls === 'done' || !!played[l.id], locked: ls === 'locked', poster: facPhoto(c, 'cr-player__poster') }) +
           '<div class="cr-lesson__head">' +
             '<div class="cr-lesson__hbody">' +
               '<h1 class="cr-lesson__ttl">' + esc(l.title) + '</h1>' +

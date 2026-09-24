@@ -33,6 +33,17 @@
 .scr-home .home-next__prog .bar { flex: 1; height: 4px; }
 .scr-home .home-next__prog > span { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
 .scr-home .home-next__btn { flex: none; min-width: 148px; }
+/* 講座の写真（学部ごと・16:9）を左に小さく */
+.scr-home .home-next__card.has-img { gap: 20px; padding-left: 18px; }
+.scr-home .home-next__img { display: block; flex: none; width: 160px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--line); }
+.scr-home .home-next__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.scr-home .home-next__card.has-img .home-next__ttl { word-break: auto-phrase; overflow-wrap: anywhere; }
+/* 左の帯が出ている狭めの幅などでは、ボタンを題名の下に回して題名の幅をとる */
+@media (min-width: 641px) and (max-width: 720px), (min-width: 861px) and (max-width: 1060px) {
+  .scr-home .home-next__card.has-img { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 12px 20px; align-items: start; }
+  .scr-home .home-next__card.has-img .home-next__img { grid-row: 1 / span 2; }
+  .scr-home .home-next__card.has-img .home-next__btn { grid-column: 2; justify-self: start; }
+}
 
 /* ---------- 未読など ---------- */
 .scr-home .home-quick { margin-top: 12px; }
@@ -90,6 +101,10 @@
   .scr-home .home-next__ttl { font-size: 17px; }
   .scr-home .home-next__prog { max-width: none; }
   .scr-home .home-next__btn { width: 100%; }
+  /* 写真があるときは、写真と題名を横に並べ、ボタンはその下に全幅で */
+  .scr-home .home-next__card.has-img { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px 12px; align-items: start; padding-left: 16px; }
+  .scr-home .home-next__img { width: 100%; border-radius: 6px; margin-top: 3px; }
+  .scr-home .home-next__card.has-img .home-next__btn { grid-column: 1 / -1; }
   .scr-home .home-post { padding: 12px 14px; }
   .scr-home .home-post + .home-post::before { left: 56px; }
   /* スマホでは日時を題名の上に1行で出し、題名の幅をとる */
