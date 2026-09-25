@@ -1,0 +1,520 @@
+/* ============================================================
+   運営画面（毎日ノートパソコンで使う事務の道具）
+   ------------------------------------------------------------
+   - 色・文字・部品（btn・tag・field・modal・pop・chip・avatar）は会員ページと同じ（tokens.css・app.css）。
+   - ここは運営画面の骨組み（左の帯・上の帯・本文）と、運営画面だけの部品（表・引き出し・数字のかたまり・見出し）。
+   - 会員ページより文字を1段小さく、行を詰める（1画面に多く並べて見比べるため）。面は影ではなく線で区切る。
+   - 画面ごとの CSS は assets/css/admin/*.css に、.a-<画面名> で閉じて書く。
+
+   ■ 幅の段
+     パソコン   1101px〜    左の帯 248px（名前つき）
+     タブレット 641〜1100px 左の帯 72px（記号と短い名前）
+     スマホ     〜640px     上の帯（メニュー・屋号・会員ページ）。メニューは下から出る窓
+     本文（.ad-view）は container「adview」（と「main」。app.css の .grid-2 / .grid-3 もここで効く）。
+     本文が 1000px 以下で .ad-hide-md、700px 以下で .ad-hide-sm の列を隠す。
+
+   ■ 形（ui.js の AU.* が組む）
+     見出し  .ad-head > .ad-head__main（.ad-crumb・h1.ad-head__ttl・.ad-head__sub）＋ .ad-head__acts
+     数字    .ad-kpis > a.ad-kpi（.ad-kpi__label・.ad-kpi__val > b + small・.ad-kpi__sub）  .is-alert / .is-warn
+     面      section.ad-panel（.is-flush で中の一覧を端まで）> .ad-panel__head（h2.ad-panel__ttl・.ad-panel__acts）+ .ad-panel__body
+     表      .ad-tb > .chips.ad-tb__chips / .ad-tb__bar / .ad-tb__bulk / .ad-tbl-wrap > table.ad-tbl / nav.ad-tb__pager
+     タブ    nav.ad-tabs > a.ad-tabs__a[aria-current]（.ad-tabs__n）
+     そのほか .ad-who（顔＋名前＋会員番号）.ad-kv（キーと値）.ad-steps（9/10 と細い棒）.ad-age（経過。.is-over で朱）
+             .ad-st（札にしない状態の文字）.ad-empty .ad-skel
+     引き出し .modal-bg.ad-drawer-bg > .modal.ad-drawer（.ad-drawer--wide）
+   ============================================================ */
+
+/* 行の終わりに1文字だけ残る折り返しを避ける（表の中の短い文・札の説明も。text-wrap-style は受け継がれる）。
+   --ad-warn-ink：黄土の文字（tokens の --warn-ink。淡い黄土の地・灰の地で 5.0:1。--warn は面や線に使う） */
+body.ad-body { background: var(--bg); font-size: 14px; text-wrap-style: pretty; --ad-warn-ink: var(--warn-ink, #8f5d10); }
+:root { --ad-side: 248px; --ad-gut: 28px; --ad-top: 56px; }
+@media (max-width: 1100px) { :root { --ad-side: 72px; --ad-gut: 22px; } }
+@media (max-width: 640px) { :root { --ad-side: 0px; --ad-gut: 16px; --ad-top: 52px; } }
+
+.ad-body p, .ad-head__ttl, .ad-head__sub, .ad-panel__ttl, .modal__ttl, .ad-kv dd { text-wrap: pretty; word-break: auto-phrase; }
+.ad-body .num { font-variant-numeric: tabular-nums; }
+#adView:focus, .ad-head__ttl:focus, .ad-body [data-page-title]:focus { outline: none; }
+html:has(.ad-body) { scroll-padding-top: calc(var(--ad-top) + 8px); }
+
+/* ---------- 骨組み ---------- */
+.ad { display: grid; grid-template-columns: var(--ad-side) minmax(0, 1fr); min-height: 100vh; min-height: 100dvh; }
+/* 帯の地と線は、ページ全体の高さまで伸ばす（長い画面をスクロールしても帯の下が切れて見えないように） */
+@media (min-width: 641px) {
+  .ad { background: linear-gradient(90deg, var(--surface-2) calc(var(--ad-side) - 1px), var(--line) calc(var(--ad-side) - 1px), var(--line) var(--ad-side), transparent var(--ad-side)); }
+}
+.ad-side {
+  position: sticky; top: 0; z-index: 20; height: 100vh; height: 100dvh; min-width: 0;
+  display: flex; flex-direction: column; background: var(--surface-2); border-right: 1px solid var(--line);
+}
+.ad-side__top { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 12px 10px 18px; }
+.ad-brand { display: inline-flex; align-items: center; min-height: 36px; border-radius: 8px; text-decoration: none; min-width: 0; }
+/* ロゴの高さ 22px（TAISEI の字は 11px）。印だけのものはタブレットの帯で出す */
+.ad-brand .brandmark { --brand-h: 22px; gap: 8px; }
+.ad-brand .brandmark--mark { display: none; }
+.ad-proto { position: relative; flex: none; }
+.ad-proto__pill {
+  height: 26px; padding: 0 9px; border-radius: 13px; border: 1px solid var(--line-2); background: var(--surface);
+  color: var(--ink-2); font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.ad-proto__pill:hover { border-color: var(--ink-3); color: var(--ink); }
+.ad-proto__pill[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.ad-proto__menu { top: calc(100% + 6px); left: 0; width: 272px; }
+
+.ad-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px 10px 12px; scrollbar-width: thin; }
+.ad-nav__group + .ad-nav__group { margin-top: 10px; }
+.ad-nav__label { font-size: 11.5px; font-weight: 700; color: var(--ink-3); padding: 2px 10px 3px; line-height: 1.5; }
+.ad-nav__a {
+  position: relative; display: flex; align-items: center; gap: 9px; min-height: 34px; padding: 5px 8px 5px 10px;
+  border-radius: 8px; color: var(--ink-2); font-size: 13.5px; font-weight: 500; line-height: 1.4; text-decoration: none;
+}
+.ad-nav__a .ico { width: 18px; height: 18px; color: var(--ink-3); }
+.ad-nav__a:hover { background: rgba(29, 27, 24, .05); color: var(--ink); }
+.ad-nav__a:focus-visible { outline-offset: -2px; }
+.ad-nav__a.is-active { background: var(--ink); color: #fff; font-weight: 700; }
+.ad-nav__a.is-active .ico { color: #fff; }
+.ad-nav__txt { flex: 1; min-width: 0; }
+.ad-nav__n {
+  flex: none; min-width: 20px; height: 19px; padding: 0 6px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(29, 27, 24, .09); color: var(--ink-2); font: 700 11px/1 var(--font-num);
+}
+.ad-nav__n[hidden] { display: none; }
+.ad-nav__n.is-alert { background: var(--accent); color: #fff; }
+.ad-nav__a.is-active .ad-nav__n:not(.is-alert) { background: rgba(255, 255, 255, .22); color: #fff; }
+
+.ad-side__me { flex: none; position: relative; padding: 8px 10px 10px; border-top: 1px solid var(--line); }
+.ad-me {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px; border: 0; border-radius: 10px;
+  background: none; color: inherit; text-align: left;
+}
+.ad-me:hover, .ad-me[aria-expanded="true"] { background: rgba(29, 27, 24, .06); }
+.ad-me__txt { flex: 1; min-width: 0; line-height: 1.35; }
+.ad-me__txt b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-me__txt small { display: block; font-size: 11.5px; color: var(--ink-3); }
+.ad-me__caret { width: 16px; height: 16px; color: var(--ink-3); flex: none; }
+.ad-me__menu { bottom: calc(100% - 4px); left: 10px; right: 10px; }
+
+.ad-main { min-width: 0; display: flex; flex-direction: column; }
+.ad-top {
+  position: sticky; top: 0; z-index: var(--z-bar); display: flex; align-items: center; gap: 12px;
+  height: var(--ad-top); padding: 0 var(--ad-gut);
+  background: rgba(243, 242, 239, .94); -webkit-backdrop-filter: saturate(1.3) blur(10px); backdrop-filter: saturate(1.3) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.ad-top__menu, .ad-top__brand { display: none; }
+.ad-top__menu { position: relative; }
+.ad-top__dot { position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.ad-top__dot[hidden] { display: none; }
+.ad-find { position: relative; flex: 0 1 380px; min-width: 0; }
+.ad-find > .ico { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.ad-find .input { height: 36px; padding: 0 36px 0 34px; font-size: 13.5px; border-radius: 9px; }
+.ad-find__key {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%); pointer-events: none;
+  padding: 0 6px; border: 1px solid var(--line-2); border-radius: 5px; background: var(--surface-2);
+  font: 600 11px/18px var(--font-mono); color: var(--ink-3);
+}
+.ad-find .input:focus ~ .ad-find__key, .ad-find .input:not(:placeholder-shown) ~ .ad-find__key { display: none; }
+.ad-top__acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.ad-view { width: 100%; max-width: 1360px; margin: 0 auto; padding: 22px var(--ad-gut) 72px; container-type: inline-size; container-name: adview main; }
+.ad-view.view-enter { animation: viewin .22s var(--ease); }
+
+/* 一言の知らせ：左の帯を除いた本文の真ん中 */
+body.ad-body #toast { left: calc(var(--ad-side) + 16px); }
+
+/* ---------- タブレット：72px の帯 ---------- */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .ad-side__top { flex-direction: column; align-items: center; padding: 8px 4px 8px; gap: 4px; }
+  .ad-brand { justify-content: center; width: 48px; min-height: 40px; }
+  .ad-brand:hover { background: rgba(29, 27, 24, .05); }
+  .ad-brand .brandmark--row { display: none; }
+  .ad-brand .brandmark--mark { display: inline-flex; --brand-h: 24px; }
+  .ad-proto__pill { padding: 0 7px; font-size: 11px; }
+  .ad-proto__menu { top: 0; left: calc(100% + 10px); }
+  .ad-nav { padding: 0 6px 8px; }
+  .ad-nav__label { display: none; }
+  .ad-nav__group + .ad-nav__group { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+  .ad-nav__a {
+    flex-direction: column; justify-content: center; gap: 2px; min-height: 46px; padding: 5px 2px 4px;
+    font-size: 10.5px; font-weight: 600; line-height: 1.25; text-align: center; word-break: keep-all; overflow-wrap: anywhere;
+  }
+  .ad-nav__a .ico { width: 20px; height: 20px; }
+  .ad-nav__a[data-short] .ad-nav__txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .ad-nav__a[data-short]::after { content: attr(data-short); content: attr(data-short) / ""; }
+  .ad-nav__txt { flex: none; }
+  .ad-nav__n { position: absolute; top: 2px; left: calc(50% + 5px); min-width: 17px; height: 16px; padding: 0 4px; font-size: 10px; }
+  .ad-nav__n:not(.is-alert) { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .ad-side__me { padding: 6px 4px 8px; }
+  .ad-me { justify-content: center; padding: 6px 0; }
+  .ad-me__txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .ad-me__caret { display: none; }
+  .ad-me__menu { left: calc(100% + 10px); right: auto; bottom: 4px; width: 250px; }
+}
+
+/* ---------- スマホ：上の帯 ---------- */
+@media (max-width: 640px) {
+  .ad { grid-template-columns: minmax(0, 1fr); }
+  .ad-side { display: none; }
+  .ad-top { gap: 4px; padding: 0 6px 0 4px; }
+  .ad-top__menu { display: inline-grid; width: 44px; height: 44px; }
+  .ad-top__brand { display: inline-flex; text-decoration: none; min-width: 0; }
+  .ad-top__brand .brandmark { --brand-h: 20px; gap: 7px; }
+  .ad-find { display: none; }
+  .ad-top__member { width: 44px; height: 40px; padding: 0; }
+  .ad-top__member span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .ad-view { padding: 16px var(--ad-gut) 56px; }
+  body.ad-body #toast { left: 16px; }
+  /* 表の中の絞り込みの札は、表の枠の内側で横に流す（app.css の .chips は本文の端まで広げる形のため） */
+  .ad-tb .ad-tb__chips { margin-left: 0; margin-right: 0; padding: 12px 14px 2px; }
+  .ad-tb__bar { padding: 10px 12px; }
+}
+
+/* スマホのメニュー（窓の中） */
+.ad-sheetnav .ad-nav__group + .ad-nav__group { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.ad-sheetnav .ad-nav__label { padding-left: 4px; }
+.ad-sheetnav .ad-nav__a { min-height: 44px; padding: 8px 6px; font-size: 15px; }
+.ad-find.ad-find--sheet { display: block; flex: none; margin-bottom: 12px; }
+.ad-find--sheet .input { height: 44px; font-size: 16px; }
+.ad-sheetnav__foot { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.ad-sheetnav__me { text-align: center; font-size: 12.5px; color: var(--ink-3); }
+
+/* ---------- 見出し ---------- */
+.ad-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; margin-bottom: 18px; }
+.ad-head__main { min-width: 0; flex: 1 1 320px; }
+.ad-head__ttl { font-size: 22px; font-weight: 800; line-height: 1.35; letter-spacing: .01em; }
+.ad-head__sub { margin-top: 4px; font-size: 13px; color: var(--ink-2); }
+.ad-head__acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ad-crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12.5px; color: var(--ink-3); }
+.ad-crumb a { color: var(--ink-2); text-decoration: none; }
+.ad-crumb a:hover { text-decoration: underline; }
+.ad-nf .row { margin-top: 4px; }
+
+/* ---------- 数字のかたまり ---------- */
+.ad-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.ad-kpi {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 13px 16px 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none;
+  transition: border-color .15s;
+}
+a.ad-kpi:hover { border-color: var(--ink-3); }
+.ad-kpi__label { font-size: 12.5px; font-weight: 700; color: var(--ink-3); line-height: 1.4; }
+.ad-kpi__val { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
+.ad-kpi__val b { font-family: var(--font-num); font-size: 26px; font-weight: 800; line-height: 1.25; letter-spacing: .005em; white-space: nowrap; }
+.ad-kpi__val small { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.ad-kpi__sub { font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+.ad-kpi__sub .ico { width: 14px; height: 14px; vertical-align: -2px; margin-right: 2px; }
+.ad-kpi.is-alert { border-color: rgba(198, 63, 37, .4); }
+.ad-kpi.is-alert .ad-kpi__val b { color: var(--accent-ink); }
+/* 気をつけて（キャンセル待ちがいる・録画をまだ載せていない など）：黄土の線と数字。朱の「いま見て」より一段弱い */
+.ad-kpi.is-warn { border-color: rgba(154, 101, 18, .45); }
+.ad-kpi.is-warn .ad-kpi__val b { color: var(--ad-warn-ink); }
+a.ad-kpi.is-warn:hover { border-color: var(--warn); }
+.ad-kpi__alert { color: var(--accent-ink); font-weight: 700; }
+.ad-kpi__warn { color: var(--ad-warn-ink); font-weight: 700; }
+/* 狭いとき（上の基本の形より後に書く。先に書くと基本の形に負ける） */
+@container adview (max-width: 560px) {
+  .ad-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  /* 数が奇数のとき、最後の1つは横いっぱいにする（右に空きの穴を残さない） */
+  .ad-kpis > .ad-kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .ad-kpi { padding: 11px 13px 12px; }
+  .ad-kpi__val b { font-size: 22px; }
+}
+@container adview (max-width: 340px) { .ad-kpi__val b { font-size: 19px; } .ad-kpi__val small { font-size: 12px; } }
+
+/* ---------- 面 ---------- */
+.ad-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.ad-panel + .ad-panel { margin-top: 16px; }
+.ad-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 13px 18px 11px; }
+.ad-panel__ttl { font-size: 14.5px; font-weight: 800; line-height: 1.45; display: flex; align-items: baseline; gap: 8px; }
+.ad-panel__n { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+.ad-panel__acts { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
+.ad-panel__link { font-size: 12.5px; font-weight: 700; color: var(--indigo); text-decoration: none; }
+.ad-panel__link:hover { text-decoration: underline; }
+.ad-panel__body { padding: 0 18px 16px; }
+.ad-panel.is-flush > .ad-panel__body { padding: 0; }
+.ad-panel.is-flush > .ad-panel__head { border-bottom: 1px solid var(--line); }
+.ad-panel.is-flush .ad-tbl th:first-child, .ad-panel.is-flush .ad-tbl td:first-child { padding-left: 18px; }
+.ad-panel.is-flush .ad-tbl th:last-child, .ad-panel.is-flush .ad-tbl td:last-child { padding-right: 18px; }
+.ad-panel.is-flush .ad-tbl thead th { background: none; }
+.ad-panel__pad { padding: 4px 18px 10px; }
+.grid-2 > .ad-panel, .grid-3 > .ad-panel, .grid-2 > .ad-tb, .grid-3 > .ad-tb { margin-top: 0; }
+
+/* ---------- タブ ---------- */
+.ad-tabs {
+  display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--line-2);
+  overflow-x: auto; scrollbar-width: none;
+}
+.ad-tabs::-webkit-scrollbar { display: none; }
+/* 横に流れるとき（狭い幅）は、両端を薄くして続きがあることを見せる（is-scroll は ui.js の hydrate が付ける） */
+.ad-tabs.is-scroll { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); }
+.ad-tabs__a {
+  display: inline-flex; align-items: center; gap: 6px; flex: none; min-height: 40px; padding: 8px 12px; margin-bottom: -1px;
+  border-bottom: 2px solid transparent; color: var(--ink-2); font-size: 13.5px; font-weight: 600; text-decoration: none; white-space: nowrap;
+}
+.ad-tabs__a:hover { color: var(--ink); }
+.ad-tabs__a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 800; }
+.ad-tabs__a:focus-visible { outline-offset: -2px; }
+.ad-tabs__n {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: rgba(29, 27, 24, .08);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--ink-2);
+}
+.ad-tabs__n.is-alert { background: var(--accent); color: #fff; }
+
+/* ---------- 表 ---------- */
+.ad-tb { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.ad-tb + .ad-tb, .ad-panel + .ad-tb, .ad-tb + .ad-panel { margin-top: 16px; }
+.ad-tb__chips { padding: 12px 14px 0; }
+.ad-tb__chips .chip { height: 30px; padding: 0 12px; font-size: 12.5px; }
+.ad-tb__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.ad-tb__search { position: relative; flex: 0 1 260px; min-width: 180px; }
+.ad-tb__search > .ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.ad-tb__search .input { height: 34px; padding: 0 10px 0 32px; font-size: 13px; border-radius: 8px; }
+.ad-tb__filter { flex: none; }
+.ad-body .select {
+  -webkit-appearance: none; appearance: none; padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m6 8 4 4 4-4' fill='none' stroke='%23726d65' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center; background-size: 16px;
+}
+.ad-tb__select { height: 34px; width: auto; max-width: 15em; padding: 0 30px 0 10px; font-size: 13px; border-radius: 8px; }
+.ad-tb__select.is-on { border-color: var(--ink-2); font-weight: 700; }
+.ad-tb__count { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+.ad-tb__count b { color: var(--ink); font-size: 13.5px; margin-right: 1px; }
+.ad-tb__of { margin-left: 2px; }
+.ad-tb__reset { height: 30px; }
+.ad-tb__tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ad-tb__bulk {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px;
+  background: var(--indigo-weak); border-bottom: 1px solid rgba(39, 72, 104, .14); color: var(--indigo);
+}
+.ad-tb__bulk[hidden] { display: none; }
+.ad-tb__seln { font-size: 13px; font-weight: 700; margin-right: 4px; }
+.ad-tbl-wrap {
+  /* relative：中の読み上げ用の文字（.sr-only は absolute）が横スクロールの外へ出て、ページごと横に広がらないように */
+  position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  /* 横に続きがあるときだけ、端に薄い影（local の白が端まで来ると影を隠す） */
+  background:
+    linear-gradient(to right, var(--surface) 40%, rgba(255, 255, 255, 0)) left center / 28px 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 40%, rgba(255, 255, 255, 0)) right center / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(29, 27, 24, .14), transparent) left center / 10px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(29, 27, 24, .14), transparent) right center / 10px 100% no-repeat scroll;
+}
+.ad-tbl-wrap:focus { outline: none; }
+/* 面の下の角まで表が来るときは、角を面に合わせて丸める（地の白が角からはみ出さないように） */
+.ad-tbl-wrap:last-child { border-bottom-left-radius: 11px; border-bottom-right-radius: 11px; }
+.ad-tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 1.5; }
+.ad-tbl th {
+  padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line);
+  color: var(--ink-3); font-size: 12px; font-weight: 700; text-align: left; white-space: nowrap; vertical-align: bottom;
+}
+.ad-tbl td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ad-tbl tbody tr:last-child td { border-bottom: 0; }
+.ad-tbl th:first-child, .ad-tbl td:first-child { padding-left: 14px; }
+.ad-tbl th:last-child, .ad-tbl td:last-child { padding-right: 14px; }
+.ad-tbl.is-dense td { padding-top: 7px; padding-bottom: 7px; }
+.ad-tbl .r { text-align: right; }
+.ad-tbl .nw { white-space: nowrap; }
+.ad-tbl .mono { font-family: var(--font-mono); font-size: 12px; }
+.ad-tbl .muted { color: var(--ink-3); }
+.ad-tbl td a:not(.btn):not(.ad-who) { color: inherit; text-decoration: none; }
+.ad-tbl td a:not(.btn):not(.ad-who):hover { text-decoration: underline; text-underline-offset: 2px; }
+.ad-tbl tr.is-link { cursor: pointer; }
+.ad-tbl tr.is-link:hover td { background: #faf8f5; }
+.ad-tbl tr.is-sel td { background: #eef3f8; }
+.ad-tbl tr.is-alert td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.ad-tbl tr.is-warn td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.ad-tbl tr.is-quiet td { color: var(--ink-3); }
+.ad-tbl__ck { width: 40px; padding-right: 0 !important; }
+.ad-tbl__empty td { padding: 0; }
+.ad-ck { width: 16px; height: 16px; margin: 0; vertical-align: middle; accent-color: var(--ink); }
+.ad-sort {
+  display: inline-flex; align-items: center; gap: 3px; margin: -4px -6px; padding: 4px 6px; border: 0; border-radius: 6px;
+  background: none; color: inherit; font: inherit; font-weight: 700; white-space: nowrap;
+}
+.ad-sort:hover { color: var(--ink); background: rgba(29, 27, 24, .05); }
+.ad-sort.is-on { color: var(--ink); }
+.ad-sort__ico { flex: none; width: 12px; height: 12px; opacity: .55; }
+.ad-sort.is-on .ad-sort__ico { opacity: 1; }
+.ad-tbl th.r .ad-sort { flex-direction: row-reverse; }
+.ad-tb__pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.ad-tb__range { margin-right: auto; font-size: 12.5px; color: var(--ink-3); }
+.ad-tb__pager .btn-s { width: 34px; padding: 0; }
+.ad-tb__pg {
+  min-width: 32px; height: 32px; padding: 0 6px; border: 0; border-radius: 8px; background: none;
+  color: var(--ink-2); font-size: 13px; font-weight: 600;
+}
+.ad-tb__pg:hover { background: rgba(29, 27, 24, .06); }
+.ad-tb__pg[aria-current="page"] { background: var(--ink); color: #fff; }
+.ad-tb__pos { display: none; min-width: 4.5em; text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+/* 狭い幅では番号の列を「3 / 7」に置きかえる（番号と矢印が2行に折れないように） */
+@container adview (max-width: 560px) {
+  .ad-tb__pager .ad-tb__pg, .ad-tb__pager .ad-tb__gap { display: none; }
+  .ad-tb__pos { display: inline-block; }
+}
+.ad-tb__gap { padding: 0 4px; color: var(--ink-3); }
+
+/* 並べ替えの選ぶ欄は、スマホのかたまりの形のときだけ出す（ふだんは見出しの行で並べ替える） */
+.ad-tb__sortsel { display: none; }
+
+@container adview (max-width: 1000px) { .ad-hide-md { display: none; } }
+@container adview (max-width: 700px) {
+  .ad-hide-sm { display: none; }
+  .ad-tb__search { flex: 1 1 100%; }
+  .ad-tb__tools { margin-left: 0; }
+}
+/* スマホ：表を1行ずつのかたまりにする。列の多い表を狭い幅に押し込むと、1文字ずつ折れて行が伸びるため。
+   題の列（.is-main）を上に大きく、ほかの列は「列の名前 値」を折り返して並べる */
+@container adview (max-width: 560px) {
+  .ad-tb__sortsel { display: block; flex: 1 1 100%; }
+  .ad-tb__sortsel .ad-tb__select { width: 100%; max-width: none; }
+  .ad-tbl.is-cards, .ad-tbl.is-cards > tbody { display: block; }
+  .ad-tbl.is-cards > thead { display: none; }
+  .ad-tbl.is-cards > tbody > tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 14px; padding: 12px 14px 13px; border-bottom: 1px solid var(--line); }
+  .ad-tbl.is-cards > tbody > tr:last-child { border-bottom: 0; }
+  .ad-tbl.is-cards > tbody > tr > td { display: block; min-width: 0; max-width: 100%; height: auto; padding: 0 !important; border: 0; background: none !important; text-align: left; font-size: 12.5px; }
+  .ad-tbl.is-cards > tbody > tr > td.is-main { flex: 1 1 100%; margin-bottom: 1px; font-size: 13.5px; }
+  .ad-tbl.is-cards.has-ck > tbody > tr > td.is-main { flex-basis: calc(100% - 42px); }
+  .ad-tbl.is-cards > tbody > tr > td.ad-tbl__ck { order: 1; flex: none; width: 28px; }
+  .ad-tbl.is-cards > tbody > tr > td.is-main { order: 0; }
+  .ad-tbl.is-cards > tbody > tr > td[data-label] { order: 2; }
+  .ad-tbl.is-cards > tbody > tr > td[data-label]::before { content: attr(data-label); margin-right: 6px; color: var(--ink-3); font-size: 11.5px; font-weight: 600; }
+  .ad-tbl.is-cards > tbody > tr > td.ad-hide-md, .ad-tbl.is-cards > tbody > tr > td.ad-hide-sm { display: none; }
+  .ad-tbl.is-cards > tbody > tr > td:empty { display: none; }
+  .ad-tbl.is-cards > tbody > tr.ad-tbl__empty { display: block; padding: 0; }
+  .ad-tbl.is-cards > tbody > tr.ad-tbl__empty > td { font-size: inherit; }
+  /* 印の線（支払いエラーなど）は、かたまりの左の端に */
+  .ad-tbl.is-cards > tbody > tr.is-alert { box-shadow: inset 3px 0 0 var(--accent); }
+  .ad-tbl.is-cards > tbody > tr.is-warn { box-shadow: inset 3px 0 0 var(--warn); }
+  .ad-tbl.is-cards > tbody > tr.is-alert > td:first-child, .ad-tbl.is-cards > tbody > tr.is-warn > td:first-child { box-shadow: none; }
+  .ad-tbl.is-cards > tbody > tr.is-link:hover, .ad-tbl.is-cards > tbody > tr.is-link:active { background: #faf8f5; }
+  .ad-tbl.is-cards > tbody > tr.is-sel { background: #eef3f8; }
+  .ad-tbl.is-cards .ad-who__name { max-width: 100%; }
+  .ad-tbl.is-cards .tag { vertical-align: 1px; }
+  .ad-panel.is-flush .ad-tbl.is-cards > tbody > tr { padding-left: 18px; padding-right: 18px; }
+  /* 段の中の文字だけのボタン（「外す」など）は、押せる 40px を保ったまま段の高さを文字の高さにする */
+  .ad-tbl.is-cards > tbody > tr > td > .btn-text.btn-s { margin-top: -10px; margin-bottom: -10px; }
+}
+/* 題（本文のボタン・名前のリンク）のすぐ下の段にも別の先へのリンク（名前・案件の名前）があるかたまりは、
+   2つの押せる範囲（それぞれ上下 44px）が重ならないだけ、題の下を 10px 空ける（指で押す幅のときだけ） */
+@media (max-width: 860px) {
+  @container adview (max-width: 560px) {
+    .ad-tbl.is-cards > tbody > tr:has(> td:not(.is-main) > :is(a.ad-who, .a-linkbtn)) > td.is-main:has(> :is(a.ad-who, .a-linkbtn, a:not(.btn))) { margin-bottom: 11px; }
+  }
+}
+
+@supports not (container-type: inline-size) {
+  @media (max-width: 1240px) { .ad-hide-md { display: none; } }
+  @media (max-width: 760px) { .ad-hide-sm { display: none; } }
+}
+
+/* ---------- 小さな部品 ---------- */
+.ad-who { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: inherit; text-decoration: none; vertical-align: middle; }
+.ad-who .avatar { flex: none; }
+.ad-who__txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.ad-who__name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 15em; }
+.ad-who__sub { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+a.ad-who:hover .ad-who__name { text-decoration: underline; text-underline-offset: 2px; }
+.ad-st { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+.ad-age { display: inline-flex; align-items: center; gap: 3px; color: var(--ink-2); white-space: nowrap; }
+.ad-age .ico { width: 14px; height: 14px; }
+.ad-age.is-over { color: var(--accent-ink); font-weight: 700; }
+.ad-steps { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; white-space: nowrap; vertical-align: middle; }
+.ad-steps__bar { width: 52px; height: 5px; border-radius: 3px; background: rgba(29, 27, 24, .1); overflow: hidden; }
+.ad-steps__bar i { display: block; height: 100%; border-radius: 3px; background: var(--ink-2); }
+.ad-steps.is-done .ad-steps__bar i { background: var(--ok); }
+.ad-kv { margin: 0; }
+.ad-kv__row { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.ad-kv__row:last-child { border-bottom: 0; }
+.ad-kv dt { color: var(--ink-3); }
+.ad-kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+@container adview (max-width: 560px) { .ad-kv__row { grid-template-columns: 7.5em minmax(0, 1fr); gap: 10px; } }
+.ad-empty { padding: 32px 16px; text-align: center; color: var(--ink-3); font-size: 13.5px; }
+.ad-empty__act { margin-top: 10px; }
+.ad-skel .skel-line.is-h1 { width: 28%; height: 24px; margin: 4px 0 22px; }
+.ad-skel__box { padding: 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.ad-skel__row { display: grid; grid-template-columns: 1.2fr 2fr .8fr; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ad-skel__row .skel-line { margin: 0; }
+.ad-body .tag { height: 21px; font-size: 11px; padding: 0 7px; }
+.ad-body .tag-warn { color: var(--ad-warn-ink); }
+.ad-role { height: 20px; }
+/* 役割で押せないものがあるときの知らせ（AU.roleNote。見出しかタブのすぐ下に1つだけ） */
+.ad-role-note { margin: -4px 0 14px; padding: 10px 14px; font-size: 13px; }
+.ad-role-note .ico { width: 16px; height: 16px; }
+.ad-tabs + .ad-role-note, .modal .ad-role-note, .a-ib__composer .ad-role-note { margin-top: 0; }
+.a-ib__composer.is-locked .ad-role-note { margin: 0; }
+
+/* ---------- 引き出し（右から） ---------- */
+.modal-bg.ad-drawer-bg { justify-content: flex-end; align-items: stretch; padding: 0; }
+.modal.ad-drawer {
+  display: flex; flex-direction: column; max-width: 560px; height: 100%; max-height: 100%;
+  border-radius: 0; animation: adslide .22s var(--ease);
+}
+.modal.ad-drawer--wide { max-width: 760px; }
+.ad-drawer > .modal__body { flex: 1 0 auto; }
+.ad-drawer > .modal__head, .ad-drawer > .modal__foot { border-radius: 0; }
+@keyframes adslide { from { transform: translateX(28px); opacity: .5; } }
+@media (max-width: 640px) {
+  .modal-bg.ad-drawer-bg { align-items: flex-end; }
+  .modal.ad-drawer { height: auto; max-height: 92vh; max-height: 92dvh; border-radius: 18px 18px 0 0; animation: up .28s var(--ease); }
+  .ad-drawer > .modal__head { border-radius: 18px 18px 0 0; }
+}
+
+/* ---------- 理由を書いて確かめる窓 ---------- */
+.ad-actbox { max-width: 520px; }
+.ad-act__text { color: var(--ink-2); font-size: 14px; margin-bottom: 14px; }
+.ad-act__presets { margin-bottom: 8px; gap: 6px; }
+.ad-act__presets .chip { height: 30px; padding: 0 11px; font-size: 12.5px; }
+@media (max-width: 640px) { .ad-act__presets { flex-wrap: wrap; overflow: visible; margin: 0 0 8px; padding: 0; -webkit-mask-image: none; mask-image: none; } .ad-act__presets::after { display: none; } }
+/* 足した欄（金額など）と理由の欄のあいだは、ふつうの欄の間隔。理由の欄の下（「操作の記録に残ります」の後）だけ詰める
+   （:last-of-type は要素の種類で数えるので、label の欄の最後が詰まってしまっていた） */
+.ad-act .ad-act__reason { margin-bottom: 4px; }
+
+/* ---------- ログイン ---------- */
+.ad-login__form .field:last-of-type { margin-bottom: 18px; }
+.ad-login__or { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; color: var(--ink-3); font-size: 12.5px; }
+.ad-login__or::before, .ad-login__or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.ad-login__who { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 12px; }
+.ad-login__name { flex: 1; min-width: 0; line-height: 1.35; }
+.ad-login__name b { display: block; font-size: 14px; }
+.ad-login__name small { display: block; font-size: 12px; color: var(--ink-3); }
+.ad-login .login__card h1 { margin-bottom: 16px; }
+.ad-login .form-err:not(:empty) { margin: -4px 0 14px; }
+
+/* 表のチェックは label（.ad-ckhit）で包み、押せる範囲を見た目より広くする（行の高さは変えない） */
+.ad-ckhit { display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -6px; border-radius: 6px; vertical-align: middle; cursor: pointer; }
+.ad-ckhit:has(:disabled) { cursor: default; }
+
+/* ---------- 指で押すもの（860px 以下） ----------
+   会員ページ（app.css）と同じ考え方：札・並べ替え・検索欄は 40px。文字だけのリンク・名前のリンクは、
+   見た目を変えずに押せる範囲を 44px に広げる（::before）。 */
+@media (max-width: 860px) {
+  .ad-tb__chips .chip { height: 40px; }
+  .ad-tb__pg { min-width: 40px; height: 40px; }
+  .ad-tb__pager .btn-s { width: 40px; }
+  .ad-sort { padding: 11px 6px; margin: -11px -6px; }
+  .ad-ck { width: 20px; height: 20px; }
+  .ad-ckhit { width: 40px; height: 40px; margin: -10px; }
+  .ad-tb__search .input, .ad-tb__select, .ad-find .input { height: 40px; }
+  .ad-top__brand { align-self: stretch; align-items: center; padding: 0 4px; }
+  .ad-kv dd > .btn-text { min-width: 40px; }
+  :is(a.ad-who, .ad-tbl td > a:not(.btn), .ad-crumb a, .ad-panel__link, .ad-tb__reset, .ad-proto__pill, .a-linkbtn, td a) { position: relative; }
+  :is(a.ad-who, .ad-tbl td > a:not(.btn), .ad-crumb a, .ad-panel__link, .ad-tb__reset, .ad-proto__pill, .a-linkbtn, td a)::before {
+    content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%);
+  }
+  /* 行の題（名前・本文のボタン）の押せる範囲は、下の段のリンクの押せる範囲より前に出す
+     （スマホのかたまりの形では、題の下にすぐ次の段のリンクが来て、その ::before が題の下半分を覆うため） */
+  .ad-tbl td.is-main > :is(a.ad-who, .a-linkbtn), .ad-tbl td.is-main > a:not(.btn) { z-index: 1; }
+  /* 行ごと押せる表の行は 40px 以上に（1行の短い行が 39px になるのを避ける。表の形のときだけ。
+     td の height は表のセルでは「最低の高さ」だが、スマホのかたまりの形（td が block）では高さが決まってしまい、
+     中身が下の段に重なる・短い段の下に空きができるので、そこでは外す（下の @container） */
+  .ad-tbl tr[data-tb-href] > td { height: 40px; }
+  /* 並べ替えの番号のような、表の中で押せる数字のかたまり（フォーカスで説明を出すもの）も 40px に */
+  .ad-body td[tabindex="0"] { height: 40px; }
+  /* 窓の中のチェック・ラジオ（1行ずつ並ぶもの）も 40px。よくある理由の札は見た目 34px ＋押せる範囲を上下 3px 広げる */
+  .ad-body .modal label.check { align-items: center; min-height: 40px; }
+  .ad-body .modal label.check input { margin-top: 0; }
+  .ad-act__presets .chip { position: relative; height: 34px; }
+  .ad-act__presets .chip::before { content: ""; position: absolute; left: 0; right: 0; top: -3px; bottom: -3px; }
+  /* iOS は 16px 未満の入力欄に触れると画面を拡大するので、16px にする */
+  .ad-tb__search .input, .ad-tb__select, .ad-find .input { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .modal.ad-drawer, .ad-view.view-enter { animation: none; } }

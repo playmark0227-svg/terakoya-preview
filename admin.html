@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TAISEI 運営</title>
+<meta name="description" content="TAISEI（タイセイ）の運営画面。会員・メッセージ・支払い・紹介報酬・貢献ポイントを運営のスタッフが扱います。">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#f3f2ef">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="TAISEI 運営">
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260926065925">
+<link rel="stylesheet" href="assets/css/app.css?v=20260926065925">
+<link rel="stylesheet" href="assets/css/admin.css?v=20260926065925">
+<link rel="stylesheet" href="assets/css/admin/dashboard.css?v=20260926065925">
+<link rel="stylesheet" href="assets/css/admin/people.css?v=20260926065925">
+<link rel="stylesheet" href="assets/css/admin/content.css?v=20260926065925">
+<link rel="stylesheet" href="assets/css/admin/money.css?v=20260926065925">
+</head>
+<body class="ad-body">
+<a class="skip-link" href="#adView" data-ad-skip>本文へ移動</a>
+<div id="adRoot"></div>
+<div id="adAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:24px">運営画面を表示するには JavaScript を有効にしてください。</p></noscript>
+
+<!-- 会員ページと同じ土台（同じ保存先を読み書きする。member.js は読まない） -->
+<script src="assets/js/data.js?v=20260926065925"></script>
+<script src="assets/js/ui.js?v=20260926065925"></script>
+<script src="assets/js/store.js?v=20260926065925"></script>
+<script src="assets/js/domain.js?v=20260926065925"></script>
+<!-- 運営画面の土台：保存とデモのデータ → 部品 → 骨組み -->
+<script src="assets/js/admin/seed.js?v=20260926065925"></script>
+<script src="assets/js/admin/ui.js?v=20260926065925"></script>
+<script src="assets/js/admin/app.js?v=20260926065925"></script>
+<!-- 画面 -->
+<script src="assets/js/admin/dashboard.js?v=20260926065925"></script>
+<script src="assets/js/admin/members.js?v=20260926065925"></script>
+<script src="assets/js/admin/member-detail.js?v=20260926065925"></script>
+<script src="assets/js/admin/onboarding.js?v=20260926065925"></script>
+<script src="assets/js/admin/inbox.js?v=20260926065925"></script>
+<script src="assets/js/admin/courses.js?v=20260926065925"></script>
+<script src="assets/js/admin/gigs.js?v=20260926065925"></script>
+<script src="assets/js/admin/events.js?v=20260926065925"></script>
+<script src="assets/js/admin/feed.js?v=20260926065925"></script>
+<script src="assets/js/admin/perks.js?v=20260926065925"></script>
+<script src="assets/js/admin/payments.js?v=20260926065925"></script>
+<script src="assets/js/admin/referrals.js?v=20260926065925"></script>
+<script src="assets/js/admin/points.js?v=20260926065925"></script>
+<script src="assets/js/admin/reports.js?v=20260926065925"></script>
+<script src="assets/js/admin/settings.js?v=20260926065925"></script>
+</body>
+</html>

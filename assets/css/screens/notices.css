@@ -1,0 +1,34 @@
+/* ============================================================
+   お知らせ（.scr-notices）
+   一覧は共通の .list / .li.is-unread / .udot。ここは頭の並びと、日ごとの区切りだけ
+   ============================================================ */
+.scr-notices { max-width: 760px; }
+.scr-notices .nt-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.scr-notices .nt-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.scr-notices .nt-bar .seg button { display: inline-flex; align-items: center; gap: 6px; }
+/* 数は半透明の灰の面の上なので --ink-2（--ink-3 では 4.1:1 で足りない） */
+.scr-notices .nt-bar .seg .n { font-size: 12px; color: var(--ink-2); }
+.scr-notices .nt-set { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-size: 13.5px; font-weight: 600; color: var(--indigo); text-decoration: none; }
+.scr-notices .nt-set:hover { text-decoration: underline; }
+
+/* 日ごとの区切り */
+.scr-notices .nt-day + .nt-day { margin-top: 22px; }
+.scr-notices .nt-day__ttl { margin-bottom: 8px; }
+.scr-notices .nt-row .li__ico { align-self: flex-start; margin-top: 2px; }
+/* 読んだものは細く、未読（.is-unread は共通で 700）との差をはっきりさせる */
+.scr-notices .nt-row:not(.is-unread) .li__ttl { font-weight: 500; }
+.scr-notices .nt-row .udot { margin-left: 2px; }
+.scr-notices .nt-nochev { flex: none; width: 16px; }
+.scr-notices .nt-row time { font-family: var(--font-num); }
+
+/* 360px 以下の画面（本文 328px 以下）：題の幅をとるため、未読の点は記号の右上に重ね、行の中の間を詰める
+   （記号・点・山かっこで 120px ほど使い、題が1行6〜7文字で3〜4行に割れていたため） */
+@container main (max-width: 328px) {
+  .scr-notices .nt-row { gap: 10px; }
+  .scr-notices .nt-row .udot { position: absolute; left: calc(var(--inset) + 15px); top: 13px; margin: 0; box-shadow: 0 0 0 2px var(--surface); }
+  .scr-notices .nt-nochev { display: none; }
+  .scr-notices .nt-row.has-ico + .li::before { left: calc(var(--inset) + 30px); }
+}
+
+.scr-notices .card .empty { padding: 48px 20px; }
+.scr-notices .nt-more { margin-top: 18px; text-align: center; }

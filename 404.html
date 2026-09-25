@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ページが見つかりません｜TAISEI</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/terakoya-preview/assets/img/favicon.svg" data-path="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/terakoya-preview/assets/img/apple-touch-icon.png" data-path="assets/img/apple-touch-icon.png">
+<!--
+  GitHub Pages が、ないアドレスを開いたときに出すページ。公開サイト（index.html の #/ の知らない名前）と同じ文言にしてある。
+  どの深さのアドレスでも出るので、CSS は中に書き、リンクは公開プレビューの根（/terakoya-preview/）から書く。
+  手元（http://localhost:8770 など）で開いたときは、下のスクリプトで根を / に直す。
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fff; color: #1d1b18; line-height: 1.8; font-size: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "YuGothic", "Meiryo", sans-serif;
+    -webkit-font-smoothing: antialiased; word-break: auto-phrase;
+    /* 短いページでもフッターを画面の下に置く */
+    display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid #c63f25; outline-offset: 2px; }
+  /* 幅は公開サイトと同じ：ヘッダー・フッターは 980px、本文は 820px */
+  .wrap { width: 100%; max-width: 1028px; margin: 0 auto; padding: 0 24px; }
+  .wrap--narrow { max-width: 868px; }
+  .head { border-bottom: 1px solid #e5e5e2; }
+  .head .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  /* ロゴは公開サイトのヘッダーと同じ高さ（30px。幅は形の比 329.12:100 から） */
+  .brand { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+  .brand img { display: block; width: 99px; height: 30px; }
+  .login { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-decoration: none; }
+  .login:hover { text-decoration: underline; text-underline-offset: 3px; }
+  /* 題の位置は公開サイトの「ページが見つかりません」（#/ の知らない名前）とそろえる */
+  main { flex: 1 0 auto; padding: 64px 0 96px; }
+  h1 { margin: 0; font-size: clamp(24px, 6.4vw, 30px); font-weight: 800; line-height: 1.4; letter-spacing: .01em; }
+  p { margin: 8px 0 0; }
+  ul { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 0; padding: 0; list-style: none; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px;
+    border: 1px solid #cfcfcb; border-radius: 8px; background: #fff; font-size: 15px; font-weight: 700; text-decoration: none; white-space: nowrap;
+  }
+  .btn:hover { border-color: #55514a; }
+  /* フッターも公開サイトと同じ形：ロゴの下に合言葉を1回、その下に試作版の断り */
+  .foot { background: #f5f5f3; border-top: 1px solid #e5e5e2; padding: 32px 0 28px; font-size: 14px; line-height: 1.7; }
+  .foot .tag { margin: 2px 0 0; color: #55514a; line-height: 1.5; }
+  .foot .note { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e5e5e2; font-size: 13px; color: #55514a; }
+  /* ヘッダーの高さも公開サイトと同じ（900px 以下は 56px） */
+  @media (max-width: 900px) { .head .wrap { height: 56px; } }
+  @media (max-width: 640px) {
+    body { font-size: 15px; }
+    .wrap { padding: 0 20px; }
+    main { padding: 48px 0 72px; }
+    /* ボタンの幅をそろえて2列に（ばらばらの幅で折り返さないように） */
+    ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .btn { width: 100%; padding: 0 12px; }
+  }
+</style>
+</head>
+<body>
+<header class="head">
+  <div class="wrap">
+    <a class="brand" href="/terakoya-preview/index.html#/" data-path="index.html#/" aria-label="TAISEI トップへ"><img data-src="assets/img/logo.svg" width="99" height="30" alt=""><noscript><img src="/terakoya-preview/assets/img/logo.svg" width="99" height="30" alt=""></noscript></a>
+    <a class="login" href="/terakoya-preview/member.html" data-path="member.html">ログイン</a>
+  </div>
+</header>
+<main>
+  <div class="wrap wrap--narrow">
+    <h1>ページが見つかりません</h1>
+    <p>アドレスが違うか、ページがなくなりました。</p>
+    <ul>
+      <li><a class="btn" href="/terakoya-preview/index.html#/" data-path="index.html#/">トップ</a></li>
+      <li><a class="btn" href="/terakoya-preview/index.html#/join" data-path="index.html#/join">入会のお申込み</a></li>
+      <li><a class="btn" href="/terakoya-preview/member.html" data-path="member.html">ログイン</a></li>
+      <li><a class="btn" href="/terakoya-preview/index.html#/contact" data-path="index.html#/contact">お問い合わせ</a></li>
+    </ul>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <a class="brand" href="/terakoya-preview/index.html#/" data-path="index.html#/" aria-label="TAISEI トップへ"><img data-src="assets/img/logo.svg" width="99" height="30" alt=""><noscript><img src="/terakoya-preview/assets/img/logo.svg" width="99" height="30" alt=""></noscript></a>
+    <p class="tag">人生を大成させる。</p>
+    <p class="note">試作版です。料金・内容は検討中で、人物と数字は架空です。</p>
+  </div>
+</footer>
+<script>
+  // 公開プレビュー（/terakoya-preview/ の下）でなければ、リンクの根をサイトの根（/）に直す
+  (function () {
+    'use strict';
+    var m = /^\/terakoya-preview\//.test(location.pathname) ? '/terakoya-preview/' : '/';
+    // ロゴの画像は、根が決まってから読み込む（先に公開プレビューの根で読みに行くと、手元では 404 になるため）
+    var imgs = document.querySelectorAll('img[data-src]');
+    for (var j = 0; j < imgs.length; j++) imgs[j].setAttribute('src', m + imgs[j].getAttribute('data-src'));
+    if (m === '/terakoya-preview/') return;
+    var links = document.querySelectorAll('a[data-path], link[data-path]');
+    for (var i = 0; i < links.length; i++) links[i].setAttribute('href', m + links[i].getAttribute('data-path'));
+  })();
+</script>
+</body>
+</html>

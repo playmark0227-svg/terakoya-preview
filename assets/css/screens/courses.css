@@ -1,74 +1,157 @@
 /* ============================================================
    講座
-   .scr-courses … 一覧・講座の中身・勉強会アーカイブ（窓の中も）
-   .scr-lesson  … 1本の再生画面
+   .scr-courses … 一覧・講座の目次・確認テスト・修了証・勉強会の録画（一覧と1本）
+   .scr-lesson  … 1回の再生画面
    共通部品（.card .list .li .btn .tag .chips .seg）で足りないところだけ書く。
+   絞り込みの札の横流し・押しやすさ（40px）は app.css が持っている。
    ============================================================ */
 
 /* ---------- 両方の画面で使うもの ---------- */
-:is(.scr-courses, .scr-lesson) .crumb { flex-wrap: wrap; row-gap: 0; }
 :is(.scr-courses, .scr-lesson) .crumb .chev { width: 12px; height: 12px; }
 :is(.scr-courses, .scr-lesson) .crumb [aria-current] { color: var(--ink-3); }
+/* 指で押す幅：パンくずのリンクの押せる範囲（app.css の ::before）が、すぐ下の見出しに隠れないように上に重ねる */
+@media (max-width: 860px) {
+  :is(.scr-courses, .scr-lesson) .crumb { margin-bottom: 12px; }   /* 下の再生画面に押せる範囲が重ならないだけ空ける */
+  :is(.scr-courses, .scr-lesson) .crumb a { z-index: 1; }
+}
 :is(.scr-courses, .scr-lesson) .sec-ttl .cr-ttlnote,
-:is(.scr-courses, .scr-lesson) .sec-ttl .cr-saved { font-weight: 500; letter-spacing: 0; font-size: 12.5px; }
+:is(.scr-courses, .scr-lesson) .sec-ttl .cr-saved { font-weight: 500; letter-spacing: 0; font-size: 12.5px; color: var(--ink-3); }
 
-/* 進みの細い棒＋本数 */
+/* 進みの細い棒＋回数 */
 :is(.scr-courses, .scr-lesson) .cr-prog { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
 :is(.scr-courses, .scr-lesson) .cr-prog .bar { flex: 1; max-width: 220px; height: 4px; }
 
-/* 再生画面の枠（講座・アーカイブ共通）。黒い16:9に再生ボタン */
-:is(.scr-courses, .scr-lesson) .cr-player {
-  position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
+/* 小さな写真（録画の行・関連する講座・次の回）。写真がなければ黒い枠に再生の印だけ */
+:is(.scr-courses, .scr-lesson) .cr-thumb {
+  position: relative; order: -1; flex: none; width: 96px; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden;
   display: grid; place-items: center; background: #151412; color: #fff;
 }
-:is(.scr-courses, .scr-lesson) .cr-player__play {
-  position: relative; z-index: 1;
-  width: 64px; height: 64px; border-radius: 50%; padding: 0; border: 0;
-  background: rgba(255, 255, 255, .92); color: var(--ink);
-  display: grid; place-items: center;
+:is(.scr-courses, .scr-lesson) :is(.cr-thumb, .cr-next__img) img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+:is(.scr-courses, .scr-lesson) .cr-thumb__play {
+  position: relative; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 0, 0, .5); color: #fff;
 }
-:is(.scr-courses, .scr-lesson) .cr-player__play svg { width: 26px; height: 26px; margin-left: 3px; }
-:is(.scr-courses, .scr-lesson) .cr-player__play:hover { background: #fff; }
-:is(.scr-courses, .scr-lesson) .cr-player__play:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-:is(.scr-courses, .scr-lesson) .cr-player.is-playing .cr-player__play { visibility: hidden; }
-:is(.scr-courses, .scr-lesson) .cr-player__time {
-  position: absolute; z-index: 1; right: 12px; bottom: 12px; font-size: 12px; color: rgba(255, 255, 255, .85); white-space: nowrap;
+:is(.scr-courses, .scr-lesson) .cr-thumb__play svg { width: 14px; height: 14px; margin-left: 2px; }
+
+/* ============================================================
+   再生の枠（講座の回・録画で共通）
+   16:9 の画面（写真を一様に暗くして敷く）＋その下の操作の帯。帯は再生中も出したまま
+   高さは画面の56%まで（横向きのタブレットで画面が埋まらないように）。そのときは真ん中に寄せる
+   ============================================================ */
+:is(.scr-courses, .scr-lesson) .cr-player {
+  width: 100%; max-width: max(300px, calc(56vh * 16 / 9)); margin: 0 auto;
+  border-radius: 10px; overflow: hidden; background: #151412; color: #fff;
 }
-:is(.scr-courses, .scr-lesson) .cr-player__bar { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .2); }
-:is(.scr-courses, .scr-lesson) .cr-player__bar i { display: block; height: 100%; background: var(--accent); }
-:is(.scr-courses, .scr-lesson) .cr-player.is-playing .cr-player__bar i { transition: width 2.5s linear; }
-:is(.scr-courses, .scr-lesson) .cr-player__lock { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: rgba(255, 255, 255, .7); }
-/* 学部の写真を後ろに敷くとき（再生画面）。グラデーションにはせず、一様に暗くする */
-:is(.scr-courses, .scr-lesson) .cr-player__poster {
-  position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover;
+:is(.scr-courses, .scr-lesson) .cr-player__screen {
+  position: relative; aspect-ratio: 16 / 9; display: grid; place-items: center; overflow: hidden; background: #151412;
 }
-:is(.scr-courses, .scr-lesson) .cr-player.has-poster::after {
-  content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .45);
+:is(.scr-courses, .scr-lesson) .cr-player__poster { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+:is(.scr-courses, .scr-lesson) .cr-player__screen.has-poster::after {
+  content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .45); pointer-events: none;
 }
-:is(.scr-courses, .scr-lesson) .cr-player.has-poster.is-locked::after { background: rgba(0, 0, 0, .62); }
-:is(.scr-courses, .scr-lesson) .cr-player.has-poster.is-locked .cr-player__poster { filter: grayscale(.6); }
-:is(.scr-courses, .scr-lesson) .cr-player.has-poster .cr-player__lock { color: rgba(255, 255, 255, .88); }
+:is(.scr-courses, .scr-lesson) .cr-player.is-locked .cr-player__screen::after { background: rgba(0, 0, 0, .62); }
+:is(.scr-courses, .scr-lesson) .cr-player.is-locked .cr-player__poster { filter: grayscale(.6); }
+:is(.scr-courses, .scr-lesson) .cr-player__lock { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: rgba(255, 255, 255, .88); }
+/* 画面を押しても再生・一時停止できる（マウス・指のため） */
+:is(.scr-courses, .scr-lesson) .cr-player__big {
+  position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+:is(.scr-courses, .scr-lesson) .cr-player__bigbtn {
+  width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, .92); color: var(--ink);
+  display: grid; place-items: center; transition: transform .15s var(--ease), background .15s;
+}
+:is(.scr-courses, .scr-lesson) .cr-player__bigbtn svg { width: 26px; height: 26px; margin-left: 3px; }
+:is(.scr-courses, .scr-lesson) .cr-player__big:hover .cr-player__bigbtn { background: #fff; transform: scale(1.04); }
+:is(.scr-courses, .scr-lesson) .cr-player__resume {
+  padding: 3px 10px; border-radius: 12px; background: rgba(0, 0, 0, .5); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+:is(.scr-courses, .scr-lesson) .cr-player.is-playing .cr-player__big > * { visibility: hidden; }
+:is(.scr-courses, .scr-lesson) .cr-player.is-started .cr-player__resume { display: none; }
+
+/* 操作の帯 */
+:is(.scr-courses, .scr-lesson) .cr-ctrl { padding: 0 8px 4px; background: #151412; }
+:is(.scr-courses, .scr-lesson) .cr-seek {
+  --p: 0%; display: block; width: 100%; height: 34px; margin: 0; padding: 0; background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+:is(.scr-courses, .scr-lesson) .cr-seek::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--accent) var(--p), rgba(255, 255, 255, .3) var(--p));
+}
+:is(.scr-courses, .scr-lesson) .cr-seek::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin-top: -5px; border: 0; border-radius: 50%; background: #fff;
+}
+:is(.scr-courses, .scr-lesson) .cr-seek::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .3); }
+:is(.scr-courses, .scr-lesson) .cr-seek::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+:is(.scr-courses, .scr-lesson) .cr-seek::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: #fff; }
+:is(.scr-courses, .scr-lesson) .cr-seek:focus { outline: none; }
+:is(.scr-courses, .scr-lesson) .cr-seek:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 6px; }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__row { display: flex; align-items: center; gap: 2px; min-width: 0; }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__btn {
+  flex: none; min-width: 40px; height: 40px; padding: 0 6px; border: 0; border-radius: 8px; background: none; color: #fff;
+  display: inline-grid; place-items: center; font-size: 13px; font-weight: 700; line-height: 1;
+}
+:is(.scr-courses, .scr-lesson) .cr-ctrl__btn svg { width: 22px; height: 22px; }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__btn:hover { background: rgba(255, 255, 255, .12); }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__btn:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__txt { font-family: var(--font-num); font-size: 13px; }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__txt[data-cr-cc] { font-family: var(--font-sans); }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__time { margin-left: 6px; font-size: 12.5px; color: rgba(255, 255, 255, .85); white-space: nowrap; }
+:is(.scr-courses, .scr-lesson) .cr-ctrl__sp { flex: 1; min-width: 0; }
+@media (max-width: 860px) {
+  :is(.scr-courses, .scr-lesson) .cr-seek { height: 40px; margin-top: -4px; }
+}
+/* 320px：残りの時間は省いて、ボタンを1列に収める */
+@container main (max-width: 330px) {
+  :is(.scr-courses, .scr-lesson) .cr-ctrl__total { display: none; }
+  :is(.scr-courses, .scr-lesson) .cr-ctrl { padding: 0 4px 4px; }
+}
+@container main (max-width: 420px) {
+  :is(.scr-courses, .scr-lesson) .cr-player__bigbtn { width: 54px; height: 54px; }
+  :is(.scr-courses, .scr-lesson) .cr-player__bigbtn svg { width: 22px; height: 22px; }
+  :is(.scr-courses, .scr-lesson) .cr-player__resume { font-size: 12px; }
+}
 @media (max-width: 640px) {
   :is(.scr-courses, .scr-lesson) .cr-player { border-radius: 8px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__play { width: 54px; height: 54px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__play svg { width: 22px; height: 22px; }
-  :is(.scr-courses, .scr-lesson) .cr-player__time { right: 10px; bottom: 9px; font-size: 11px; }
 }
+/* 全画面 */
+:is(.scr-courses, .scr-lesson) .cr-player:fullscreen { display: flex; flex-direction: column; max-width: none; width: 100%; height: 100%; border-radius: 0; }
+:is(.scr-courses, .scr-lesson) .cr-player:fullscreen .cr-player__screen { flex: 1; aspect-ratio: auto; }
 
-/* 鍵の知らせ（講座の中身・再生画面） */
+/* 鍵の知らせ（講座の目次・再生画面）。文が短くても、ボタンの行は知らせの幅いっぱいに使う */
+:is(.scr-courses, .scr-lesson) .cr-lock > div { flex: 1; min-width: 0; }
 :is(.scr-courses, .scr-lesson) .cr-lock__btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-@media (max-width: 640px) {
-  :is(.scr-courses, .scr-lesson) .cr-lock__btns .btn { flex: 1 1 100%; }
+/* 講座名の入ったボタン・文字のリンク（「SNS発信入門 第3回を見る」「次は「…」」「第2回「…」を見直す」）：
+   長い名前は文節で折り返す。文字は1つの span にまとめてある（.btn は flex なので、分けると横に並ぶため） */
+:is(.scr-courses, .scr-lesson) .cr-catchup { white-space: normal; height: auto; min-height: 42px; padding-top: 8px; padding-bottom: 8px; line-height: 1.45; text-align: center; }
+:is(.scr-courses, .scr-lesson) :is(.cr-catchup, .cr-nextcourse, .cr-qres__back) > span { min-width: 0; word-break: auto-phrase; overflow-wrap: anywhere; text-wrap: pretty; }
+/* 矢印は最後の言葉と一緒に折る（折り返したとき、矢印だけが右の端に離れないように） */
+:is(.scr-courses, .scr-lesson) :is(.cr-nextcourse, .cr-qres__back) .ico { margin-left: 4px; vertical-align: -3px; }
+@container main (max-width: 480px) {
+  :is(.scr-courses, .scr-lesson) .cr-lock__btns .btn { flex: 1 1 100%; white-space: normal; height: auto; min-height: 42px; padding-top: 8px; padding-bottom: 8px; line-height: 1.45; }
 }
 
-/* 講座の中の回（目次の行） */
+/* 目次の行：見終わった回は薄い墨＋緑の印。灰と鍵は、まだ見られない回だけ */
 :is(.scr-courses, .scr-lesson) .cr-ls.is-done .li__ico { color: var(--ok); }
+:is(.scr-courses, .scr-lesson) .cr-ls.is-done .li__ttl { color: var(--ink-2); font-weight: 500; }
 :is(.scr-courses, .scr-lesson) .cr-ls.is-open .li__ico { color: var(--accent); }
+:is(.scr-courses, .scr-lesson) .cr-ls.is-open .li__ttl { color: var(--ink); font-weight: 700; }
 :is(.scr-courses, .scr-lesson) .cr-ls.is-locked { cursor: default; }
-:is(.scr-courses, .scr-lesson) .cr-ls.is-locked .li__ico { color: var(--ink-3); }
+:is(.scr-courses, .scr-lesson) .cr-ls.is-locked :is(.li__ico, .li__ttl) { color: var(--ink-3); }
 
-/* 見つからないとき */
-:is(.scr-courses, .scr-lesson) .cr-nf__btns { display: flex; justify-content: center; padding: 0 20px 28px; }
+/* 資料・質問 */
+:is(.scr-courses, .scr-lesson) .cr-file .li__ico { color: var(--ink-2); }
+:is(.scr-courses, .scr-lesson) .cr-file .li__ttl { font-size: 14.5px; }
+:is(.scr-courses, .scr-lesson) .cr-file .li__end { font-size: 13px; font-weight: 600; color: var(--indigo); }
+:is(.scr-courses, .scr-lesson) .cr-ask { margin-top: 20px; }
+/* 狭い幅では「ダウンロード」の字を読み上げだけにして、資料の名前の幅を取る（頭の記号で押せると分かる） */
+@container main (max-width: 400px) {
+  :is(.scr-courses, .scr-lesson) .cr-file .li__end {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+}
+@container main (max-width: 480px) {
+  :is(.scr-courses, .scr-lesson) .cr-ask .btn { width: 100%; }
+}
 
 /* ============================================================
    一覧
@@ -79,143 +162,305 @@
   font-size: 12.5px; color: var(--ink-2);
 }
 .scr-courses .cr-lvline:hover { border-color: var(--line-2); }
-.scr-courses .cr-lvline b { color: var(--ink); font-size: 14px; margin: 0 1px; }
+/* 「あと30XP」の数字だけ。レベル章（.lv b）の白い字には当てない */
+.scr-courses .cr-lvline__to b { color: var(--ink); font-size: 14px; margin: 0 1px; }
+
+/* 講座／勉強会の録画 の切り替え（リンク。セグメントの見た目） */
 .scr-courses .cr-seg { margin-top: -4px; }
+.scr-courses .cr-seg a {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 9px;
+  font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none; white-space: nowrap;
+}
+.scr-courses .cr-seg a:hover { color: var(--ink); }
+.scr-courses .cr-seg a[aria-current] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
+@media (max-width: 860px) { .scr-courses .cr-seg a { height: 40px; } }
+
+.scr-courses .cr-alldone .cr-inlink { display: inline-block; margin-left: 4px; font-weight: 700; color: inherit; }
+/* 文の中のリンクも、指では 44px の高さで押せるように（見た目は変えない） */
 @media (max-width: 860px) {
-  .scr-courses .cr-seg button { height: 38px; }
-  .scr-courses .cr-chips .chip { height: 40px; border-radius: 20px; }
-}
-
-/* 続きから（学部の写真に小さな再生の印。写真がなければ黒い枠に印だけ） */
-.scr-courses .cr-rrow { gap: 14px; padding: 12px 16px 12px 12px; }
-.scr-courses .cr-thumb {
-  position: relative; order: -1; width: 104px; aspect-ratio: 16 / 9; flex: none; border-radius: 6px; overflow: hidden;
-  display: grid; place-items: center; background: #151412; color: #fff;
-}
-.scr-courses .cr-thumb img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
-.scr-courses .cr-thumb__play {
-  position: relative; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 0, 0, .5);
-}
-.scr-courses .cr-thumb svg { width: 14px; height: 14px; margin-left: 2px; }
-.scr-courses .cr-inlink { display: inline-block; margin-left: 4px; font-weight: 700; color: inherit; }
-.scr-courses .cr-alldone { display: block; }
-@media (max-width: 640px) {
-  .scr-courses .cr-rrow { gap: 12px; }
-  .scr-courses .cr-thumb { width: 88px; }
-}
-
-/* 学部の絞り込み（スマホでは横に流す。ページ全体は横に動かさない） */
-@media (max-width: 640px) {
-  .scr-courses .cr-chips {
-    flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 4px;
-    scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  }
-  .scr-courses .cr-chips::-webkit-scrollbar { display: none; }
-  .scr-courses .cr-chips .chip { flex: none; }
+  .scr-courses .cr-alldone .cr-inlink { position: relative; }
+  .scr-courses .cr-alldone .cr-inlink::before { content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
 }
 
 /* レベルごとのまとまり */
-.scr-courses .cr-lvsec { margin-top: 24px; }
-.scr-courses .cr-lvhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin: 0 4px 10px; }
+.scr-courses .cr-lvsec { margin-top: 26px; }
+.scr-courses .cr-lvhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 14px; margin: 0 4px 10px; }
 .scr-courses .cr-lvhead__ttl { font-size: 16px; font-weight: 800; line-height: 1.4; }
 .scr-courses .cr-lvhead__n { margin-left: 8px; font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
-.scr-courses .cr-lvhead__need { margin-left: auto; font-size: 12.5px; color: var(--ink-2); }
+.scr-courses .cr-lvhead__need { font-size: 14px; color: var(--ink-2); }
 .scr-courses .cr-lvsec.is-locked .cr-lvhead__ttl { color: var(--ink-2); }
 
-/* 開いている講座のカード */
-.scr-courses .cr-grid { gap: 10px; }
+/* 講座のカード（開いている講座・まだの講座で同じ並び）。2列、スマホ（〜640px）だけ1列 */
+.scr-courses .cr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .scr-courses .cr-grid > .card { margin-top: 0; }
 .scr-courses .cr-card { display: flex; align-items: center; gap: 10px; padding: 14px 14px 14px 18px; color: inherit; }
-.scr-courses .cr-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.scr-courses .cr-card__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.45; }
-.scr-courses .cr-card__meta { margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
-.scr-courses .cr-card .tag { flex: none; }
-
-/* 講座の写真（学部ごと）。16:9の枠に切り抜いて、カード・行の左に出す */
-.scr-courses :is(.cr-card__img, .cr-lrow__img, .cr-dhead__img) { display: block; flex: none; overflow: hidden; background: var(--line); }
-.scr-courses :is(.cr-card__img, .cr-lrow__img, .cr-dhead__img) img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .scr-courses .cr-card.has-img { gap: 14px; padding: 12px 14px 12px 12px; }
-.scr-courses .cr-card__img { order: -1; width: 128px; aspect-ratio: 16 / 9; border-radius: 8px; }
-/* 写真で題名の幅が狭くなるので、日本語の文節で折り返す（対応していないブラウザは普通に折り返す） */
-.scr-courses :is(.cr-card__ttl, .cr-lrow .li__ttl, .cr-rrow .li__ttl) { word-break: auto-phrase; overflow-wrap: anywhere; }
-/* 写真の分だけ題名の幅が減る。2列だとカードが狭すぎる幅（左の帯が出る861px〜など）では1列にする */
-@media (max-width: 1180px) {
+.scr-courses .cr-card__img { display: block; order: -1; flex: none; width: 128px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--line); }
+.scr-courses .cr-card__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* 本文：題名・補足・進みの右に札の列。狭いときは札を補足の下へ */
+.scr-courses .cr-card__body { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; }
+.scr-courses .cr-card__body > :not(.cr-card__tag) { grid-column: 1; }
+.scr-courses .cr-card__tag { grid-column: 2; grid-row: 1 / span 3; }
+.scr-courses .cr-card__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.45; word-break: auto-phrase; overflow-wrap: anywhere; text-wrap: pretty; }
+.scr-courses .cr-card__lock { width: 15px; height: 15px; margin-right: 5px; vertical-align: -2px; color: var(--ink-3); }
+.scr-courses .cr-card__meta { margin-top: 2px; font-size: 12.5px; line-height: 1.55; color: var(--ink-3); }
+.scr-courses .cr-card__tag { display: flex; }
+.scr-courses .cr-card.is-locked .cr-card__ttl { color: var(--ink-2); }
+.scr-courses .cr-card.is-locked .cr-card__img img { filter: grayscale(.6); opacity: .55; }
+/* 本文が 700〜860px（パソコンの狭い窓）：写真を少し小さく */
+@container main (max-width: 860px) {
+  .scr-courses .cr-card__img { width: 104px; }
+}
+/* 2列のままで本文が 700px より狭い（タブレット）：写真を上に置いたカードにする */
+@media (min-width: 641px) {
+  @container main (max-width: 699px) {
+    .scr-courses .cr-card.has-img { flex-wrap: wrap; align-items: center; row-gap: 10px; padding: 10px 12px 14px; }
+    .scr-courses .cr-card.has-img .cr-card__img { flex-basis: 100%; width: 100%; border-radius: 8px; }
+    .scr-courses .cr-card.has-img .cr-card__body { padding-left: 4px; }
+  }
+}
+@media (max-width: 640px) {
   .scr-courses .cr-grid { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 640px) {
-  .scr-courses .cr-card.has-img { gap: 10px; }
+  .scr-courses .cr-card.has-img { gap: 12px; padding-right: 12px; }
   .scr-courses .cr-card__img { width: 88px; border-radius: 6px; }
+  .scr-courses .cr-card__ttl { font-size: 15px; }
 }
-
-/* まだ開いていない講座（行の一覧）。写真は色を抜いて薄く */
-.scr-courses .cr-lrow .li__ttl { font-weight: 600; color: var(--ink-2); }
-.scr-courses .cr-lrow.has-img { gap: 14px; padding: 10px 18px 10px 12px; }
-.scr-courses .cr-lrow.has-img + .cr-lrow::before { left: 122px; }
-.scr-courses .cr-lrow__img { order: -1; width: 96px; aspect-ratio: 16 / 9; border-radius: 6px; }
-.scr-courses .cr-lrow__img img { filter: grayscale(.6); opacity: .55; }
-@media (max-width: 640px) {
-  .scr-courses .cr-lrow.has-img { gap: 12px; padding-right: 16px; }
-  .scr-courses .cr-lrow.has-img + .cr-lrow::before { left: 100px; }
-  .scr-courses .cr-lrow__img { width: 76px; }
+@container main (max-width: 420px) {
+  .scr-courses .cr-card__body { display: flex; flex-direction: column; align-items: stretch; }
+  .scr-courses .cr-card__tag { margin-top: 6px; }
+}
+@container main (max-width: 330px) {
+  .scr-courses .cr-card__img { width: 72px; }
 }
 
 /* ============================================================
-   講座の中身
+   講座の目次
    ============================================================ */
-/* 見出しの右に学部の写真（16:9・幅は200〜336px）。スマホでは題名の上に2:1で出す
-   （横長の帯にすると人の頭が切れるので、幅いっぱいの帯にはしない） */
-.scr-courses .cr-dhead.has-img { display: grid; grid-template-columns: minmax(0, 1fr) clamp(200px, 37%, 336px); gap: 14px 28px; align-items: start; }
-.scr-courses .cr-dhead__img { aspect-ratio: 16 / 9; border-radius: 10px; }
+/* 見出しの右に写真。高さは左の文字のかたまりに合わせる。狭いときは題名の上に 2:1 で */
+.scr-courses .cr-dhead.has-img { display: grid; grid-template-columns: minmax(0, 1fr) clamp(200px, 37%, 336px); gap: 14px 28px; align-items: stretch; }
+.scr-courses .cr-dhead__img { position: relative; display: block; min-height: 176px; border-radius: 10px; overflow: hidden; background: var(--line); }
+.scr-courses .cr-dhead__img img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
 .scr-courses .cr-dhead.is-locked .cr-dhead__img img { filter: grayscale(.6); opacity: .55; }
-.scr-courses .cr-dhead.has-img .page-ttl { word-break: auto-phrase; overflow-wrap: anywhere; }
-@media (max-width: 640px) {
+.scr-courses .cr-dhead .page-ttl { word-break: auto-phrase; overflow-wrap: anywhere; }
+@container main (max-width: 600px) {
   .scr-courses .cr-dhead.has-img { grid-template-columns: minmax(0, 1fr); }
-  .scr-courses .cr-dhead__img { order: -1; width: 100%; aspect-ratio: 2 / 1; max-height: 200px; border-radius: 8px; }
+  .scr-courses .cr-dhead__img { order: -1; min-height: 0; aspect-ratio: 2 / 1; max-height: 220px; border-radius: 8px; }
   .scr-courses .cr-dhead__img img { object-position: 50% 30%; }
 }
 .scr-courses .cr-meta { margin-top: 6px; font-size: 13px; color: var(--ink-3); }
-.scr-courses .cr-start { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 26px; }
-.scr-courses .cr-start__next { font-size: 13.5px; color: var(--ink-2); }
-.scr-courses .cr-start__done { flex-basis: 100%; font-size: 14px; font-weight: 700; color: var(--ok); }
-.scr-courses .cr-lock { margin-bottom: 12px; }
-.scr-courses .cr-lock + .cr-start { margin-bottom: 26px; }
-.scr-courses .cr-nextcourse { white-space: normal; text-align: left; line-height: 1.5; gap: 4px; }
+.scr-courses .cr-start { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 20px; }
+.scr-courses .cr-start__prog { flex: 0 1 220px; min-width: 150px; font-size: 13.5px; color: var(--ink-2); }
+.scr-courses .cr-start__prog b { color: var(--ink); font-weight: 700; }
+.scr-courses .cr-start__prog .bar { height: 4px; margin-top: 6px; }
+.scr-courses .cr-start__note { font-size: 13.5px; color: var(--ink-2); }
+.scr-courses .cr-start__done { margin-top: 18px; font-size: 14px; font-weight: 700; color: var(--ok); }
+.scr-courses .cr-start__done + .cr-start { margin-top: 10px; }
+.scr-courses .cr-start__nextc { margin-top: 6px; }
+.scr-courses .cr-nextcourse { margin-left: -6px; white-space: normal; text-align: left; line-height: 1.5; gap: 4px; }
+.scr-courses .cr-dhead .cr-lock { margin-top: 16px; }
+.scr-courses .cr-lock + .cr-start { margin-top: 12px; }
+.scr-courses .page-head + .cr-lock, .scr-courses .page-head + .cr-start { margin-top: 0; }
+@container main (max-width: 480px) {
+  .scr-courses .cr-start .btn:not(.btn-text) { flex: 1 1 100%; }
+  .scr-courses .cr-start__prog { flex: 1 1 100%; }
+}
+
+/* 学べること（点の箇条書き）と講師（1行）。広いときは横に並べる */
+.scr-courses .cr-info { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 0 18px; align-items: start; }
+.scr-courses .cr-info > .sec:only-child { grid-column: 1 / -1; }
+@container main (max-width: 720px) { .scr-courses .cr-info { grid-template-columns: minmax(0, 1fr); } }
+.scr-courses .cr-learn__list { margin: 0; padding: 14px 22px 14px 40px; list-style: disc; }
+.scr-courses .cr-learn__list li { padding: 3px 0; font-size: 14.5px; line-height: 1.65; }
+.scr-courses .cr-learn__list li::marker { color: var(--ink-3); }
+@media (max-width: 640px) { .scr-courses .cr-learn__list { padding: 12px 16px 12px 34px; } }
+.scr-courses .cr-teacher { align-items: flex-start; }
+.scr-courses .cr-teacher .avatar { margin-top: 2px; }
+.scr-courses .cr-teacher .chev { align-self: center; }
+/* 名前は割らない。役割が入りきらないときは、役割だけ次の行へ */
+.scr-courses .cr-teacher__role { display: inline-block; margin-left: 4px; font-size: 12px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
+.scr-courses .cr-teacher__bio { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; color: var(--ink-2); }
+
+/* 修了すると応募できる案件：札は題名の右の列、狭いときは補足の下 */
+.scr-courses .cr-gig .li__body { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; }
+.scr-courses .cr-gig .li__body > :not(.cr-gig__tag) { grid-column: 1; }
+.scr-courses .cr-gig__tag { grid-column: 2; grid-row: 1 / span 2; display: flex; }
+@container main (max-width: 480px) {
+  .scr-courses .cr-gig .li__body { display: block; }
+  .scr-courses .cr-gig__tag { margin-top: 6px; }
+}
+
+/* 確認テスト */
+.scr-courses .cr-quiz:focus { outline: none; }
+.scr-courses .cr-quiz__wait p, .scr-courses .cr-quiz__passed p { font-size: 14px; }
+.scr-courses .cr-quiz__passed b { color: var(--ok); }
+.scr-courses .cr-quiz__rule { font-size: 13.5px; color: var(--ink-2); }
+.scr-courses .cr-q { margin-top: 16px; }
+.scr-courses .cr-q + .cr-q { padding-top: 16px; border-top: 1px solid var(--line); }
+.scr-courses .cr-q fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+/* 番号は左にぶら下げる（2行目を題の頭にそろえる） */
+.scr-courses .cr-q__q { display: block; padding: 0 0 0 1.4em; margin-bottom: 6px; text-indent: -1.4em; font-size: 15px; font-weight: 700; line-height: 1.55; }
+.scr-courses :is(.cr-q__q, .cr-qres__q) .num { display: inline-block; min-width: 1.4em; text-indent: 0; }
+.scr-courses .cr-q__c { align-items: center; min-height: 42px; margin: 0 -10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; line-height: 1.55; }
+.scr-courses .cr-q__c input { margin-top: 0; }
+.scr-courses .cr-q__c:hover { background: var(--surface-2); }
+.scr-courses .cr-q__c:has(input:checked) { background: var(--surface-2); font-weight: 600; }
+/* 問いと選択肢は p ではないので、文節で折る指定をここで持つ */
+.scr-courses :is(.cr-q__q, .cr-q__c > span) { word-break: auto-phrase; overflow-wrap: anywhere; text-wrap: pretty; }
+.scr-courses .cr-quiz__form .form-err { margin-top: 12px; }
+.scr-courses .cr-quiz__acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+@container main (max-width: 480px) { .scr-courses .cr-quiz__acts .btn { flex: 1 1 auto; } }
+.scr-courses .cr-quiz__sum { padding: 18px 22px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.scr-courses .cr-quiz__sum:focus { outline: none; }
+.scr-courses .cr-quiz__sum b { font-weight: 800; }
+.scr-courses .cr-quiz__sum.is-pass b:first-child { color: var(--ok); }
+.scr-courses .cr-qres { margin: 0; padding: 0; list-style: none; }
+.scr-courses .cr-qres__item { padding: 16px 22px; }
+.scr-courses .cr-qres__item + .cr-qres__item { border-top: 1px solid var(--line); }
+.scr-courses .cr-qres__q { padding-left: 1.4em; text-indent: -1.4em; font-size: 14.5px; font-weight: 700; line-height: 1.55; }
+.scr-courses .cr-qres__mark { margin-top: 4px; font-size: 13px; font-weight: 800; }
+.scr-courses .cr-qres__item.is-ok .cr-qres__mark { color: var(--ok); }
+.scr-courses .cr-qres__item.is-ng .cr-qres__mark { color: var(--accent-ink); }
+.scr-courses .cr-qres__a { margin-top: 2px; font-size: 14px; color: var(--ink-2); }
+.scr-courses .cr-qres__why { margin-top: 6px; font-size: 14px; color: var(--ink); }
+.scr-courses .cr-qres__back { margin: 4px 0 0 -6px; white-space: normal; text-align: left; line-height: 1.5; gap: 4px; }
 @media (max-width: 640px) {
-  .scr-courses .cr-start .btn:not(.btn-text) { width: 100%; }
+  .scr-courses :is(.cr-quiz__sum, .cr-qres__item) { padding-left: 16px; padding-right: 16px; }
 }
 
 /* ============================================================
-   勉強会アーカイブ
+   修了証（A4縦の比率。印刷では1枚に収める）
+   ============================================================ */
+.scr-courses .cr-cert-head { margin-bottom: 12px; }
+.scr-courses .cr-cert-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.scr-courses .cr-cert {
+  position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
+  max-width: 600px; aspect-ratio: 210 / 297; margin: 0 auto; padding: 72px 56px 56px;
+  background: #fff; border: 3px solid var(--ink); outline: 1px solid var(--line-2); outline-offset: -12px; box-shadow: var(--shadow-1);
+}
+.scr-courses .cr-cert__no { position: absolute; top: 34px; right: 40px; font-size: 12px; color: var(--ink-3); }
+.scr-courses .cr-cert__ttl { margin-top: 24px; font-size: 44px; font-weight: 800; line-height: 1.2; letter-spacing: .02em; }
+.scr-courses .cr-cert__name { min-width: 60%; margin-top: 64px; padding: 0 16px 10px; border-bottom: 2px solid var(--line-2); font-size: 32px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.scr-courses .cr-cert__body { margin-top: 40px; font-size: 16px; line-height: 1.9; color: var(--ink-2); }
+.scr-courses .cr-cert__kv { width: 100%; max-width: 380px; margin: 48px 0 0; text-align: left; }
+.scr-courses .cr-cert__kv > div { display: flex; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.scr-courses .cr-cert__kv dt { flex: none; width: 6.5em; color: var(--ink-3); }
+.scr-courses .cr-cert__kv dd { margin: 0; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.scr-courses .cr-cert__by { margin-top: auto; padding-top: 32px; line-height: 0; }
+/* 屋号はロゴ（U.brandmark）。高さだけ決める */
+.scr-courses .cr-cert__by .brandmark { --brand-h: 30px; }
+@container main (max-width: 520px) {
+  .scr-courses .cr-cert { aspect-ratio: auto; padding: 56px 22px 32px; outline-offset: -9px; }
+  .scr-courses .cr-cert__no { top: 22px; right: 22px; }
+  .scr-courses .cr-cert__ttl { margin-top: 8px; font-size: 32px; }
+  .scr-courses .cr-cert__name { margin-top: 36px; font-size: 25px; }
+  .scr-courses .cr-cert__body { margin-top: 24px; font-size: 14.5px; }
+  .scr-courses .cr-cert__kv { margin-top: 28px; }
+  .scr-courses .cr-cert__kv dt { width: 5.5em; }
+  .scr-courses .cr-cert__kv > div { gap: 10px; font-size: 13.5px; }
+  .scr-courses .cr-cert-acts .btn { flex: 1 1 auto; }
+  .scr-courses .cr-cert__by .brandmark { --brand-h: 26px; }
+}
+/* 印刷：修了証だけを A4 の1枚に */
+@media print {
+  body:has(.scr-courses .cr-cert) { background: #fff !important; }
+  body:has(.scr-courses .cr-cert) :is(.side, .topbar, .tabbar, .protobar, .netbar, #shellBanner, #toast, .skip-link, .modal-bg) { display: none !important; }
+  body:has(.scr-courses .cr-cert) .app { display: block; min-height: 0; }
+  body:has(.scr-courses .cr-cert) .main__inner { max-width: none; margin: 0; padding: 0 !important; }
+  .scr-courses:has(.cr-cert) > :not(.cr-cert) { display: none !important; }
+  .scr-courses .cr-cert {
+    width: 100%; max-width: none; height: 255mm; aspect-ratio: auto; margin: 0; padding: 26mm 18mm 20mm;
+    box-shadow: none; break-inside: avoid; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .scr-courses .cr-cert__no { top: 12mm; right: 14mm; font-size: 9pt; }
+  .scr-courses .cr-cert__ttl { margin-top: 10mm; font-size: 34pt; }
+  .scr-courses .cr-cert__name { margin-top: 24mm; font-size: 24pt; }
+  .scr-courses .cr-cert__body { margin-top: 14mm; font-size: 12.5pt; }
+  .scr-courses .cr-cert__kv { max-width: 120mm; margin-top: 18mm; }
+  .scr-courses .cr-cert__kv > div { font-size: 11pt; }
+  .scr-courses .cr-cert__by .brandmark { --brand-h: 9mm; }
+}
+
+/* ============================================================
+   勉強会の録画（一覧）
    ============================================================ */
 .scr-courses .cr-alist { margin-top: 12px; }
-.scr-courses .cr-arow.is-seen .li__ttl { color: var(--ink-2); }
+.scr-courses :is(.cr-arow, .cr-rel) { gap: 14px; padding-left: 12px; }
+.scr-courses :is(.cr-arow, .cr-rel) + .li::before { left: 122px; }
+.scr-courses .cr-arow.is-seen .li__ttl { color: var(--ink-2); font-weight: 500; }
 .scr-courses .cr-seen { color: var(--ok); font-weight: 600; white-space: nowrap; }
-.scr-courses.cr-amodal .cr-player { margin-bottom: 16px; }
-.scr-courses.cr-amodal .modal__ttl { margin-bottom: 2px; }
-.scr-courses.cr-amodal .cr-amodal__seen { display: block; margin-top: 4px; font-size: 13px; }
+.scr-courses .cr-rel.is-locked .cr-thumb img { filter: grayscale(.6); opacity: .55; }
+@media (max-width: 640px) {
+  .scr-courses :is(.cr-arow, .cr-rel) { gap: 12px; }
+  .scr-courses :is(.cr-arow, .cr-rel) .cr-thumb { width: 72px; }
+  .scr-courses :is(.cr-arow, .cr-rel) + .li::before { left: 96px; }
+}
 
 /* ============================================================
-   1本の再生画面
+   再生画面（講座の回 .scr-lesson・録画 .cr-arc）
+   広い画面（1180px〜）：左に再生と中身、右に目次（300px）。狭い画面：目次をメモより上に
    ============================================================ */
-.scr-lesson .cr-lesson { display: grid; grid-template-columns: minmax(0, 1fr); gap: 30px; }
+:is(.scr-courses, .scr-lesson) .cr-lesson {
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "side" "memo"; gap: 28px;
+}
+:is(.scr-courses, .scr-lesson) .cr-lesson__main { grid-area: main; min-width: 0; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__side { grid-area: side; min-width: 0; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__memo { grid-area: memo; min-width: 0; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__memo > .sec { margin-top: 0; }
 @media (min-width: 1180px) {
-  .scr-lesson .cr-lesson { grid-template-columns: minmax(0, 1fr) 272px; align-items: start; }
-  .scr-lesson .cr-lesson__side { position: sticky; top: 24px; }
+  :is(.scr-courses, .scr-lesson) .cr-lesson {
+    grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: auto 1fr;
+    grid-template-areas: "main side" "memo side"; gap: 28px 30px; align-items: start;
+  }
+  :is(.scr-courses, .scr-lesson) .cr-lesson__side { position: sticky; top: 24px; }
 }
-.scr-lesson .cr-lesson__head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin: 16px 4px 0; }
-.scr-lesson .cr-lesson__hbody { flex: 1 1 280px; min-width: 0; }
-.scr-lesson .cr-lesson__ttl { font-size: 21px; font-weight: 800; line-height: 1.45; }
-.scr-lesson .cr-lesson__meta { margin-top: 4px; font-size: 13px; color: var(--ink-3); }
-.scr-lesson .cr-lesson__done { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--ok); }
-.scr-lesson .cr-lesson__btn { flex: none; }
-.scr-lesson .cr-lesson__btn[aria-disabled="true"] { color: var(--ink-3); cursor: default; }
-.scr-lesson .cr-lock { margin-top: 16px; }
-.scr-lesson .sec { margin-top: 28px; }
-@media (max-width: 640px) {
-  .scr-lesson .cr-lesson__head { margin: 14px 2px 0; }
-  .scr-lesson .cr-lesson__ttl { font-size: 19px; }
-  .scr-lesson .cr-lesson__btn { width: 100%; }
+/* 題は幅いっぱい（右に何か置くと、長い題が2行に割れるため）。見終わるまでの1行・見終わったボタンは題の下 */
+:is(.scr-courses, .scr-lesson) .cr-lesson__head { margin: 18px 2px 0; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__hbody { min-width: 0; }
+/* h1 は .page-ttl ではないので、文節で折る指定をここで持つ（「作|る会」「できないこ|と」にしない） */
+:is(.scr-courses, .scr-lesson) .cr-lesson__ttl { font-size: 22px; font-weight: 800; line-height: 1.45; word-break: auto-phrase; overflow-wrap: anywhere; text-wrap: pretty; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__meta { margin-top: 4px; font-size: 13px; color: var(--ink-3); }
+:is(.scr-courses, .scr-lesson) .cr-lesson__meta .tag { margin-left: 8px; vertical-align: 1px; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__done { margin-top: 6px; font-size: 13.5px; font-weight: 700; color: var(--ok); }
+:is(.scr-courses, .scr-lesson) .cr-lesson__done:focus { outline: none; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__act { margin-top: 12px; }
+:is(.scr-courses, .scr-lesson) .cr-lesson__act:has(.cr-gate) { margin-top: 6px; }
+:is(.scr-courses, .scr-lesson) .cr-gate { font-size: 13px; color: var(--ink-3); }
+:is(.scr-courses, .scr-lesson) .cr-lesson .cr-lock { margin-top: 16px; }
+@container main (max-width: 560px) {
+  :is(.scr-courses, .scr-lesson) .cr-lesson__head { margin: 14px 0 0; }
+  :is(.scr-courses, .scr-lesson) .cr-lesson__ttl { font-size: 19px; }
+  :is(.scr-courses, .scr-lesson) .cr-lesson__btn { width: 100%; }
 }
+
+/* 次の回（見終えたあと） */
+:is(.scr-courses, .scr-lesson) .cr-next { display: flex; align-items: center; gap: 16px; margin-top: 18px; padding: 14px 16px 14px 14px; }
+:is(.scr-courses, .scr-lesson) .cr-next__img {
+  position: relative; flex: none; width: 128px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden;
+  display: grid; place-items: center; background: #151412; color: #fff;
+}
+:is(.scr-courses, .scr-lesson) .cr-next__body { flex: 1; min-width: 0; }
+:is(.scr-courses, .scr-lesson) .cr-next__over { font-size: 12.5px; color: var(--ink-3); }
+:is(.scr-courses, .scr-lesson) .cr-next__ttl { font-size: 16px; font-weight: 800; line-height: 1.45; }
+:is(.scr-courses, .scr-lesson) .cr-next__meta { margin-top: 2px; font-size: 13px; color: var(--ink-2); }
+:is(.scr-courses, .scr-lesson) .cr-next__btn { flex: none; }
+:is(.scr-courses, .scr-lesson) .cr-next--end { flex-wrap: wrap; padding: 18px 20px; }
+:is(.scr-courses, .scr-lesson) .cr-next--end .cr-next__body { flex: 1 1 240px; }
+:is(.scr-courses, .scr-lesson) .cr-next__btns { display: flex; flex-wrap: wrap; gap: 8px; }
+@container main (max-width: 560px) {
+  :is(.scr-courses, .scr-lesson) .cr-next { flex-wrap: wrap; gap: 12px 14px; padding: 14px; }
+  :is(.scr-courses, .scr-lesson) .cr-next__img { width: 96px; border-radius: 6px; }
+  :is(.scr-courses, .scr-lesson) .cr-next__ttl { font-size: 15px; }
+  :is(.scr-courses, .scr-lesson) .cr-next__btn { flex: 1 1 100%; }
+  :is(.scr-courses, .scr-lesson) .cr-next__btns .btn { flex: 1 1 auto; }
+}
+
+/* この回について（要約と要点） */
+:is(.scr-courses, .scr-lesson) .cr-about { margin: 22px 2px 0; }
+:is(.scr-courses, .scr-lesson) .cr-about__desc { max-width: 40em; font-size: 15px; line-height: 1.8; }
+:is(.scr-courses, .scr-lesson) .cr-points { margin: 10px 0 0; padding-left: 1.3em; list-style: disc; }
+:is(.scr-courses, .scr-lesson) .cr-points li { padding: 2px 0; font-size: 14.5px; line-height: 1.7; color: var(--ink-2); }
+:is(.scr-courses, .scr-lesson) .cr-points li::marker { color: var(--ink-3); }
+:is(.scr-courses, .scr-lesson) .cr-files { margin-top: 26px; }
 
 /* メモ */
 .scr-lesson .cr-memo .sec-ttl label { cursor: pointer; }
@@ -223,11 +468,20 @@
 .scr-lesson .cr-saved { color: var(--ok); opacity: 0; transition: opacity .3s; }
 .scr-lesson .cr-saved.is-on { opacity: 1; }
 
-/* 目次（広い画面では右に、狭い画面では下に） */
+/* 目次（広い画面では右に） */
 .scr-lesson .cr-toc__head .li__ttl { font-size: 14px; font-weight: 700; }
 .scr-lesson .cr-toc .li { gap: 12px; min-height: 48px; padding: 10px 16px; }
 .scr-lesson .cr-toc .li.has-ico + .li::before { left: 48px; }
-.scr-lesson .cr-toc .li__ttl { font-size: 13.5px; font-weight: 600; }
-.scr-lesson .cr-toc .li__sub { font-size: 11.5px; }
+.scr-lesson .cr-toc .li__ttl { font-size: 13.5px; font-weight: 600; word-break: auto-phrase; overflow-wrap: anywhere; text-wrap: pretty; }
+.scr-lesson .cr-toc .li__sub { font-size: 12px; }
+.scr-lesson .cr-toc .cr-ls.is-done .li__ttl { font-weight: 500; }
 .scr-lesson .cr-toc .li.is-current { background: var(--surface-2); }
 .scr-lesson .cr-toc .li.is-current .li__ttl { color: var(--ink); font-weight: 800; }
+
+/* チャプター（録画）：押すとその場所から再生 */
+.scr-courses .cr-chap { gap: 12px; min-height: 48px; padding: 10px 16px; }
+.scr-courses .cr-chaps .li + .li::before { left: 16px; }
+.scr-courses .cr-chap__at { flex: none; min-width: 3.6em; font-size: 12.5px; font-weight: 700; color: var(--indigo); }
+.scr-courses .cr-chap .li__ttl { font-size: 13.5px; font-weight: 600; }
+.scr-courses .cr-chap.is-current { background: var(--surface-2); }
+.scr-courses .cr-chap.is-current .li__ttl { font-weight: 800; }

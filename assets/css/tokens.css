@@ -3,10 +3,16 @@
    ここを変えると全画面が変わる。
    ------------------------------------------------------------
    配色の考え方
-   - 墨（--ink）と生成り（--paper）を地にして、朱（--accent）を1色だけ差す。
-     寺子屋の「墨と朱筆」から取った。朱は「押せるもの」「いま進むところ」だけに使う。
+   - 墨（--ink）と朱（--accent）はロゴの2色（assets/img/logo.svg：「大」の字の人が墨、頭の四角が朱）。
+     地は白と薄い灰にして、朱を1色だけ差す。朱は「押せるもの」「いま進むところ」とロゴの頭だけに使う。
    - 藍（--indigo）は情報の色。お知らせ・リンク・運営からの連絡に使う。
    - 緑（--ok）は「できた」、黄土（--warn）は「気をつけて」。この2つは意味でしか使わない。
+   文字のコントラスト（小さい字は 4.5:1 以上。数はこのファイルの色で測ったもの）
+   - 薄い面（--*-weak）の上の文字は、その色の「文字用」を使う：
+       朱 --accent-ink（5.8:1）・藍 --indigo（8.0:1）・緑 --ok（4.5:1）・黄土 --warn-ink（5.0:1）・金 --gold-ink（5.1:1）
+     --warn をそのまま --warn-weak の上の字に使うと 4.4:1 で足りない（--warn は線・点・白地の字まで）。
+   - 灰の字 --ink-3 は白地 5.1:1・地の灰（--bg）4.6:1。札・セグメント・任意の札のような
+     半透明の灰を重ねた面（rgba(29,27,24,.06)）の上では 4.1:1 に落ちるので、そこでは --ink-2 を使う。
    ============================================================ */
 :root {
   /* 地 */
@@ -18,7 +24,7 @@
   /* 文字 */
   --ink: #1d1b18;
   --ink-2: #55514a;
-  --ink-3: #726d65;       /* 白地・灰地のどちらでも 4.5:1 以上 */
+  --ink-3: #726d65;       /* 白地 5.1:1・地の灰 4.6:1。半透明の灰の面（札・セグメント）の上では足りない → --ink-2 */
   --ink-inv: #ffffff;
 
   /* 罫 */
@@ -31,9 +37,10 @@
   --accent-weak: #fbebe6;
   --indigo: #274868;       /* 藍 */
   --indigo-weak: #e7edf4;
-  --ok: #2c7a53;
+  --ok: #2c7a53;           /* 緑の字は白地 5.2:1・淡い緑地 4.5:1 */
   --ok-weak: #e4f1ea;
-  --warn: #9a6512;
+  --warn: #9a6512;         /* 黄土。線・点・棒と、白地の字（4.9:1）まで */
+  --warn-ink: #8f5d10;     /* 黄土の文字用。淡い黄土地（--warn-weak）で 5.0:1、地の灰で 5.0:1 */
   --warn-weak: #fbf0d9;
   --gold: #a07d2c;         /* レベル章・会員証の箔（線や面に使う） */
   --gold-ink: #7d6120;     /* 金の文字用（白地・淡い金地で 4.5:1 以上） */
@@ -60,6 +67,16 @@
   --shadow-3: 0 18px 48px rgba(29, 27, 24, .18);
 
   --ease: cubic-bezier(.2, .7, .2, 1);
+
+  /* 焦点の輪（入力欄など、枠線を朱にするものに添える） */
+  --ring: 0 0 0 3px rgba(198, 63, 37, .22);
+
+  /* 重なりの順（下から） */
+  --z-bar: 30;        /* 上の帯・下のタブ */
+  --z-proto: 40;      /* 試作版の札 */
+  --z-pop: 60;        /* 小さなメニュー */
+  --z-modal: 100;     /* 窓 */
+  --z-toast: 200;     /* 一言の知らせ */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -79,12 +96,26 @@ button { cursor: pointer; }
 h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
 ul, ol { padding: 0; list-style: none; }
 table { border-collapse: collapse; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+/* 焦点の線。角丸は変えない（ボタンやカードの形が焦点で変わらないように） */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
 .mono { font-family: var(--font-mono); font-size: .92em; }
 .serif { font-family: var(--font-serif); }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.nw { white-space: nowrap; }   /* 「スマホ」「10分」などを行の途中で割らない */
+
+/* 「本文へ移動」。Tab を押したときだけ左上に出る */
+.skip-link {
+  position: fixed; left: 12px; top: 12px; z-index: calc(var(--z-toast) + 1);
+  padding: 10px 16px; border-radius: 10px; background: var(--ink); color: #fff;
+  font-size: 14px; font-weight: 700; text-decoration: none;
+  transform: translateY(-160%); transition: transform .15s var(--ease);
+}
+.skip-link:focus, .skip-link:focus-visible { transform: none; outline-offset: 3px; }
 
 /* 線だけの記号（ui.js の icon()） */
 .ico { width: 20px; height: 20px; flex: none; display: inline-block; vertical-align: middle; }
@@ -97,13 +128,57 @@ table { border-collapse: collapse; }
 }
 
 /* ---------- 公開サイトと会員ページの両方で使う部品 ---------- */
-/* 屋号の判子（ui.js の brandmark()） */
-.brandmark { display: inline-flex; align-items: baseline; gap: 8px; color: var(--ink); }
-.brandmark__name { font-family: var(--font-sans); font-size: 20px; font-weight: 800; letter-spacing: .02em; line-height: 1.2; }
-.brandmark__sub { font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--ink-3); }
+/* 屋号のロゴ（ui.js の brandmark()）。大きさは --brand-h（ロゴの高さ）だけで決める。幅は形の比から出す
+   （横組み 329.12:100・印だけ 103.25:100・縦組み 149.72:156.11）。くっきり見えるよう高さは整数の px にする。
+   ここは既定（公開サイトのヘッダー・フッター）。会員ページの帯・ログインは app.css、運営画面は admin.css で --brand-h を変える。
+   濃い面（会員証・濃い帯）では .brandmark--deep か .is-deep の中に置く：墨の部分が --on-deep、頭の四角が明るい朱になる */
+.brandmark {
+  --brand-h: 30px; --brand-ink: var(--ink); --brand-seal: var(--accent);
+  display: inline-flex; align-items: center; gap: 10px; color: var(--brand-ink); line-height: 1; vertical-align: middle;
+}
+.brandmark__logo { display: block; flex: none; height: var(--brand-h); width: calc(var(--brand-h) * 3.2912); max-width: none; overflow: visible; }
+.brandmark--mark .brandmark__logo { width: calc(var(--brand-h) * 1.0325); }
+.brandmark--stack .brandmark__logo { width: calc(var(--brand-h) * .9591); }
+.brandmark__seal { fill: var(--brand-seal); }
+/* 添える文字（会員ページ・運営）。ロゴの字（TAISEI）の高さの真ん中にそろえる */
+.brandmark__sub { font-family: var(--font-sans); font-size: 12px; font-weight: 700; line-height: 1.2; color: var(--ink-2); white-space: nowrap; letter-spacing: 0; }
+.brandmark--deep, .is-deep .brandmark { --brand-ink: var(--on-deep); --brand-seal: #e0553a; }
+.brandmark--deep .brandmark__sub, .is-deep .brandmark__sub { color: var(--on-deep-muted); }
+@media (forced-colors: active) { .brandmark__seal { fill: currentColor; } }
 
-/* 一言の知らせ（ui.js の toast()）。幅は画面いっぱいまで使い、短い文は真ん中に */
-#toast { position: fixed; left: 16px; right: 16px; bottom: 28px; z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
-.toast { background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; line-height: 1.6; box-shadow: 0 6px 24px rgba(29, 27, 24, .18); max-width: 520px; text-align: center; animation: toastin .25s cubic-bezier(.2, .7, .2, 1); }
-.toast.is-ok::before { content: "✓ "; color: #8fd6ae; }
+/* 一言の知らせ（ui.js の toast()）。幅は画面いっぱいまで使い、短い文は真ん中に。
+   会員ページでは左の帯を除いた本文の真ん中、スマホでは下のタブの上に出す（app.css） */
+#toast {
+  position: fixed; left: 16px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: var(--z-toast);
+  display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 4px 14px; pointer-events: auto;
+  background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 12px;
+  font-size: 14px; font-weight: 600; line-height: 1.6; box-shadow: 0 6px 24px rgba(29, 27, 24, .18);
+  max-width: min(520px, 100%); text-align: left; overflow-wrap: anywhere;
+  animation: toastin .25s var(--ease);
+}
+.toast__txt { flex: 1; min-width: 0; word-break: auto-phrase; text-wrap-style: pretty; }   /* 2行になるときは文節で折る */
+.toast.is-ok::before { content: "✓"; color: #8fd6ae; font-weight: 800; margin-right: -4px; }
+.toast.is-error { background: var(--accent-ink); }
+.toast.is-error::before { content: "!"; flex: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; color: var(--accent-ink); font-size: 12px; font-weight: 800; line-height: 18px; text-align: center; }
+.toast__btn {
+  flex: none; margin: -6px -8px -6px 0; min-height: 34px; padding: 0 10px; border: 0; border-radius: 8px;
+  background: rgba(255, 255, 255, .14); color: #fff; font-size: 13px; font-weight: 700;
+}
+.toast__btn:hover { background: rgba(255, 255, 255, .24); }
+/* 指で押す幅（860px 以下）：見た目は 34px のまま、押せる範囲を上下に 44px まで広げる（知らせの余白の中に収まる） */
+@media (max-width: 860px) {
+  .toast__btn { position: relative; }
+  .toast__btn::before { content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
+}
+.toast.is-leaving { opacity: 0; transform: translateY(6px); transition: opacity .18s, transform .18s; }
 @keyframes toastin { from { opacity: 0; transform: translateY(8px); } }
+/* 窓が開いているあいだは、知らせを画面の上に出す（窓の下のボタンや、下から出る窓の中身に重ねない）。
+   ボタンのない知らせは押せないようにして、下にあるものを押す指を止めない。
+   会員ページのスマホでは、窓の上の隙間に収まるよう新しい1つだけを小さめに出す（app.css） */
+body:has(.modal-bg) #toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; }
+body:has(.modal-bg) .toast:not(:has(.toast__btn)) { pointer-events: none; }
+@media (hover: none) { .toast:not(:has(.toast__btn)) { pointer-events: none; } }
+@media (prefers-reduced-motion: reduce) { .toast, .toast.is-leaving, .skip-link { animation: none; transition: none; } }

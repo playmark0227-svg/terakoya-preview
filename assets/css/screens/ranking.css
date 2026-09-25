@@ -1,75 +1,139 @@
 /* ============================================================
    ランキング（#/ranking）
-   順位は表のまま見せる。自分の行だけ薄い地と太字で示す。
-   金色はレベル章と会員証だけのものなので、ここでは使わない。
+   上から：切り替え → 今月の特典（横の帯）→ 順位の表 → ポイントのつき方 → ポイントの記録。
+   自分の行だけ薄い地と太字。1〜3位は太字だけ（金色・メダルは使わない。金はレベル章と会員証だけ）。
    ============================================================ */
-.scr-ranking .rk-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 18px; }
-.scr-ranking .rk-how { font-size: 13px; height: 40px; }
+.scr-ranking .rk-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.scr-ranking .rk-dir { display: inline-flex; align-items: center; min-height: 40px; font-size: 13.5px; font-weight: 600; color: var(--indigo); text-decoration: none; }
+.scr-ranking .rk-dir:hover { text-decoration: underline; }
+.scr-ranking .rk-bar { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.scr-ranking .rk-how { font-size: 13px; height: 40px; margin-left: auto; }
 /* 指で押す切り替えは、見た目を変えずに押せる範囲を上下に足して 40px にする */
 .scr-ranking .rk-seg button { position: relative; }
 .scr-ranking .rk-seg button::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px; }
 
 .scr-ranking .rk-sec-ttl {
-  display: flex; align-items: baseline; gap: 10px; margin: 0 2px 10px;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; margin: 0 2px;
   font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.5;
 }
 .scr-ranking .rk-sec-ttl__sum { font-size: 13px; font-weight: 600; color: var(--ink-2); }
-.scr-ranking .rk-sec-ttl .rk-more { margin: -10px -6px -10px auto; height: 40px; font-size: 13px; }
+.scr-ranking .rk-sec-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 12px; margin: 0 0 10px; }
+.scr-ranking .rk-place { margin: 0 2px; font-size: 14px; font-weight: 700; color: var(--ink); }
+.scr-ranking .rk-place.is-zero { font-weight: 600; color: var(--ink-2); font-size: 13.5px; }
+
+/* ---------- 今月の特典（表の上の帯） ---------- */
+.scr-ranking .rk-prize { margin-bottom: 26px; padding: 14px 0 0; }
+.scr-ranking .rk-prize__ttl { padding: 0 var(--inset); font-size: 14px; font-weight: 700; line-height: 1.5; }
+.scr-ranking .rk-prize__list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 8px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.scr-ranking .rk-prize__it { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px var(--inset) 14px; }
+.scr-ranking .rk-prize__it + .rk-prize__it { border-left: 1px solid var(--line); }
+.scr-ranking .rk-prize__k { font-size: 13px; font-weight: 800; color: var(--ink); }
+.scr-ranking .rk-prize__v { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; word-break: auto-phrase; }
+.scr-ranking .rk-prize__st { margin-top: 4px; }
+@container main (max-width: 620px) {
+  .scr-ranking .rk-prize__list { grid-template-columns: minmax(0, 1fr); }
+  .scr-ranking .rk-prize__it { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); column-gap: 12px; align-items: baseline; padding: 10px var(--inset); }
+  .scr-ranking .rk-prize__it + .rk-prize__it { border-left: 0; border-top: 1px solid var(--line); }
+  .scr-ranking .rk-prize__st { grid-column: 2; margin-top: 2px; }
+}
 
 /* ---------- 順位の表 ---------- */
 .scr-ranking .rk-board { overflow: hidden; }
-.scr-ranking .rk-tbl { font-size: 14px; }
+.scr-ranking .rk-tbl { font-size: 14px; table-layout: fixed; }
 .scr-ranking .rk-tbl th { padding: 10px 12px; background: var(--surface-2); }
-.scr-ranking .rk-tbl td { padding: 9px 12px; }
+.scr-ranking .rk-tbl td { padding: 10px 12px; }
 .scr-ranking .rk-tbl th:first-child, .scr-ranking .rk-tbl td:first-child { padding-left: 18px; }
 .scr-ranking .rk-tbl th:last-child, .scr-ranking .rk-tbl td:last-child { padding-right: 18px; }
 .scr-ranking .rk-no { width: 64px; white-space: nowrap; }
-.scr-ranking td.rk-no { font-weight: 700; font-size: 15px; }
-.scr-ranking .rk-who__in { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.scr-ranking .rk-who__txt { min-width: 0; }
-.scr-ranking .rk-who__name { display: block; font-weight: 600; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.scr-ranking .rk-who__sub { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-ranking td.rk-no { font-weight: 500; font-size: 15px; color: var(--ink-2); }
+/* 1〜3位は太字だけ */
+.scr-ranking .rk-row.is-top td.rk-no, .scr-ranking .rk-row.is-top .plink__name { font-weight: 800; color: var(--ink); }
 .scr-ranking .rk-lv { width: 80px; text-align: right; white-space: nowrap; }
 .scr-ranking td.rk-lv { color: var(--ink-2); }
 .scr-ranking .rk-val { width: 88px; white-space: nowrap; }
 .scr-ranking td.rk-val { font-weight: 700; font-size: 15px; }
+.scr-ranking .rk-who { width: auto; min-width: 0; }
+/* 顔の右に名前、その下に地域（名前の列は、表の幅に合わせて縮める。長い名前は…で省略） */
+.scr-ranking .rk-person { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 0 10px; align-items: center; max-width: 100%; }
+/* 押せる範囲を上下に足して 40px 以上に（行の上下の余白の中に収まる） */
+.scr-ranking .rk-person::before { content: ""; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
+.scr-ranking .rk-person .avatar { grid-row: 1 / span 2; }
+.scr-ranking .rk-person__txt { display: contents; }
+.scr-ranking .rk-person .plink__name { grid-column: 2; font-weight: 600; line-height: 1.45; }
+.scr-ranking .rk-person__sub { grid-column: 2; display: block; font-size: 12.5px; line-height: 1.5; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-ranking .rk-person__sub:empty { display: none; }
+.scr-ranking .rk-lvsub { display: none; }
+/* 次の順位までの差は、切らずに1行で（狭い画面では折り返す） */
+.scr-ranking .rk-need { display: block; margin: 2px 0 0 40px; font-size: 12.5px; font-weight: 600; line-height: 1.5; color: var(--ink-2); }
 .scr-ranking .rk-row.is-me td { background: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
-.scr-ranking .rk-row.is-me .rk-who__name { font-weight: 800; }
-.scr-ranking .rk-row.is-me .rk-who__sub { color: var(--ink-2); }
+.scr-ranking .rk-row.is-me .plink__name { font-weight: 800; }
+.scr-ranking .rk-row.is-zero td.rk-no { color: var(--ink-3); }
 .scr-ranking .rk-gap td { padding-top: 2px; padding-bottom: 2px; color: var(--ink-3); }
-/* 名前の列は、表の幅に合わせて縮める（長い名前は…で省略） */
-.scr-ranking .rk-tbl { table-layout: fixed; }
-.scr-ranking .rk-who { width: auto; }
-@media (max-width: 560px) {
+.scr-ranking .rk-none td { padding: 28px 18px; text-align: center; color: var(--ink-3); }
+.scr-ranking .is-palt { font-feature-settings: "palt" 1; }
+
+/* ---------- ポイントのつき方 ---------- */
+.scr-ranking .rk-rules { margin-top: 28px; }
+.scr-ranking .rk-card__ttl { margin-bottom: 4px; }
+.scr-ranking .rk-ptbl td, .scr-ranking .rk-rules > .rk-ptbl td:first-child, .scr-ranking .rk-rules > .rk-ptbl td:last-child { padding: 10px 0; }
+.scr-ranking .rk-ptbl td.r { width: 4em; font-weight: 700; }
+.scr-ranking .rk-foot { margin-top: 10px; font-size: 13px; color: var(--ink-2); line-height: 1.7; }
+
+/* ---------- ポイントの記録 ---------- */
+/* 「すべて見る」は見出しの外。広い画面では見出しの右、狭い画面では記録の下 */
+.scr-ranking .rk-history { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; margin-top: 30px; }
+.scr-ranking .rk-history > .rk-sec-ttl { grid-column: 1; grid-row: 1; margin-bottom: 10px; }
+.scr-ranking .rk-history > .rk-loglist { grid-column: 1 / -1; grid-row: 2; }
+.scr-ranking .rk-history > .rk-more { grid-column: 2; grid-row: 1; height: 40px; margin: -10px -6px 0 0; font-size: 13px; }
+.scr-ranking .rk-loglist { margin: 0; padding: 0; list-style: none; }
+.scr-ranking .rk-loglist > li + li { border-top: 1px solid var(--line); }
+.scr-ranking .rk-log { display: flex; align-items: baseline; gap: 14px; padding: 12px 18px; min-height: 48px; font-size: 14px; line-height: 1.55; color: inherit; text-decoration: none; }
+.scr-ranking a.rk-log:hover { background: var(--surface-2); }
+.scr-ranking a.rk-log:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-ranking .rk-loglist > li:first-child > .rk-log { border-radius: var(--r-l) var(--r-l) 0 0; }
+.scr-ranking .rk-loglist > li:last-child > .rk-log { border-radius: 0 0 var(--r-l) var(--r-l); }
+.scr-ranking .rk-log__date { flex: none; width: 5.2em; color: var(--ink-3); font-size: 13px; }
+.scr-ranking .rk-log__why { flex: 1; min-width: 0; overflow-wrap: anywhere; text-wrap: pretty; word-break: auto-phrase; }   /* 名前を「石／井」と割らない */
+.scr-ranking .rk-log__pt { flex: none; font-weight: 700; }
+.scr-ranking .rk-log .chev, .scr-ranking .rk-log__sp { flex: none; align-self: center; margin-right: -4px; }
+.scr-ranking .rk-log__sp { width: 16px; }
+.modal.scr-ranking .rk-modal__list { margin: -16px calc(-1 * var(--mpx)) -22px; }
+.modal.scr-ranking .rk-modal__list .rk-log { padding-left: var(--mpx); padding-right: var(--mpx); border-radius: 0; }
+/* スマホの窓は本文の外（@container が効かない）ので、画面の幅で日付を上の行へ */
+@media (max-width: 640px) {
+  .modal.scr-ranking .rk-log { flex-wrap: wrap; row-gap: 0; gap: 0 10px; }
+  .modal.scr-ranking .rk-log__date { width: auto; flex-basis: 100%; font-size: 12.5px; }
+}
+
+@container main (max-width: 560px) {
   .scr-ranking .rk-tbl th, .scr-ranking .rk-tbl td { padding-left: 8px; padding-right: 8px; }
   .scr-ranking .rk-tbl th:first-child, .scr-ranking .rk-tbl td:first-child { padding-left: 14px; }
   .scr-ranking .rk-tbl th:last-child, .scr-ranking .rk-tbl td:last-child { padding-right: 14px; }
   .scr-ranking .rk-no { width: 46px; }
   .scr-ranking .rk-lv { width: 48px; }
   .scr-ranking .rk-val { width: 60px; }
-  .scr-ranking .rk-who__in { gap: 8px; }
-}
-
-/* ---------- 特典とポイントのつき方 ---------- */
-.scr-ranking .rk-cards { margin-top: 28px; align-items: start; }
-.scr-ranking .rk-cards > .card { margin-top: 0; }
-.scr-ranking .rk-card__ttl { margin-bottom: 4px; }
-.scr-ranking .rk-kv th { width: 5.5em; color: var(--ink); font-weight: 700; white-space: nowrap; padding-right: 12px; }
-.scr-ranking .rk-kv td { color: var(--ink-2); }
-.scr-ranking .rk-ptbl td { padding: 10px 0; }
-.scr-ranking .rk-ptbl td.r { width: 4em; font-weight: 700; }
-.scr-ranking .rk-foot { margin-top: 10px; font-size: 13px; color: var(--ink-2); line-height: 1.7; }
-
-/* ---------- ポイントの記録 ---------- */
-.scr-ranking .rk-history { margin-top: 30px; }
-.scr-ranking .rk-loglist { margin: 0; padding: 0; list-style: none; }
-.scr-ranking .rk-log { display: flex; align-items: baseline; gap: 14px; padding: 11px 18px; font-size: 14px; line-height: 1.5; }
-.scr-ranking .rk-log + .rk-log { border-top: 1px solid var(--line); }
-.scr-ranking .rk-log__date { flex: none; width: 5.2em; color: var(--ink-3); font-size: 13px; }
-.scr-ranking .rk-log__why { flex: 1; min-width: 0; }
-.scr-ranking .rk-log__pt { flex: none; font-weight: 700; }
-.scr-ranking .rk-modal__list { max-height: 55vh; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r); }
-@media (max-width: 560px) {
+  .scr-ranking .rk-person { column-gap: 8px; }
+  .scr-ranking .rk-need { margin-left: 38px; }
   .scr-ranking .rk-log { padding: 11px 14px; gap: 10px; }
-  .scr-ranking .rk-modal__list .rk-log { padding: 10px 12px; }
+  .scr-ranking .rk-log__date { width: 4.6em; font-size: 12.5px; }
+}
+/* 400px 以下：「すべて見る」は記録の下 */
+@container main (max-width: 368px) {
+  .scr-ranking .rk-history > .rk-more { grid-column: 1 / -1; grid-row: 3; justify-self: center; margin: 6px 0 0; }
+  .scr-ranking .rk-log { flex-wrap: wrap; row-gap: 0; }
+  .scr-ranking .rk-log__date { width: auto; flex-basis: 100%; }
+  .scr-ranking .rk-bar .rk-seg { flex: 1 1 auto; }
+  .scr-ranking .rk-bar .rk-seg button { flex: 1 1 auto; padding: 0 10px; }
+}
+/* 360px 以下：Lv の列をやめて名前の下へ。差の行は左の字下げもやめて1行を広く */
+@container main (max-width: 340px) {
+  /* 列は消さずに幅を0にする（display:none だと、colspan の行（0ptの自分・省略の行）で列の数がずれて表が縮む） */
+  .scr-ranking .rk-tbl .rk-lv { width: 0; padding: 0; font-size: 0; overflow: hidden; visibility: hidden; }
+  .scr-ranking .rk-lvsub { display: inline; }
+  .scr-ranking .rk-person__sub:empty { display: block; }
+  .scr-ranking .rk-no { width: 38px; }
+  .scr-ranking .rk-tbl th:first-child, .scr-ranking .rk-tbl td:first-child { padding-left: 12px; padding-right: 4px; }
+  .scr-ranking .rk-tbl th:last-child, .scr-ranking .rk-tbl td:last-child { padding-right: 12px; }
+  .scr-ranking .rk-val { width: 52px; }
+  .scr-ranking .rk-need { margin-left: 0; }
 }

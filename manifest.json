@@ -1,0 +1,20 @@
+{
+  "name": "TAISEI 会員ページ",
+  "short_name": "TAISEI",
+  "description": "TAISEI（タイセイ）の会員ページ。講座・タイムライン・案件・イベント・運営への相談。",
+  "lang": "ja",
+  "dir": "ltr",
+  "id": "member.html",
+  "start_url": "member.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f2ef",
+  "theme_color": "#f3f2ef",
+  "icons": [
+    { "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

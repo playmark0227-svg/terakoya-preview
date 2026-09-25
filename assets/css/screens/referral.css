@@ -1,7 +1,8 @@
 /* ============================================================
-   紹介・報酬（#/referral）
-   あおらない画面なので、朱は「振込先を登録する」（報酬があるときだけ）に限る。
+   紹介（#/referral）
+   あおらない画面なので、本文の朱は「振込先を登録する」（受け取る報酬があるときだけ）に限る（窓の中の確定ボタンは共通の決まりどおり朱）。
    図解・飾りの記号・灰色の補足は置かない（docs/脱AIの約束.md）。
+   窓（振込先）は body の直下に出るので、U.modal の cls で .scr-referral を付けて閉じている。
    ============================================================ */
 
 .scr-referral > .card + .card,
@@ -9,57 +10,160 @@
 .scr-referral h2.h3 { margin-bottom: 12px; }
 .scr-referral .card-head h2.h3 { margin-bottom: 0; }
 
-/* ---------- 紹介リンク ---------- */
+/* ---------- 紹介リンク：左に欄、右にQRと送るボタン ---------- */
+.scr-referral .rf-link { display: grid; grid-template-columns: minmax(0, 1fr) 196px; gap: 24px; padding: 20px 22px; }
+.scr-referral .rf-link__main { min-width: 0; }
 .scr-referral .rf-url {
-  display: flex; align-items: center; gap: 8px; max-width: 620px;
+  display: flex; align-items: center; gap: 8px;
   padding: 5px 5px 5px 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface-2);
 }
-.scr-referral .rf-url__text { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; user-select: all; -webkit-user-select: all; }
+/* リンクは1行。はみ出す分は … にして、コピーのボタンで全部を渡す */
+.scr-referral .rf-url__text {
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 14px; line-height: 1.5; user-select: all; -webkit-user-select: all;
+}
+.scr-referral .rf-url .btn { flex: none; }
 .scr-referral .rf-code { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; font-size: 13.5px; color: var(--ink-2); }
 .scr-referral .rf-code b { color: var(--ink); font-size: 14px; }
 .scr-referral .rf-code .btn-text { font-size: 13.5px; padding: 0 4px; }
-
-.scr-referral .rf-text { max-width: 620px; margin-top: 22px; }
-.scr-referral .rf-text .field { margin-bottom: 10px; }
+.scr-referral .rf-text { margin: 18px 0 0; }
 .scr-referral .rf-share { min-height: 130px; resize: none; font-size: 13.5px; line-height: 1.75; }
-.scr-referral .rf-pr { margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+.scr-referral .rf-pr { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+
+.scr-referral .rf-link__side { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 34px; }
+.scr-referral .rf-qr {
+  width: 132px; align-self: center; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-s); background: #fff;
+}
+.scr-referral .rf-qr svg { display: block; width: 100%; height: auto; }
+.scr-referral .rf-acts { display: grid; gap: 8px; }
+.scr-referral .rf-acts .btn { justify-content: center; width: 100%; }
+
+/* 本文が狭いとき：QRを左、送るボタンを右に並べて、欄の下に置く */
+@container main (max-width: 620px) {
+  .scr-referral .rf-link { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .scr-referral .rf-link__side {
+    flex-direction: row; align-items: flex-start; gap: 14px; padding: 16px 0 0; border-top: 1px solid var(--line);
+  }
+  .scr-referral .rf-qr { width: 120px; flex: none; align-self: flex-start; }
+  .scr-referral .rf-acts { flex: 1; min-width: 0; }
+}
+/* 320px：QRを少し小さくして、ボタンの字が枠からはみ出さないようにする */
+@container main (max-width: 320px) {
+  .scr-referral .rf-qr { width: 104px; }
+  .scr-referral .rf-link__side { gap: 12px; }
+  .scr-referral .rf-acts .btn { padding: 0 8px; gap: 4px; font-size: 12.5px; }
+}
+@supports not (container-type: inline-size) {
+  @media (max-width: 760px) {
+    .scr-referral .rf-link { grid-template-columns: minmax(0, 1fr); }
+    .scr-referral .rf-link__side { flex-direction: row; align-items: flex-start; padding-top: 16px; border-top: 1px solid var(--line); }
+    .scr-referral .rf-qr { width: 120px; flex: none; }
+    .scr-referral .rf-acts { flex: 1; }
+  }
+}
 
 /* ---------- 本人の記録 ---------- */
 .scr-referral .rf-stats dd { white-space: nowrap; }
 
 /* ---------- 受け取り ---------- */
-.scr-referral .rf-kv th { width: 8.5em; }
+.scr-referral .rf-kv th { width: 9em; }
 .scr-referral .rf-kv th,
 .scr-referral .rf-kv td { vertical-align: baseline; }
 .scr-referral .rf-kv tr:first-child th,
 .scr-referral .rf-kv tr:first-child td { padding-top: 4px; }
 .scr-referral .rf-kv b.num { font-size: 16px; }
 .scr-referral .rf-kv__note { margin-left: 8px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--ink-2); }
-.scr-referral .rf-bank { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -6px 0; }
-.scr-referral .rf-bank__warn { color: var(--warn); font-weight: 700; }
+/* 支払予定：振込の日ごとに1行（締めた月が2つあるときは2行） */
+.scr-referral .rf-kv__line { display: block; }
+.scr-referral .rf-kv__line + .rf-kv__line { margin-top: 4px; }
+.scr-referral .rf-bank { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin: -6px 0; }
+.scr-referral .rf-bank__acct { min-width: 0; overflow-wrap: anywhere; }
+.scr-referral .rf-bank__none { color: var(--ink-2); font-weight: 600; }
+.scr-referral .rf-bank__none.is-warn { color: var(--warn-ink); font-weight: 700; }
+.scr-referral .rf-bank .btn-text { padding: 0 4px; }
+.scr-referral .rf-dl { gap: 4px; margin: -6px 0 -6px -4px; padding: 0 4px; }
+.scr-referral .rf-kv tr:focus { outline: none; }
+.scr-referral .rf-kv tr.is-flash td,
+.scr-referral .rf-kv tr.is-flash th { background: var(--indigo-weak); transition: background .3s; }
+/* 淡い藍の上では灰の見出し（--ink-3 は 4.4:1）が足りないので、目印のあいだは --ink-2 に */
+.scr-referral .rf-kv tr.is-flash th { color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .scr-referral .rf-kv tr.is-flash td, .scr-referral .rf-kv tr.is-flash th { transition: none; } }
 
-/* ---------- 明細 ---------- */
-.scr-referral .rf-rows .card-head .btn-text { gap: 4px; font-size: 13px; }
-.scr-referral .rf-tbl-pad { padding: 6px 8px 8px; }
+/* ---------- 明細 ----------
+   表は .card の直下の .tbl-wrap に置く（端の列が見出しと同じ 20px 内側にそろう：app.css） */
+.scr-referral .rf-rows .card-head .btn-text { gap: 4px; }
+.scr-referral .rf-rows .card-head + .tbl-wrap { margin-top: 6px; }
 .scr-referral .rf-tbl td { white-space: nowrap; }
+.scr-referral .rf-tbl .tag { vertical-align: 1px; }
+.scr-referral .rf-soon { margin-left: 2px; font-size: 12px; color: var(--ink-3); }
 .scr-referral .rf-tbl tr.is-void td { color: var(--ink-3); }
-.scr-referral .rf-tbl tr.is-void .num { text-decoration: line-through; }
-.scr-referral .rf-none { padding: 10px 20px 20px; font-size: 14px; color: var(--ink-2); }
+/* 別のタブ（運営画面）で締め・支払いが進んだ行に、描き直したあと短く色を付ける（referral.js の noticeRows）。
+   淡い藍の上では灰の字が足りないので、目印のあいだは --ink-2 に */
+.scr-referral .rf-tbl tr, .scr-referral .rf-tbl td { transition: background-color .4s var(--ease); }
+.scr-referral .rf-tbl tr.is-flash, .scr-referral .rf-tbl tr.is-flash td { background: var(--indigo-weak); }
+.scr-referral .rf-tbl tr.is-flash .rf-soon,
+.scr-referral .rf-tbl tr.is-flash .rf-c-m { color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .scr-referral .rf-tbl tr, .scr-referral .rf-tbl td { transition: none; } }
+.scr-referral .rf-tbl s { text-decoration-thickness: 1px; }
+.scr-referral .rf-c-m { display: none; }
+/* 取消の理由・支払日の繰り越し（referral.js の rowNote）。広い幅は行の下の1行（列の幅を広げない） */
+.scr-referral .rf-tbl tr.has-note td { border-bottom: 0; padding-bottom: 3px; }
+.scr-referral .rf-tbl tr.rf-note td {
+  padding-top: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-2);
+  white-space: normal; word-break: auto-phrase; text-wrap: pretty;
+}
+.scr-referral .rf-c-m__note { display: block; margin-top: 1px; word-break: auto-phrase; text-wrap: pretty; }
+.scr-referral .rf-rows { scroll-margin-top: 12px; }
+.scr-referral .rf-none { padding: 10px var(--inset) 20px; font-size: 14px; color: var(--ink-2); }
+
+/* 狭い幅：1行を2段のかたまりに（横スクロールを出さない） */
+@container main (max-width: 440px) {
+  .scr-referral .rf-tbl thead { display: none; }
+  .scr-referral .rf-tbl, .scr-referral .rf-tbl tbody { display: block; width: 100%; }
+  .scr-referral .rf-tbl tr {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 2px 0;
+    padding: 11px var(--inset); border-bottom: 1px solid var(--line);
+  }
+  .scr-referral .rf-tbl tr:last-child { border-bottom: 0; }
+  .scr-referral .rf-tbl td { display: block; padding: 0 !important; border: 0; white-space: normal; }
+  .scr-referral .rf-tbl .rf-c-at, .scr-referral .rf-tbl .rf-c-conf, .scr-referral .rf-tbl .rf-c-pay { display: none; }
+  .scr-referral .rf-tbl .rf-c-who { grid-column: 1; font-weight: 700; }
+  .scr-referral .rf-tbl .rf-c-amt { grid-column: 2; text-align: left; }
+  .scr-referral .rf-tbl .rf-c-amt::before { content: "・"; font-family: var(--font-sans); color: var(--ink-3); }
+  .scr-referral .rf-tbl .rf-c-st { grid-column: 3; justify-self: end; }
+  .scr-referral .rf-tbl .rf-c-m { display: block; grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-2); }
+  /* 断りは2段目の続き（.rf-c-m__note）に書くので、下の行は隠す */
+  .scr-referral .rf-tbl tr.rf-note { display: none; }
+  .scr-referral .rf-tbl tr.has-note:nth-last-child(2) { border-bottom: 0; }
+}
+@supports not (container-type: inline-size) {
+  @media (max-width: 480px) {
+    .scr-referral .rf-tbl thead, .scr-referral .rf-tbl .rf-c-at, .scr-referral .rf-tbl .rf-c-conf, .scr-referral .rf-tbl .rf-c-pay { display: none; }
+    .scr-referral .rf-tbl, .scr-referral .rf-tbl tbody { display: block; }
+    .scr-referral .rf-tbl tr { display: grid; grid-template-columns: auto 1fr auto; padding: 11px 16px; border-bottom: 1px solid var(--line); }
+    .scr-referral .rf-tbl td { display: block; padding: 0 !important; border: 0; }
+    .scr-referral .rf-tbl .rf-c-amt { text-align: left; }
+    .scr-referral .rf-tbl .rf-c-m { display: block; grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-2); }
+    .scr-referral .rf-tbl tr.rf-note { display: none; }
+  }
+}
 
 /* ---------- 紹介した人 ---------- */
 .scr-referral .rf-count { font-size: 13px; color: var(--ink-2); }
-.scr-referral .rf-people__list { padding: 6px 20px 8px; }
+.scr-referral .rf-people__list { padding: 6px var(--inset) 8px; }
 .scr-referral .rf-people__list li { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .scr-referral .rf-people__list li:first-child { border-top: 0; }
 .scr-referral .rf-people__list b { font-weight: 700; min-width: 4.5em; }
-.scr-referral .rf-people__date { flex: 1; color: var(--ink-2); }
+.scr-referral .rf-people__date { flex: 1; min-width: 0; color: var(--ink-2); }
 
 /* ---------- しくみとルール ---------- */
-@media (min-width: 861px) and (max-width: 1000px) { .scr-referral .rf-pair { grid-template-columns: 1fr; } }
+@container main (max-width: 900px) { .scr-referral .rf-pair { grid-template-columns: minmax(0, 1fr); } }
 /* 金（--gold）はレベルと会員証の色なので、報酬には使わない */
 .scr-referral .rf-how__lead { font-size: 15px; font-weight: 700; line-height: 1.65; }
 .scr-referral .rf-bullets { margin-top: 12px; padding-left: 1.2em; list-style: disc; }
 .scr-referral .rf-bullets li { padding: 3px 0; font-size: 13.5px; line-height: 1.7; }
+/* 箇条書きも本文と同じく文節で折る（「保／留」「す／る」のような割れと、最後の行の1文字を避ける） */
+.scr-referral .rf-bullets li, .scr-referral .rf-rules__list li, .scr-referral .rf-people__date { text-wrap: pretty; word-break: auto-phrase; }
 .scr-referral .rf-bullets li::marker { color: var(--ink-3); }
 .scr-referral .rf-bullets a,
 .scr-referral .rf-rules__ask a { color: var(--indigo); margin-left: 4px; }
@@ -71,40 +175,35 @@
 .scr-referral .rf-rules__warn { margin-top: 12px; font-size: 13.5px; font-weight: 700; }
 .scr-referral .rf-rules__ask { margin-top: 4px; font-size: 13.5px; }
 .scr-referral .rf-rules__ask a { margin: 0; }
+.scr-referral .rf-rules__ask .ico { width: 14px; height: 14px; margin-left: 3px; vertical-align: -2px; }
 
 .scr-referral .rf-proto { margin: 24px 4px 0; }
 
-/* ---------- 窓（QRコード・振込先）。窓の中も .scr-referral で包んでいる ---------- */
-.scr-referral .rf-qr { width: 220px; max-width: 100%; margin: 14px auto 10px; padding: 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); color: var(--ink); }
-.scr-referral .rf-qr svg { display: block; width: 100%; height: auto; }
-.scr-referral .rf-qr__url { text-align: center; font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
-
-.scr-referral .rf-bank-lead { margin-bottom: 16px; }
+/* ---------- 窓：振込先 ---------- */
+.scr-referral .rf-bank-lead { margin-bottom: 14px; font-size: 14px; color: var(--ink-2); }
+.scr-referral .rf-bank-now { margin: -6px 0 16px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; overflow-wrap: anywhere; }
 .scr-referral .rf-bank-2 { display: grid; grid-template-columns: minmax(0, 1fr) 7.5em; gap: 12px; }
+.scr-referral .rf-bank-form > .field:last-child { margin-bottom: 0; }
+/* 欄の下の誤りも文節で折る（狭い欄で「…ください」の最後の1文字だけが次の行に落ちないように） */
+.scr-referral .field__err { word-break: auto-phrase; text-wrap-style: pretty; }
+/* 320px 前後：支店名の欄が狭くなりすぎるので、種類は下の段へ */
+@media (max-width: 360px) {
+  .scr-referral .rf-bank-2 { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+}
 
-/* ---------- スマホ ---------- */
+/* ---------- 指で押しやすく（860px以下） ---------- */
 @media (max-width: 860px) {
   .scr-referral .btn-s { height: 40px; }
   .scr-referral .btn-text { min-height: 40px; }
   /* 文中のリンクは行の高さを変えずに、押せる範囲だけ上下に広げる */
   .scr-referral .rf-bullets a,
   .scr-referral .rf-rules__ask a { display: inline-block; padding: 10px 0; margin-top: -10px; margin-bottom: -10px; }
-  .scr-referral .rf-people__list { padding: 4px 16px 6px; }
-  .scr-referral .card-head { padding: 16px 16px 0; }
-  .scr-referral .rf-none { padding: 10px 16px 16px; }
 }
-/* 3つのボタンが1行に収まらない幅では、記号を外して3等分にする（QRコードだけが次の行に落ちないように） */
-@media (max-width: 480px) {
-  .scr-referral .rf-share-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .scr-referral .rf-share-btns .btn { padding: 0 4px; }
-  .scr-referral .rf-share-btns .ico { display: none; }
-}
-@media (max-width: 359px) { .scr-referral .rf-share-btns .btn { font-size: 12px; } }
 @media (max-width: 640px) {
-  .scr-referral .rf-tbl-pad { padding: 4px 2px 6px; }
+  .scr-referral .rf-link { padding: 16px; }
   .scr-referral .rf-tbl { font-size: 12.5px; }
   .scr-referral .rf-tbl th,
-  .scr-referral .rf-tbl td { padding-left: 7px; padding-right: 7px; }
+  .scr-referral .rf-tbl td { padding-left: 8px; padding-right: 8px; }
   .scr-referral .rf-kv th { width: 7.5em; padding-right: 10px; }
   .scr-referral .rf-kv__note { display: block; margin: 2px 0 0; }
 }

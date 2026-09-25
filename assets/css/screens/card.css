@@ -4,13 +4,15 @@
      画面の会員証・見本・提示用で大きさが変わっても、同じ割合で縮む。
    - 色は在籍期間で3段（.t-black 黒 / .t-navy 紺 / .t-gold 金）。一色塗り。
      同じ変数を「会員証の色」の一覧の色見本（.cd-sw）でも使う。
-   - 提示用の窓は body 直下に出るので、窓の外枠だけ .scr-card-present で整える。
+   - 見本の窓は U.modal の cls で .modal に .scr-card を付けている。
+     提示用の窓は body 直下に出るので、窓の外枠だけ .scr-card-present で整える。
    ============================================================ */
 
 /* ---------- 色（在籍期間） ---------- */
-.scr-card .t-black { --t-bg: #1f1d1a; --t-fg: #f4efe6; --t-muted: #b3ada3; --t-first: #e2c47f; }
-.scr-card .t-navy  { --t-bg: #253f5c; --t-fg: #ffffff; --t-muted: #b8c6d6; --t-first: #ecd08e; }
-.scr-card .t-gold  { --t-bg: #c9a95e; --t-fg: #2b210d; --t-muted: color-mix(in srgb, #2b210d 80%, #c9a95e); --t-first: #2b210d; }
+/* --t-seal はロゴの頭の四角（朱）。濃い面では明るい朱（tokens.css の .brandmark--deep と同じ）、金の面では地の朱 */
+.scr-card .t-black { --t-bg: #1f1d1a; --t-fg: #f4efe6; --t-muted: #b3ada3; --t-first: #e2c47f; --t-seal: #e0553a; }
+.scr-card .t-navy  { --t-bg: #253f5c; --t-fg: #ffffff; --t-muted: #b8c6d6; --t-first: #ecd08e; --t-seal: #e0553a; }
+.scr-card .t-gold  { --t-bg: #c9a95e; --t-fg: #2b210d; --t-muted: color-mix(in srgb, #2b210d 80%, #c9a95e); --t-first: #2b210d; --t-seal: var(--accent); }
 
 /* ---------- 会員証 ---------- */
 .scr-card .mcard {
@@ -25,42 +27,83 @@
 
 .scr-card .mcard__in {
   position: absolute; inset: 0;
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr auto auto;
   column-gap: 14px; column-gap: 4cqi;
   padding: 20px 22px 18px; padding: 6cqi 6.4cqi 5.6cqi;
 }
 
-.scr-card .mcard__top { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.scr-card .mcard__brand { display: flex; align-items: baseline; gap: 8px; gap: 2cqi; min-width: 0; }
-.scr-card .mcard__brand b { font-weight: 800; line-height: 1.2; font-size: 16px; font-size: 4.6cqi; }
-.scr-card .mcard__brand small { font-weight: 600; color: var(--t-muted); font-size: 10px; font-size: max(10px, 2.8cqi); }
+.scr-card .mcard__top { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* 屋号のロゴ（U.brandmark）。墨の部分は会員証の文字の色、頭の四角は --t-seal。高さはカードの幅に合わせる */
+.scr-card .mcard__brand { display: flex; align-items: center; min-width: 0; }
+.scr-card .mcard__brand .brandmark {
+  --brand-h: 22px; --brand-h: 6.4cqi; --brand-ink: var(--t-fg); --brand-seal: var(--t-seal);
+  gap: 8px; gap: 2.4cqi;
+}
+.scr-card .mcard__brand .brandmark__sub { font-weight: 600; color: var(--t-muted); font-size: 10px; font-size: max(10px, 2.8cqi); }
 .scr-card .mcard__rank { flex: none; font-weight: 700; font-size: 11px; font-size: max(10px, 3cqi); }
 .scr-card .mcard__rank.is-first { color: var(--t-first); }
 
-.scr-card .mcard__who { grid-column: 1; grid-row: 2; align-self: center; min-width: 0; }
-.scr-card .mcard.is-noqr .mcard__who, .scr-card .mcard.is-noqr .mcard__kv { grid-column: 1 / -1; }
+/* 顔と名前 */
+.scr-card .mcard__who { grid-column: 1; grid-row: 2; align-self: center; display: flex; align-items: center; gap: 12px; gap: 3.6cqi; min-width: 0; }
+.scr-card .mcard.is-noqr .mcard__who, .scr-card .mcard.is-noqr .mcard__kv, .scr-card .mcard.is-noqr .mcard__badges { grid-column: 1 / -1; }
+.scr-card .mcard__av { flex: none; line-height: 0; }
+.scr-card .mcard__av .avatar {
+  width: 44px; height: 44px; width: 12.4cqi; height: 12.4cqi; font-size: 15px; font-size: 4.2cqi;
+  box-shadow: 0 0 0 2px var(--t-bg), 0 0 0 3px color-mix(in srgb, var(--t-fg) 35%, transparent);
+}
+.scr-card .mcard__txt { min-width: 0; }
 .scr-card .mcard__name {
-  font-weight: 700; line-height: 1.3; font-size: 23px; font-size: 6.6cqi;
+  font-weight: 700; line-height: 1.3; font-size: 22px; font-size: 6.2cqi;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .scr-card .mcard__id {
   font-family: var(--font-mono); letter-spacing: .04em; color: var(--t-muted);
-  margin-top: 2px; margin-top: .6cqi; font-size: 11px; font-size: max(10px, 3.2cqi);
+  margin-top: 1px; margin-top: .4cqi; font-size: 11px; font-size: max(10px, 3.1cqi);
 }
-.scr-card .mcard__meta { margin-top: 6px; margin-top: 2cqi; color: var(--t-muted); font-size: 11px; font-size: max(10px, 3cqi); }
+.scr-card .mcard__meta {
+  margin-top: 3px; margin-top: 1cqi; color: var(--t-muted); font-size: 11px; font-size: max(10px, 3cqi);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .scr-card .mcard__meta b { color: var(--t-fg); font-weight: 700; }
+/* 幅の狭い会員証（スマホの320〜360px）：入会の月は下の入会日と重なるので省き、バッジは2つまで（2段に割れて詰まるため） */
+@container (max-width: 340px) {
+  .scr-card .mcard__cohort { display: none; }
+  .scr-card .mcard__badges li:nth-child(n+3) { display: none; }
+}
+
+/* バッジ（修了した講座・発表・完了した案件）。飾りではなく記録なので、線だけの小さな札 */
+.scr-card .mcard__badges {
+  grid-column: 1; grid-row: 3; display: flex; flex-wrap: wrap; gap: 4px 6px; gap: 1.2cqi 1.6cqi;
+  margin: 8px 0 0; margin: 2.4cqi 0 0; padding: 0; list-style: none;
+}
+.scr-card .mcard__badges li {
+  padding: 1px 6px; padding: .3cqi 1.8cqi; border-radius: 4px; border-radius: 1.2cqi;
+  border: 1px solid color-mix(in srgb, var(--t-fg) 38%, transparent); color: var(--t-fg);
+  font-weight: 600; white-space: nowrap; font-size: 10px; font-size: max(9.5px, 2.7cqi); line-height: 1.6;
+}
 
 .scr-card .mcard__qr {
-  grid-column: 2; grid-row: 2 / 4; align-self: end;
+  grid-column: 2; grid-row: 2 / 5; align-self: end;
   width: 72px; width: 21cqi; padding: 4px; padding: 1.2cqi; border-radius: 6px; border-radius: 1.8cqi;
   background: #fff; color: var(--ink); line-height: 0;
 }
 .scr-card .mcard__qr svg { display: block; width: 100%; height: auto; }
 
-.scr-card .mcard__kv { grid-column: 1; grid-row: 3; display: flex; gap: 18px; gap: 6cqi; margin: 0; }
+/* 使えない状態（終了・休会・支払いの猶予切れ）：QRの場所に状態を出し、色を少し落とす */
+.scr-card .mcard.is-off { filter: saturate(.35); }
+/* 状態の札は下の段の右。顔と名前・バッジは横いっぱいに使う（札の幅で名前が切れないように） */
+.scr-card .mcard.is-off .mcard__who, .scr-card .mcard.is-off .mcard__badges { grid-column: 1 / -1; }
+.scr-card .mcard__state {
+  grid-column: 2; grid-row: 4; align-self: end; justify-self: end;
+  padding: 5px 9px; padding: 1.4cqi 2.6cqi; border-radius: 6px; border-radius: 1.6cqi;
+  border: 1.5px solid currentColor; color: var(--t-fg);
+  font-weight: 800; white-space: nowrap; font-size: 12px; font-size: max(10.5px, 3.6cqi); line-height: 1.4;
+}
+
+.scr-card .mcard__kv { grid-column: 1; grid-row: 4; display: flex; gap: 18px; gap: 6cqi; margin: 10px 0 0; margin: 2.8cqi 0 0; }
 .scr-card .mcard__kv dt { color: var(--t-muted); font-size: 10px; font-size: max(9px, 2.5cqi); }
 .scr-card .mcard__kv dd {
-  margin: 1px 0 0; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 600;
+  margin: 1px 0 0; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap;
   font-size: 11px; font-size: max(10px, 3.1cqi);
 }
 
@@ -68,35 +111,48 @@
 /* 共通の .li__ttl / .li__sub は span だと横に並んでしまうので、この画面では段に分ける */
 .scr-card .li__ttl, .scr-card .li__sub { display: block; }
 .scr-card .cd-notice { margin-bottom: 18px; }
-.scr-card .cd-notice a { color: inherit; font-weight: 700; margin-left: .3em; }
+.scr-card .cd-notice__acts { margin-top: 10px; }
 
-.scr-card .cd-hero { container: cdhero / inline-size; }
-.scr-card .cd-hero__in { display: grid; gap: 20px; }
-.scr-card .cd-stage { display: flex; justify-content: center; }
-.scr-card .cd-side { width: 100%; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
-@container cdhero (min-width: 760px) {
-  .scr-card .cd-hero__in { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 28px; align-items: start; }
-  .scr-card .cd-stage { justify-content: flex-start; position: sticky; top: 24px; }
-  .scr-card .cd-side { max-width: none; margin: 0; }
+/* スマホは1段（会員証 → お店で見せる → 色 → 記録）。タブレット・パソコンは2段で、左に会員証とボタン、右に色と記録。
+   2段にするのは本文が584px以上のとき（641pxの画面は左の帯を除くと本文が513pxで、2段にすると会員証が209pxまで縮むため）。
+   iPad の縦（768px）から2段になる */
+.scr-card .cd-hero { display: grid; gap: 22px; }
+.scr-card .cd-stage { width: 100%; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
+/* 色と記録の一覧は、下の「会員証で使える割引」と同じく本文の幅いっぱい（1段のとき右端がそろうように） */
+.scr-card .cd-side { width: 100%; display: flex; flex-direction: column; gap: 22px; container: cdside / inline-size; }
+.scr-card .cd-off { margin: 0 2px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+@container main (min-width: 584px) {
+  .scr-card .cd-hero { grid-template-columns: minmax(280px, 420px) minmax(280px, 1fr); gap: 24px; align-items: start; }
+  .scr-card .cd-stage { margin: 0; position: sticky; top: 24px; }
 }
+@container main (min-width: 900px) { .scr-card .cd-hero { gap: 28px; } }
+
+/* 区切りの見出しと、右のリンク（見出しの外に置く） */
+.scr-card .cd-sec__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 10px; }
+.scr-card .cd-sec__head .sec-ttl { margin: 0; }
+.scr-card .cd-sec__more { flex: none; font-size: 13px; font-weight: 600; color: var(--indigo); text-decoration: none; padding: 10px 0 10px 12px; margin: -10px 0; }
+.scr-card .cd-sec__more:hover { text-decoration: underline; }
 
 /* 会員証の色 */
 .scr-card .cd-sec .sec-ttl { margin-bottom: 8px; }
 .scr-card .cd-sw { display: block; width: 26px; height: 17px; border-radius: 3px; background: var(--t-bg); box-shadow: inset 0 0 0 1px rgba(29, 27, 24, .1); }
 .scr-card .li.has-ico.cd-tier .li__ico { width: 26px; }
-.scr-card .li.has-ico.cd-tier + .li::before { left: 58px; }
+.scr-card .li.has-ico.cd-tier + .li::before { left: calc(var(--inset) + 40px); }
 .scr-card .cd-tier .li__ttl { font-weight: 500; }
-.scr-card .cd-tier__span { margin-left: 10px; font-size: 13.5px; color: var(--ink-2); }
+.scr-card .cd-tier__span { font-size: 13.5px; color: var(--ink-2); }
 .scr-card .cd-tier.is-now { background: var(--surface-2); }
 /* 背景を付けた行の上下の罫は端まで引く（左だけ白く欠けて見えないように） */
 .scr-card .li.has-ico.cd-tier + .li.is-now::before, .scr-card .li.has-ico.cd-tier.is-now + .li::before { left: 0; }
 .scr-card .cd-tier.is-now .li__ttl { font-weight: 800; }
+.scr-card .cd-tier .li__end { white-space: nowrap; }
+/* 右の列が狭いとき（スマホの320〜370px・タブレットの2段）は「紺・3か月から」まで縮める */
+@container cdside (max-width: 340px) { .scr-card .cd-tier__pre { display: none; } }
 
-.scr-card .cd-rank { color: var(--ink); font-weight: 700; font-size: 14px; }
-.scr-card .cd-share { display: block; margin-top: 2px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.scr-card .cd-val { color: var(--ink); font-weight: 700; font-size: 14px; }
+.scr-card .cd-share { display: block; margin-top: 2px; font-size: 13px; color: var(--ink-2); line-height: 1.6; text-wrap: pretty; word-break: auto-phrase; }
 
 /* ---------- 見本の窓 ---------- */
-.scr-card.cd-preview .mcard { margin: 6px auto 0; }
+.scr-card .cd-preview .mcard { margin: 2px auto 0; }
 .scr-card .cd-preview__txt { margin-top: 14px; }
 
 /* ---------- 提示用（全面・明るい地） ---------- */

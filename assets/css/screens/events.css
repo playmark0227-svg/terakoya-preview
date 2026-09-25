@@ -1,123 +1,294 @@
 /* ============================================================
    イベント（#/events）
-   1枚の面に、日付の順で1行ずつ並べる（左から日時・写真・本文・予約。スマホは写真の右に日時と本文）。
-   詳細の窓は body 直下に出るので、中身も .scr-events で包んである。
+   一覧は1枚の面に、日付の順で1行ずつ（左から日時・写真・本文・予約・山かっこ）。
+   本文の幅（container「main」）で組み替える：720px 以下は日時を題の上に1行で、400px 以下は写真を64pxの正方形に。
+   詳細の窓・企画の窓は body 直下に出るので、窓にも .scr-events を付けてある。
    ============================================================ */
+
+/* 日本語の改行：共通の CSS（p・.li__ttl など）が拾わない題・発表の題・当日の流れも、文節で折って最後の行に1文字を残さない */
+.scr-events .ev__ttl, .scr-events .evd__talk, .scr-events .evd__agenda li > span:last-child {
+  text-wrap-style: pretty; word-break: auto-phrase;
+}
+
+/* 見出しの行：右に「一覧／カレンダー」 */
+.scr-events .page-head__row { align-items: center; }
+.scr-events .ev-modes button { display: inline-flex; align-items: center; gap: 6px; }
+.scr-events .ev-modes .ico { width: 16px; height: 16px; }
 
 /* 切り替えと絞り込み */
 .scr-events .ev-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.scr-events .seg .ev-n { font-size: 11.5px; color: var(--ink-3); margin-left: 2px; }
-.scr-events .seg .is-on .ev-n { color: var(--ink-2); }
+.scr-events .ev-tabs button { position: relative; display: inline-flex; align-items: center; gap: 5px; }
+/* 数は灰の面の上でも読める濃さに */
+.scr-events .ev-n { font-size: 12px; color: var(--ink-2); }
 .scr-events .ev-chips { gap: 6px; }
-.scr-events .ev-chips .chip { height: 32px; padding: 0 12px; }
 
-/* はじめての人へのひとこと */
-.scr-events .ev-top { align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 14px; }
-.scr-events .ev-top__txt { flex: 1 1 260px; }
-.scr-events .ev-top .btn-text { margin-left: auto; }
+/* はじめての人へのひとこと・キャンセル待ちからの繰り上がり */
+.scr-events .ev-top, .scr-events .ev-promo { align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 14px; }
+.scr-events .ev-top__txt, .scr-events .ev-promo__txt { flex: 1 1 240px; min-width: 0; margin: 0; }
+/* 本文がせまいとき：文は記号のとなりの残りの幅いっぱい、「詳細を見る」は次の行の右に
+   （320px の幅で文が 240px に入らず、記号だけが1行目に残らないように） */
+@container main (max-width: 520px) {
+  .scr-events .ev-top__txt, .scr-events .ev-promo__txt { flex-basis: calc(100% - 40px); }
+}
+.scr-events .ev-top .btn-text, .scr-events .ev-promo .btn-text { margin-left: auto; }
+/* 見出しと会の行を2行に（中の .nw の span まで block にしないよう、子だけ） */
+.scr-events .ev-promo__txt > b, .scr-events .ev-promo__txt > span, .scr-events .ev-top__txt > span { display: block; }
 
-/* 一覧 */
+/* ---------- 一覧の行 ---------- */
 .scr-events .ev-list { overflow: hidden; }
 .scr-events .ev {
-  display: grid; grid-template-columns: 76px 120px minmax(0, 1fr) auto; grid-template-areas: "when photo body act";
-  gap: 2px 16px; align-items: start; padding: 14px 18px; cursor: pointer;
+  position: relative; display: grid;
+  grid-template-columns: 76px 112px minmax(0, 1fr) auto 16px;
+  grid-template-areas: "when photo body act chev";
+  gap: 2px 16px; align-items: center; padding: 14px 14px 14px 20px; cursor: pointer;
 }
 .scr-events .ev + .ev { border-top: 1px solid var(--line); }
 .scr-events .ev:hover { background: var(--surface-2); }
-/* 参加した：写真なし */
-.scr-events .ev-past { grid-template-columns: 76px minmax(0, 1fr) auto; grid-template-areas: "when body act"; cursor: default; align-items: center; }
-.scr-events .ev-past:hover { background: none; }
+.scr-events .ev > .chev { grid-area: chev; }
 
-.scr-events .ev__when { grid-area: when; line-height: 1.5; }
+.scr-events .ev__when { grid-area: when; align-self: start; margin: 0; line-height: 1.5; }
 .scr-events .ev__when b { display: block; font-size: 14px; font-weight: 700; }
-.scr-events .ev__when .num { display: block; font-size: 13px; color: var(--ink-2); }
-.scr-events .ev__rel { margin-left: 6px; font-weight: 700; color: var(--ink); }
+.scr-events .ev__when .num { font-size: 13px; color: var(--ink-2); }
+.scr-events .ev__rel { margin-left: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink); }
 .scr-events .ev__photo {
-  grid-area: photo; display: block; width: 120px; height: 80px; object-fit: cover;
+  grid-area: photo; align-self: start; display: block; width: 112px; height: 75px; object-fit: cover;
   border-radius: 6px; background: var(--line);
 }
-
-.scr-events .ev__body { grid-area: body; min-width: 0; }
-.scr-events .ev__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.5; }
+.scr-events .ev__body { grid-area: body; align-self: start; min-width: 0; }
+.scr-events .ev__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.5; margin: 0; }
 .scr-events .ev__link {
   background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit;
   text-align: left; cursor: pointer; line-height: inherit;
 }
+/* 指で押す幅：題のボタンは上下に押せる範囲を足して 44px に（見た目は変えない。上下は日時と補足の文字だけ）。
+   参加予定の顔＋名前は共通の a.plink の 44px。行どうしの押せる範囲が重ならないよう、行の高さを 44px にする */
+@media (max-width: 860px) {
+  .scr-events .ev__link { position: relative; }
+  .scr-events .ev__link::before { content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
+  .scr-events .evd__people { row-gap: 0; }
+  .scr-events .evd__people li { display: flex; align-items: center; min-height: 44px; }
+  .scr-events .evd__people.is-all { gap: 0; }
+}
 .scr-events .ev:hover .ev__link { text-decoration: underline; text-underline-offset: 3px; }
-.scr-events .ev__meta { margin-top: 2px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
-.scr-events .ev__host { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
+.scr-events .ev__link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.scr-events .ev__meta { margin: 2px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.scr-events .ev__m2::before { content: "・"; }
+.scr-events .ev__host { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
 .scr-events .ev.is-done .ev__ttl { color: var(--ink-2); }
 
-.scr-events .ev__act { grid-area: act; display: flex; align-items: center; justify-content: flex-end; gap: 10px; align-self: center; white-space: nowrap; }
+.scr-events .ev__act { grid-area: act; display: flex; align-items: center; justify-content: flex-end; gap: 10px; white-space: nowrap; }
 .scr-events .ev__seats { font-size: 12.5px; color: var(--ink-2); }
-.scr-events .ev__seats.is-few { color: var(--warn); font-weight: 700; }
+.scr-events .ev__seats.is-few { color: var(--warn-ink); font-weight: 700; }   /* カーソルを乗せた行の灰の地でも 4.5:1 以上 */
 .scr-events .ev__act .btn-text { padding-left: 6px; padding-right: 6px; }
-.scr-events .ev__xp { font-size: 12.5px; color: var(--ink-2); }
+.scr-events .ev__act .btn .ico { width: 16px; height: 16px; }
 
-/* スマホ：写真を左に、日時（1行）と本文を右に。予約の行は下に横いっぱい */
-@media (max-width: 640px) {
+/* 参加した会：写真と山かっこなし。右に「録画を見る」「感想を書く」 */
+.scr-events .ev.ev-past { grid-template-columns: 76px minmax(0, 1fr) auto; grid-template-areas: "when body act"; cursor: default; }
+.scr-events .ev-past:hover { background: none; }
+.scr-events .ev-past .ev__ttl { font-size: 15px; }
+.scr-events .ev-past .ev__act { gap: 4px; }
+/* 予約していて終わった会（出欠の確認待ち）：題から詳細を開ける。右は札だけ */
+.scr-events .ev-past.is-pending .ev__ttl { color: var(--ink); }
+
+/* 本文が 720px 以下（タブレットの幅・サイドバーのあるノートパソコンなど）：日時を題の上に1行で、ボタンは下の行に */
+@container main (max-width: 720px) {
   .scr-events .ev {
-    grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: auto 1fr auto;
-    grid-template-areas: "photo when" "photo body" "act act"; gap: 0 12px; padding: 14px 16px;
+    grid-template-columns: 96px minmax(0, 1fr) 16px;
+    grid-template-areas: "photo when chev" "photo body chev" "act act act";
+    gap: 0 12px; padding: 14px 12px 14px 16px;
   }
   .scr-events .ev__photo { width: 96px; height: 64px; }
-  .scr-events .ev__when { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+  .scr-events .ev__when { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 6px; margin-bottom: 2px; }
   .scr-events .ev__when b, .scr-events .ev__when .num { display: inline; font-size: 13px; }
+  .scr-events .ev__rel { margin-left: 0; }
   .scr-events .ev__act { justify-content: flex-start; margin-top: 10px; }
-  .scr-events .ev__act .btn { margin-left: auto; }
-  .scr-events .ev-past { grid-template-columns: 64px minmax(0, 1fr) auto; grid-template-rows: none; grid-template-areas: "when body act"; gap: 0 10px; }
-  .scr-events .ev-past .ev__when { display: block; margin: 0; }
-  .scr-events .ev-past .ev__act { margin-top: 0; }
+  .scr-events .ev__act:empty { display: none; }
+  .scr-events .ev__act > .btn:last-child { margin-left: auto; }
+  .scr-events .ev > .chev { align-self: start; margin-top: 22px; }
+  .scr-events .ev.ev-past { grid-template-columns: minmax(0, 1fr); grid-template-areas: "when" "body" "act"; padding: 12px 16px; }
+  .scr-events .ev-past .ev__act { justify-content: flex-start; margin-top: 6px; margin-left: -6px; }
+  .scr-events .ev-past .ev__act > .btn:last-child { margin-left: 0; }
+  .scr-events .ev-past.is-pending .ev__act { margin-left: 0; }
+  .scr-events .ev-bar { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .scr-events .ev-tabs { display: flex; width: 100%; }
+  .scr-events .ev-tabs button { flex: 1 1 0; justify-content: center; padding: 0 8px; }
 }
-
-/* 空のとき・注記 */
-.scr-events .ev-empty { padding: 32px 20px; text-align: center; color: var(--ink-2); font-size: 14px; }
-.scr-events .ev-empty .btn { margin-top: 14px; }
-.scr-events .ev-foot-note { margin: 12px 4px 0; font-size: 12.5px; color: var(--ink-3); }
-
-/* 詳細の窓：写真は窓の上端に横いっぱい（窓の余白 26px の分だけ外へ出す） */
-.scr-events .ev-detail__photo {
-  display: block; width: calc(100% + 52px); max-width: none; height: auto; aspect-ratio: 16 / 9; max-height: 220px;
-  margin: -26px -26px 18px; object-fit: cover; background: var(--line);
+/* 本文が 400px 以下（スマホ）：写真は64pxの正方形、補足は2行 */
+@container main (max-width: 400px) {
+  .scr-events .ev { grid-template-columns: 64px minmax(0, 1fr) 16px; }
+  .scr-events .ev__photo { width: 64px; height: 64px; border-radius: 8px; }
+  .scr-events .ev__ttl { font-size: 15px; }
+  .scr-events .ev__m1, .scr-events .ev__m2 { display: block; }
+  .scr-events .ev__hostx { display: none; }
+  .scr-events .ev__m2::before { content: none; }
+  .scr-events .ev > .chev { margin-top: 20px; }
+  .scr-events .ev-modes button { padding: 0 12px; }
+  .scr-events .ev-modes .ico { display: none; }
 }
-.scr-events.ev-detail .modal__ttl { margin-bottom: 4px; }
-.scr-events .ev-detail__when { font-size: 14.5px; font-weight: 700; margin-bottom: 10px; }
-.scr-events .ev-detail__min { font-weight: 500; color: var(--ink-2); }
-.scr-events .ev-detail__rel { margin-left: 8px; }
-.scr-events .ev-detail__desc { font-size: 14px; color: var(--ink-2); margin-bottom: 6px; }
-.scr-events .ev-detail__kv { margin-top: 6px; font-size: 13.5px; }
-.scr-events .ev-detail__kv th, .scr-events .ev-detail__kv td { padding-top: 9px; padding-bottom: 9px; line-height: 1.6; }
-.scr-events .ev-detail__kv th { width: 5em; padding-right: 12px; }
-.scr-events .ev-detail__host { display: flex; align-items: center; gap: 8px; }
-.scr-events .ev-detail__sub { margin-left: 4px; font-size: 12.5px; color: var(--ink-3); }
-.scr-events .ev-detail__state { margin-top: 14px; }
-.scr-events .ev-detail__state p { margin: 0; }
-.scr-events .ev-detail__state b { margin-right: 4px; }
-.scr-events .ev-detail__proto { margin-top: 6px; padding-left: 0; }
-.scr-events .ev-detail__cancel { margin-right: auto; }
-/* 写真のぶん窓が長くなり、予約済みのときは窓の中がスクロールする。押すボタンの行は窓の下に留める。
-   sticky は窓の余白の内側で止まるので、余白の分だけ下へずらして窓の下端にそろえる */
-.scr-events.ev-detail .modal__foot {
-  position: sticky; bottom: -22px; z-index: 1;
-  margin: 18px -26px -22px; padding: 12px 26px 22px;
-  background: var(--surface); border-top: 1px solid var(--line);
-}
-@media (max-width: 640px) {
-  /* スマホの窓は余白が上 22px・左右 18px・下 18px（＋ホームバーの分） */
-  .scr-events .ev-detail__photo { width: calc(100% + 36px); margin: -22px -18px 16px; max-height: 180px; }
-  .scr-events.ev-detail .modal__foot {
-    bottom: calc(-18px - env(safe-area-inset-bottom));
-    margin: 16px -18px calc(-18px - env(safe-area-inset-bottom));
-    padding: 12px 18px calc(18px + env(safe-area-inset-bottom));
+@supports not (container-type: inline-size) {
+  @media (max-width: 640px) {
+    .scr-events .ev { grid-template-columns: 64px minmax(0, 1fr) 16px; grid-template-areas: "photo when chev" "photo body chev" "act act act"; gap: 0 12px; padding: 14px 12px 14px 16px; }
+    .scr-events .ev__photo { width: 64px; height: 64px; }
+    .scr-events .ev__act { justify-content: flex-start; margin-top: 10px; }
+    .scr-events .ev__act > .btn:last-child { margin-left: auto; }
   }
-  .scr-events.ev-detail .modal__foot .btn:not(.btn-text) { flex: 1 1 auto; }
-  .scr-events .ev-detail__cancel { width: 100%; justify-content: flex-start; padding: 6px 0; }
 }
+
+/* 空のとき */
+.scr-events .ev-empty .empty { padding: 32px 20px; }
+
+/* ---------- 月のカレンダー ---------- */
+.scr-events .evcal { padding: 12px 14px 12px; }
+.scr-events .evcal__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.scr-events .evcal__ttl { margin: 0; font-size: 16px; font-weight: 800; }
+.scr-events .evcal__nav .chev { width: 18px; height: 18px; color: var(--ink); }
+.scr-events .evcal__nav.is-prev .chev { transform: scaleX(-1); }
+.scr-events .evcal__nav[aria-disabled="true"] { opacity: .3; cursor: default; }
+.scr-events .evcal__nav[aria-disabled="true"]:hover { background: none; }
+.scr-events .evcal__grid { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.scr-events .evcal__grid th { padding: 4px 0 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); text-align: center; }
+.scr-events .evcal__grid th.is-sun { color: var(--accent-ink); }
+.scr-events .evcal__grid th.is-sat { color: var(--indigo); }
+.scr-events .evcal__td { height: 92px; padding: 2px; vertical-align: top; border-top: 1px solid var(--line); }
+.scr-events .evcal__day {
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 100%; height: 100%; min-height: 86px;
+  padding: 5px 5px 6px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; text-align: left;
+}
+.scr-events button.evcal__day { cursor: pointer; }
+.scr-events button.evcal__day:hover { background: var(--surface-2); }
+.scr-events .evcal__day[aria-pressed="true"] { background: var(--indigo-weak); box-shadow: inset 0 0 0 2px var(--indigo); }
+.scr-events .evcal__day:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-events .evcal__n { display: inline-grid; place-items: center; align-self: flex-start; min-width: 24px; height: 24px; padding: 0 4px; border-radius: 12px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.scr-events .evcal__day.is-has .evcal__n { color: var(--ink); }
+.scr-events .evcal__day.is-sun .evcal__n { color: var(--accent-ink); }
+.scr-events .evcal__day.is-sat .evcal__n { color: var(--indigo); }
+.scr-events .evcal__day.is-today .evcal__n { background: var(--ink); color: #fff; }
+.scr-events .evcal__evs { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.scr-events .evcal__ev {
+  display: block; min-width: 0; padding: 2px 5px; border-radius: 4px; background: rgba(29, 27, 24, .05);
+  font-size: 11.5px; line-height: 1.45; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.scr-events .evcal__ev.is-res { background: var(--ok-weak); color: var(--ok); font-weight: 700; }
+.scr-events .evcal__ev.is-wait { background: var(--warn-weak); color: var(--warn-ink); }   /* 黄土の字は --warn-ink（淡い黄土地で 5.0:1） */
+.scr-events .evcal__ev.is-own { background: var(--indigo-weak); color: var(--indigo); }
+.scr-events .evcal__ev.is-done { background: rgba(29, 27, 24, .05); color: var(--ink-2); }
+.scr-events .evcal__more { font-size: 11px; color: var(--ink-2); padding-left: 5px; }
+.scr-events .evcal__dots { display: none; }
+.scr-events .evcal__dots i, .scr-events .evcal__legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.scr-events .evcal__dots i.is-res, .scr-events .evcal__legend i.is-res { background: var(--ok); }
+.scr-events .evcal__dots i.is-wait, .scr-events .evcal__legend i.is-wait { background: var(--warn); }
+.scr-events .evcal__dots i.is-own, .scr-events .evcal__legend i.is-own { background: var(--indigo); }
+.scr-events .evcal__legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 2px 0; font-size: 12px; color: var(--ink-2); }
+.scr-events .evcal__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.scr-events .evcal-day { margin-top: 18px; }
+.scr-events .evcal-day__ttl { margin: 0 2px 10px; font-size: 15px; font-weight: 800; }
+.scr-events .evcal-day__none { margin: 16px 2px 0; font-size: 14px; color: var(--ink-2); }
+/* せまい幅（タブレットの縦向きまで）：日の枠には印（点）だけ。下にその日の一覧。
+   枠が 90px 前後だと題が「20:00 月…」までしか入らず、読めないため */
+@container main (max-width: 700px) {
+  .scr-events .evcal { padding: 10px 8px; }
+  .scr-events .evcal__td { height: 54px; padding: 1px; }
+  .scr-events .evcal__day { min-height: 50px; align-items: center; gap: 4px; padding: 4px 0; }
+  .scr-events .evcal__n { align-self: center; }
+  .scr-events .evcal__evs { display: none; }
+  .scr-events .evcal__dots { display: flex; gap: 3px; }
+  .scr-events .evcal__dots i { width: 6px; height: 6px; }
+}
+
+/* ---------- 会員の企画・カレンダーの購読 ---------- */
+.scr-events .ev-prop__row { cursor: default; }
+.scr-events button.ev-prop__row { cursor: pointer; }
+.scr-events .ev-prop__why { color: var(--accent-ink); }
+.scr-events .ev-prop__foot { margin-top: 12px; }
+.scr-events .ev-prop__empty { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.scr-events .ev-prop__empty p { flex: 1 1 260px; margin: 0; font-size: 14px; color: var(--ink-2); }
+.scr-events .ev-sub__txt { margin: 0 0 10px; font-size: 14px; color: var(--ink-2); }
+.scr-events .ev-sub__row { display: flex; gap: 8px; }
+.scr-events .ev-sub__url { flex: 1; min-width: 0; font-family: var(--font-num); color: var(--ink-2); background: var(--surface-2); }
+/* 860px 以下は共通の入力と同じ 16px のまま（iPhone で触ったときに画面が拡大されないように） */
+@media (min-width: 861px) { .scr-events .ev-sub__url { font-size: 13.5px; } }
+.scr-events .ev-sub__row .btn { flex: none; }
+.scr-events .ev-sub__row .btn .ico { width: 16px; height: 16px; }
+
+/* ---------- 詳細の窓 ---------- */
+.modal.evd-modal { max-width: 560px; }
+/* 写真は上の帯のすぐ下に、窓の端から端まで */
+.scr-events .evd__photo {
+  display: block; width: calc(100% + 2 * var(--mpx)); max-width: none; height: auto; aspect-ratio: 16 / 9; max-height: 240px;
+  margin: -16px calc(-1 * var(--mpx)) 16px; object-fit: cover; background: var(--line);
+}
+@media (max-width: 640px) { .scr-events .evd__photo { max-height: 200px; } }
+/* 横向き：写真で窓が埋まらないように */
+@media (orientation: landscape) { .scr-events .evd__photo { max-height: min(240px, 28vh); } }
+.scr-events .evd__when { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.6; }
+.scr-events .evd__min { font-weight: 500; color: var(--ink-2); }
+/* 「今日」「開催中」は一覧と同じく太字の文字だけ（札にしない） */
+.scr-events .evd__rel { margin-left: 8px; font-weight: 800; color: var(--ink); }
+.scr-events .evd__ics { margin: 2px 0 0 -6px; }
+.scr-events .evd__ics .ico { width: 16px; height: 16px; }
+.scr-events .evd__state { margin-top: 12px; }
+.scr-events .evd__state p { flex: 1; min-width: 0; margin: 0; }
+.scr-events .evd__state b { margin-right: 4px; }
+.scr-events .evd__desc { margin-top: 14px; font-size: 14.5px; line-height: 1.8; color: var(--ink); }
+.scr-events .evd__sec { margin-top: 20px; }
+.scr-events .evd__h { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 14px; font-weight: 800; }
+.scr-events .evd__n { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.scr-events .evd__kv { font-size: 13.5px; }
+.scr-events .evd__kv th, .scr-events .evd__kv td { padding-top: 9px; padding-bottom: 9px; line-height: 1.65; }
+.scr-events .evd__kv th { width: 6.5em; padding-right: 12px; }
+.scr-events .evd__access .evd__kv { border-top: 1px solid var(--line); }
+.scr-events .evd__access .evd__kv tr:last-child th, .scr-events .evd__access .evd__kv tr:last-child td { border-bottom: 1px solid var(--line); }
+.scr-events .evd__zoom { margin: -2px 0; }
+.scr-events .evd__map { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--indigo); font-weight: 600; white-space: nowrap; }
+.scr-events .evd__map .ico { width: 15px; height: 15px; }
+.scr-events .evd__msg { color: var(--indigo); font-weight: 600; }
+.scr-events .evd__demo { margin: 6px 0 0 -6px; }
+.scr-events .evd__agenda { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.scr-events .evd__agenda li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; line-height: 1.6; }
+.scr-events .evd__agenda .num { color: var(--ink-2); font-weight: 600; }
+.scr-events .evd__speakers { margin: 0; padding: 0; list-style: none; }
+.scr-events .evd__speakers li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--line); }
+.scr-events .evd__speakers li:first-child { border-top: 0; padding-top: 2px; }
+.scr-events .evd__speakers .plink { font-size: 13px; }
+.scr-events .evd__talk { padding-left: 32px; font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+.scr-events .evd__speakbtn { margin-top: 8px; }
+.scr-events .evd__mine { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; }
+.scr-events .evd__mine p { margin: 0; flex: 1 1 200px; }
+.scr-events .evd__speak { margin-top: 10px; padding: 12px 14px 14px; border-radius: 12px; background: var(--surface-2); }
+.scr-events .evd__speak .field { margin-bottom: 10px; }
+.scr-events .evd__speak .row { justify-content: flex-end; }
+.scr-events .evd__people { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.scr-events .evd__people li { min-width: 0; max-width: 100%; }
+.scr-events .evd__people.is-all { flex-direction: column; gap: 8px; }
+.scr-events .evd__rest { align-self: center; color: var(--ink-2); }
+.scr-events .evd__none { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.scr-events .evd__info { margin-top: 20px; border-top: 1px solid var(--line); }
+.scr-events .evd__info .plink { font-size: 13.5px; }
+.scr-events .evd__info .plink__sub { font-size: 12px; }
+.scr-events .evd__cancel { margin-right: auto; }
+@media (max-width: 640px) {
+  .scr-events .evd__cancel { flex: 1 1 100% !important; justify-content: flex-start; order: -1; }
+}
+
+/* ---------- 企画の窓 ---------- */
+.scr-events .ev-pform .field { margin-bottom: 14px; }
+.scr-events .ev-pform .field[hidden] { display: none; }
+.scr-events .ev-pform__where { border: 0; padding: 0; min-width: 0; }
+.scr-events .ev-pform__where legend { padding: 0; }
+.scr-events .ev-pform__radios { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.scr-events .ev-pform__radios .check { align-items: center; min-height: 40px; }
+.scr-events .ev-pform__radios .check input { margin-top: 0; }
+.scr-events .ev-pform__2 { gap: 0 14px; }
+.scr-events .ev-pform__note { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); }
 
 /* スマホでは指で押しやすい高さ（40px以上）にそろえる */
-@media (max-width: 640px) {
-  .scr-events .seg button { height: 40px; }
-  .scr-events .ev-chips .chip { height: 40px; }
-  .scr-events .ev__act .btn, .scr-events .ev-top .btn-text, .scr-events .ev-empty .btn,
-  .scr-events .ev-detail__proto { min-height: 40px; }
+@media (max-width: 860px) {
+  .scr-events .ev__act .btn, .scr-events .ev-top .btn-text, .scr-events .evd__demo, .scr-events .evd__ics { min-height: 40px; }
+  .scr-events .evcal__nav { width: 44px; height: 44px; }
+  /* 参加のしかたの「地図を開く」「相談・メッセージ」：上下に押せる範囲を足して 44px に（見た目は変えない。
+     表の行の上下の余白は 9px ずつあるので、となりの行の字には重ならない） */
+  .scr-events .evd__map, .scr-events .evd__msg { position: relative; white-space: nowrap; }
+  .scr-events .evd__map::before, .scr-events .evd__msg::before {
+    content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%);
+  }
 }

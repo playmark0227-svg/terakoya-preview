@@ -1,0 +1,71 @@
+/* ============================================================
+   ヘルプ（#/help）。質問は <details> を .list の行の形にしたもの。
+   読みやすい幅（760px）で止める。当たった言葉の印は探す画面と同じ（藍の薄い地＋太字）
+   ============================================================ */
+.scr-help { max-width: 760px; }
+
+/* 絞り込みの欄と種類の札 */
+.scr-help .hp-tools { display: grid; gap: 12px; }
+.scr-help .hp-filter { position: relative; }
+.scr-help .hp-filter > .ico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.scr-help .hp-filter .input { width: 100%; padding-left: 42px; }
+.scr-help .hp-chips { min-width: 0; }
+.scr-help .hp-count { margin: 14px 2px 0; font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.scr-help .hp-count b { color: var(--ink); margin: 0 2px 0 4px; }
+.scr-help .hp-count:focus { outline: none; }
+.scr-help .hp-count[hidden], .scr-help .hp-sec[hidden], .scr-help .hp-q[hidden], .scr-help .hp-none[hidden] { display: none; }
+.scr-help .hp-sec { margin-top: 24px; }
+
+/* 質問の行（開け閉め）。線は見えている行の間だけに引く */
+.scr-help .hp-q { position: relative; }
+.scr-help .list > .hp-q:not([hidden]) ~ .hp-q:not([hidden])::before,
+.scr-help .list > .hp-q + .li::before {
+  content: ""; position: absolute; top: 0; left: var(--inset); right: 0; height: 1px; background: var(--line);
+}
+.scr-help .hp-q__sum {
+  display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 14px var(--inset);
+  list-style: none; cursor: pointer; font-size: 15px; font-weight: 600; line-height: 1.55; color: var(--ink);
+  border-radius: inherit;
+}
+.scr-help .hp-q__sum::-webkit-details-marker { display: none; }
+.scr-help .hp-q__sum:hover { background: var(--surface-2); }
+.scr-help .hp-q__sum:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-help .hp-q__txt { flex: 1; min-width: 0; overflow-wrap: anywhere; text-wrap: pretty; word-break: auto-phrase; }
+.scr-help .hp-q__caret { flex: none; width: 18px; height: 18px; color: var(--ink-3); transition: transform .15s var(--ease); }
+.scr-help .hp-q[open] > .hp-q__sum .hp-q__caret { transform: rotate(180deg); }
+.scr-help .hp-q[open] > .hp-q__sum { font-weight: 700; }
+.scr-help .hp-q__a { padding: 0 var(--inset) 18px; font-size: 14px; line-height: 1.85; color: var(--ink-2); overflow-wrap: anywhere; }
+.scr-help .hp-q__text { text-wrap: pretty; word-break: auto-phrase; }
+.scr-help .hp-q__go { margin-top: 12px; }
+.scr-help mark {
+  background: var(--indigo-weak); color: var(--ink); font-weight: 700;
+  border-radius: 3px; padding: 0 1px; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+
+/* ?focus= で来た質問に、短く目印（動きを減らす設定の人には色だけ。app.css が動きを止める） */
+.scr-help .hp-q.is-target > .hp-q__sum { animation: hp-flash 2.4s var(--ease); }
+@keyframes hp-flash { 0%, 45% { background: var(--indigo-weak); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .scr-help .hp-q.is-target > .hp-q__sum { background: var(--indigo-weak); } }
+
+/* 絞り込んで何もないとき */
+.scr-help .hp-none { margin-top: 20px; }
+.scr-help .hp-none .empty { padding: 32px 20px; }
+.scr-help .hp-none .empty > p { color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
+.scr-help .hp-none__acts { justify-content: center; gap: 8px; }
+
+/* 運営に聞く */
+.scr-help .hp-ask { margin-top: 32px; }
+.scr-help .hp-ask__card { display: flex; align-items: center; justify-content: space-between; gap: 14px 20px; }
+.scr-help .hp-ask__txt { min-width: 0; }
+.scr-help .hp-ask__txt .sub { margin-top: 4px; }
+.scr-help .hp-ask__card > .btn { flex: none; }
+
+/* 規約と表記 */
+.scr-help .hp-rules__list { list-style: decimal; padding-left: 1.4em; }
+.scr-help .hp-rules__list li + li { margin-top: 6px; }
+.scr-help .hp-rules__list li::marker { color: var(--ink-3); font-family: var(--font-num); font-weight: 700; }
+
+@container main (max-width: 520px) {
+  .scr-help .hp-ask__card { flex-direction: column; align-items: stretch; }
+  .scr-help .hp-ask__card > .btn { width: 100%; }
+}

@@ -1,48 +1,73 @@
 /* ============================================================
    ホーム（.scr-home）
-   上から「見出し → 続きから → 未読など → 2段組み」。
-   2段組みは、左に新着・イベント、右にレベル・案件。
+   上から「見出し → 今日の会 → 続きから → 未読など → 2段組み」。
+   2段組みは、左に新着・イベント、右に案件と紹介・学びのレベル。
+   本文の組み替えは @container main（本文の幅）で書く。
    ============================================================ */
 
 /* ---------- 見出し ---------- */
 .scr-home .home-head { margin-bottom: 16px; }
 .scr-home .home-meta { margin-top: 2px; font-size: 13.5px; color: var(--ink-2); }
+@container main (max-width: 350px) { .scr-home .home-meta__cohort { display: none; } }
 
-/* 見出しは黒の太字で、字間は空けない（app.css の .sec-ttl は灰色・字間あり） */
-.scr-home .sec-ttl { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: 0; margin: 0 2px 8px; }
-/* 見出し右の小さなリンクは、見た目はそのままで押せる範囲だけ広げる */
-.scr-home .sec-ttl a { font-size: 13px; padding: 10px 0 10px 12px; margin: -10px 0; }
-
-.scr-home .home-1line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.scr-home .home-count { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; }
-
-/* ---------- 続きから ---------- */
-.scr-home .home-next__card {
-  display: flex; align-items: center; gap: 24px; padding: 18px 22px;
+/* 区切りの見出し（黒の太字）。リンクは見出しの外、右端に */
+.scr-home .home-sec__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 8px; }
+.scr-home .home-sec__head .sec-ttl { margin: 0; font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: 0; }
+/* 小さなリンクは、見た目はそのままで押せる範囲だけ広げる */
+.scr-home .home-sec__more {
+  flex: none; font-size: 13px; font-weight: 600; color: var(--indigo); text-decoration: none;
+  padding: 12px 0 12px 12px; margin: -12px 0;
 }
-.scr-home .home-next__body { flex: 1; min-width: 0; }
-.scr-home .home-next__over { font-size: 13px; color: var(--ink-2); }
-/* 行の中の小さなリンクなので、上下の余白で押せる範囲だけ広げる（行の高さは変えない） */
-.scr-home .home-next__over a { color: inherit; text-decoration: none; padding: 10px 0; }
-.scr-home .home-next__over a:hover { text-decoration: underline; }
-.scr-home .home-next__ttl { font-size: 18px; font-weight: 700; line-height: 1.5; }
-.scr-home .home-next__ttl a { color: inherit; text-decoration: none; }
-.scr-home .home-next__ttl a:hover { text-decoration: underline; }
-.scr-home .home-next__sub { margin-top: 2px; font-size: 13.5px; color: var(--ink-2); }
-.scr-home .home-next__prog { display: flex; align-items: center; gap: 10px; margin-top: 10px; max-width: 320px; }
-.scr-home .home-next__prog .bar { flex: 1; height: 4px; }
-.scr-home .home-next__prog > span { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
-.scr-home .home-next__btn { flex: none; min-width: 148px; }
-/* 講座の写真（学部ごと・16:9）を左に小さく */
-.scr-home .home-next__card.has-img { gap: 20px; padding-left: 18px; }
-.scr-home .home-next__img { display: block; flex: none; width: 160px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--line); }
-.scr-home .home-next__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.scr-home .home-next__card.has-img .home-next__ttl { word-break: auto-phrase; overflow-wrap: anywhere; }
-/* 左の帯が出ている狭めの幅などでは、ボタンを題名の下に回して題名の幅をとる */
-@media (min-width: 641px) and (max-width: 720px), (min-width: 861px) and (max-width: 1060px) {
-  .scr-home .home-next__card.has-img { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 12px 20px; align-items: start; }
-  .scr-home .home-next__card.has-img .home-next__img { grid-row: 1 / span 2; }
-  .scr-home .home-next__card.has-img .home-next__btn { grid-column: 2; justify-self: start; }
+.scr-home .home-sec__more:hover { text-decoration: underline; }
+
+.scr-home .home-count { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+/* 行の補足は1行で切る（狭い幅では2行まで。下の @container） */
+.scr-home .home-clamp { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 札は広い幅では右端、狭い幅では題の下 */
+.scr-home .home-tag--under { display: none; }
+.scr-home .home-tag--under .tag { margin: 3px 0 1px; }
+
+/* ---------- 今日の会 ---------- */
+.scr-home .home-today { margin-bottom: 22px; overflow: hidden; }
+.scr-home .home-today__row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 16px;
+  padding: 14px 20px;
+}
+.scr-home .home-today__row + .home-today__row { border-top: 1px solid var(--line); }
+.scr-home .home-today__when { font-size: 14px; color: var(--ink-2); white-space: nowrap; }
+.scr-home .home-today__when b { color: var(--ink); font-weight: 800; }
+.scr-home .home-today__when .num { font-weight: 700; color: var(--ink); }
+.scr-home .home-today__ttl { font-size: 15px; font-weight: 700; line-height: 1.5; }
+.scr-home .home-today__ttl a { color: inherit; text-decoration: none; }
+.scr-home .home-today__ttl a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.scr-home .home-today__sub { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.scr-home .home-today__btn { min-width: 88px; }
+
+/* ---------- 続きから（講座は U.resumeCard、スタートガイドと全部見終えたときはこの面） ---------- */
+.scr-home .home-step { display: flex; align-items: center; gap: 24px; padding: 18px 22px; }
+.scr-home .home-step__body { flex: 1; min-width: 0; }
+.scr-home .home-step__ttl { font-size: 18px; font-weight: 700; line-height: 1.5; }
+.scr-home .home-step__sub { margin-top: 2px; font-size: 13.5px; color: var(--ink-2); }
+.scr-home .home-step__prog { display: flex; align-items: center; gap: 10px; margin-top: 10px; max-width: 320px; }
+.scr-home .home-step__prog .bar { flex: 1; height: 4px; }
+.scr-home .home-step__prog > span { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+.scr-home .home-step__btn { flex: none; min-width: 148px; }
+
+/* 続きからの面（U.resumeCard）：スマホの幅では、写真の右は講座名と題だけにして、残りは写真の下へ（題が細い列で3行に割れないように） */
+@container main (max-width: 420px) {
+  .scr-home .resume--home { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 12px; row-gap: 0; align-items: start; }
+  .scr-home .resume--home .resume__img { grid-column: 1; grid-row: 1 / span 2; width: 72px; margin-top: 3px; }
+  .scr-home .resume--home .resume__body { display: contents; }
+  .scr-home .resume--home .resume__over { grid-column: 2; grid-row: 1; }
+  .scr-home .resume--home .resume__ttl { grid-column: 2; grid-row: 2; }
+  .scr-home .resume--home .resume__sub { grid-column: 1 / -1; grid-row: 3; margin-top: 10px; }
+  .scr-home .resume--home .resume__prog { grid-column: 1 / -1; grid-row: 4; }
+  .scr-home .resume--home .resume__btn { grid-column: 1 / -1; grid-row: 5; margin-top: 14px; }
+}
+/* 指で押す幅：題のリンクは上下に押せる範囲を足して 44px に（見た目は変えない）。
+   position: relative で、すぐ下の補足の文より上に重ねる（重なったところを押しても題のリンクになる） */
+@media (max-width: 860px) {
+  .scr-home .resume__ttl a, .scr-home .home-today__ttl a { position: relative; display: inline-block; padding: 11px 0; margin: -11px 0; }
 }
 
 /* ---------- 未読など ---------- */
@@ -54,7 +79,11 @@
 }
 .scr-home .home-col { min-width: 0; }
 .scr-home .home-col > .home-sec + .home-sec { margin-top: 24px; }
-.scr-home .home-none { margin: 0 2px; font-size: 14px; color: var(--ink-2); }
+
+/* 支払いの猶予切れ・休会のとき（使えるものとレベルだけ）：見出しのすぐ下から */
+.scr-home .home-cols--stop { margin-top: 8px; }
+.scr-home .home-stop { margin-bottom: 20px; }
+.scr-home .home-stop b { display: block; }
 
 /* 新着 */
 .scr-home .home-post { align-items: flex-start; gap: 12px; padding: 12px 16px; min-height: 0; }
@@ -66,6 +95,7 @@
 .scr-home .home-post__txt {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   margin-top: 1px; font-size: 14px; line-height: 1.6; color: var(--ink);
+  text-wrap: pretty; word-break: auto-phrase;
 }
 
 /* イベント（日付を左に文字で） */
@@ -77,39 +107,64 @@
 .scr-home .home-ev .li__ttl { font-size: 14.5px; }
 .scr-home .home-ev .li__end { align-self: center; }
 
-/* 学びのレベル（面ごと押せる → XPのため方） */
-.scr-home .home-lv { padding: 16px 20px; cursor: pointer; }
-.scr-home .home-lv:hover { background: var(--surface-2); }
-.scr-home .home-lv .row-between { margin-bottom: 10px; }
+/* 学びのレベル：上の面が「レベルのしくみ」のボタン、下が次に開く講座 */
+.scr-home .home-lv { overflow: hidden; }
+.scr-home .home-lv__btn {
+  display: block; width: 100%; padding: 16px 20px 14px; border: 0; background: none; color: inherit;
+  text-align: left; font: inherit; cursor: pointer;
+}
+.scr-home .home-lv__btn:hover { background: var(--surface-2); }
+.scr-home .home-lv__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-l) var(--r-l) 0 0; }
+.scr-home .home-lv__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .scr-home .home-lv__xp { font-size: 13px; color: var(--ink-2); }
 .scr-home .home-lv__xp b { font-size: 16px; color: var(--ink); }
-.scr-home .home-lv__to { margin-top: 8px; font-size: 13.5px; color: var(--ink-2); }
+.scr-home .home-lv__bar { display: block; margin-top: 10px; }
+.scr-home .home-lv__to { display: block; margin-top: 8px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6; text-wrap: pretty; word-break: auto-phrase; }
 .scr-home .home-lv__to b { color: var(--ink); margin: 0 2px; }
-.scr-home .home-lv__open { margin-top: 6px; font-size: 13.5px; color: var(--ink-2); }
-.scr-home .home-lv__list { margin: 2px 0 0 1.2em; padding: 0; list-style: disc; font-size: 13.5px; line-height: 1.8; color: var(--ink); }
-.scr-home .home-lv__more { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--indigo); }
+.scr-home .home-lv__more { display: inline-flex; align-items: center; gap: 2px; margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--indigo); }
+.scr-home .home-lv__more .chev { width: 14px; height: 14px; color: currentColor; }
+.scr-home .home-lv__open { padding: 12px 20px 4px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink-3); }
+.scr-home .home-lvc { gap: 12px; min-height: 0; padding-top: 10px; padding-bottom: 10px; }
+.scr-home .home-lvc + .home-lvc::before { left: calc(var(--inset) + 76px); }
+.scr-home .home-lvc .li__ttl { font-size: 14.5px; }
+.scr-home .home-lvc__thumb {
+  position: relative; flex: none; width: 64px; aspect-ratio: 16 / 10; border-radius: 6px; overflow: hidden; background: var(--line);
+}
+.scr-home .home-lvc__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(.7); }
+.scr-home .home-lvc__lock { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; background: rgba(29, 27, 24, .45); }
+/* XPの棒は左の帯（タブレット・パソコン）にもあるので、帯がある幅では出さない */
+@media (min-width: 641px) { .scr-home .home-lv__bar { display: none; } }
 
-/* ---------- 横幅ごと ---------- */
-/* 左の帯が出ている狭めの画面（861〜1060px）と、スマホに近い幅では1段にする */
-@media (max-width: 720px), (min-width: 861px) and (max-width: 1060px) {
+/* ---------- 本文の幅ごと ---------- */
+/* 1段にする（タブレットの縦・左の帯が出ている狭めの画面） */
+@container main (max-width: 740px) {
   .scr-home .home-cols { grid-template-columns: minmax(0, 1fr); gap: 24px; }
 }
-
-@media (max-width: 640px) {
-  .scr-home .page-ttl { font-size: 23px; }
-  .scr-home .home-next__card { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }
-  .scr-home .home-next__ttl { font-size: 17px; }
-  .scr-home .home-next__prog { max-width: none; }
-  .scr-home .home-next__btn { width: 100%; }
-  /* 写真があるときは、写真と題名を横に並べ、ボタンはその下に全幅で */
-  .scr-home .home-next__card.has-img { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px 12px; align-items: start; padding-left: 16px; }
-  .scr-home .home-next__img { width: 100%; border-radius: 6px; margin-top: 3px; }
-  .scr-home .home-next__card.has-img .home-next__btn { grid-column: 1 / -1; }
+@container main (max-width: 600px) {
+  .scr-home .home-step { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }
+  .scr-home .home-step__ttl { font-size: 17px; }
+  .scr-home .home-step__prog { max-width: none; }
+  .scr-home .home-step__btn { width: 100%; }
   .scr-home .home-post { padding: 12px 14px; }
   .scr-home .home-post + .home-post::before { left: 56px; }
-  /* スマホでは日時を題名の上に1行で出し、題名の幅をとる */
+  /* 日時は題名の上に1行で出し、題名の幅をとる */
   .scr-home .home-ev { flex-wrap: wrap; gap: 2px 12px; }
   .scr-home .home-ev__when { width: 100%; padding-top: 0; }
   .scr-home .home-ev__when span { display: inline; margin-left: 6px; }
-  .scr-home .home-lv { padding: 16px; }
+  .scr-home .home-lv__btn { padding: 16px 16px 14px; }
+  .scr-home .home-lv__open { padding-left: 16px; padding-right: 16px; }
+  .scr-home .home-lvc + .home-lvc::before { left: calc(var(--inset) + 76px); }
+  /* 今日の会：時刻を題の上に、ボタンは右に */
+  .scr-home .home-today__row { grid-template-columns: minmax(0, 1fr) auto; padding: 12px 16px; column-gap: 12px; }
+  .scr-home .home-today__when { grid-column: 1; }
+  .scr-home .home-today__body { grid-column: 1; }
+  .scr-home .home-today__btn { grid-column: 2; grid-row: 1 / span 2; }
+}
+/* 400px 以下の画面（本文 368px 以下）：補足は2行まで、札は題の下に */
+@container main (max-width: 368px) {
+  .scr-home .home-clamp {
+    white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .scr-home .home-tag--under { display: block; }
+  .scr-home .home-tag--end { display: none; }
 }

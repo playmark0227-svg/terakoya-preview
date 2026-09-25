@@ -1,15 +1,30 @@
 /* ============================================================
-   タイムライン（#/feed）
-   本文の列は 680px まで。広い画面では右に細い列を置く。
-   投稿は1枚ずつのカードにせず、1つの箱に線で区切って並べる。
+   タイムライン（#/feed）と投稿1件（#/feed/<投稿id>）
+   - 1180px より広い画面：本文の列＋右に 296px の列（ランキング・イベント・名簿・ルール）
+   - それより狭い画面：本文の列を真ん中に置き、右の列の中身は書く欄の上の横に流れる帯に。
+     ルールは見出しの横の「コミュニティのルール」から窓で開く
+   - 投稿は1枚ずつのカードにせず、1つの箱に線で区切って並べる
+   - 運営が隠した投稿・コメント（本人にだけ見える）は、黄土の知らせと --warn-ink の一言で示す
    ============================================================ */
+.scr-feed { max-width: 680px; margin-inline: auto; }
 .scr-feed .feed-layout { display: grid; gap: 28px; align-items: start; }
-.scr-feed .feed-main, .scr-feed .feed-side { min-width: 0; max-width: 680px; }
+.scr-feed .feed-main { min-width: 0; }
+.scr-feed .feed-side { display: none; }
+.scr-feed .feed-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 16px; }
+.scr-feed .feed-head__rules { flex: none; height: 40px; font-size: 13.5px; margin-right: -6px; }
+/* 見出しの下に折れたときは、文字の左を見出しにそろえる */
+@container main (max-width: 320px) {
+  .scr-feed .feed-head__rules { margin-left: -6px; }
+}
 @media (min-width: 1180px) {
-  .scr-feed .feed-layout { grid-template-columns: minmax(0, 1fr) 264px; gap: 24px; }
+  .scr-feed { max-width: none; margin-inline: 0; }
+  .scr-feed.scr-feed--one { max-width: 680px; }
+  .scr-feed .feed-layout { grid-template-columns: minmax(0, 1fr) 296px; }
+  .scr-feed .feed-side { display: block; min-width: 0; text-wrap: pretty; }
+  .scr-feed .feed-head__rules, .scr-feed .fstrip { display: none; }
 }
 /* 右の列が画面の高さに収まるときだけ止める（背の低い画面で、下のルールが最後まで隠れないように） */
-@media (min-width: 1180px) and (min-height: 760px) {
+@media (min-width: 1180px) and (min-height: 820px) {
   .scr-feed .feed-side { position: sticky; top: 24px; }
 }
 
@@ -19,10 +34,34 @@
   content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px;
 }
 
+/* ---------- 上の帯（狭い画面：ランキング・近いイベント・会員名簿） ---------- */
+.scr-feed .fstrip { margin: 0 0 14px; }
+.scr-feed .fstrip__list { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.scr-feed .fstrip__list::-webkit-scrollbar { display: none; }
+.scr-feed .fstrip__list > li { flex: none; display: flex; }
+.scr-feed .fstrip__it {
+  display: flex; flex-direction: column; justify-content: center; gap: 1px; min-height: 54px; min-width: 124px; max-width: 232px;
+  padding: 8px 14px; border-radius: 12px; background: var(--surface); border: 1px solid rgba(29, 27, 24, .06); box-shadow: var(--shadow-1);
+  color: inherit; text-decoration: none;
+}
+.scr-feed .fstrip__it:hover { border-color: var(--line-2); }
+.scr-feed .fstrip__it:focus-visible { outline-offset: -2px; }
+.scr-feed .fstrip__k { font-size: 12px; line-height: 1.5; color: var(--ink-3); white-space: nowrap; }
+.scr-feed .fstrip__v { font-size: 13.5px; font-weight: 700; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) {
+  /* スマホは端まで流す。右の端をぼかして続きがあることを見せる */
+  .scr-feed .fstrip__list {
+    margin: 0 calc(-1 * var(--gutter)); padding: 2px var(--gutter) 4px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent);
+  }
+  .scr-feed .fstrip__list::after { content: ""; flex: 0 0 12px; }
+}
+
 /* ---------- 自己紹介がまだの人へ ---------- */
 .scr-feed .intro-cta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 12px 14px 12px 18px; margin-bottom: 12px; }
 .scr-feed .intro-cta__ttl { flex: 1 1 200px; min-width: 0; font-weight: 700; font-size: 14.5px; line-height: 1.5; }
-@media (max-width: 560px) { .scr-feed .intro-cta .btn { height: 40px; } }
+.scr-feed .intro-cta + .composer { margin-top: 0; }
 
 /* ---------- 書く欄 ---------- */
 .scr-feed .composer { padding: 16px 18px 14px; }
@@ -33,83 +72,263 @@
   background: var(--surface-2); border-color: var(--line); line-height: 1.75;
 }
 .scr-feed .composer__ta:focus { background: var(--surface); }
-.scr-feed .composer__foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 12px; margin-top: 12px; padding-left: 52px; }
-.scr-feed .composer__send { flex: none; margin-left: auto; }
-@media (max-width: 560px) {
-  .scr-feed .composer { padding: 14px 14px 12px; }
-  .scr-feed .composer__foot { padding-left: 0; }
+/* 付けた写真：1枚が小さくなりすぎないよう、狭い幅では2列に折る（× が写真を覆わないように） */
+.scr-feed .composer__imgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.scr-feed .composer__img { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--line); }
+.scr-feed .composer__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.scr-feed .composer__unimg {
+  position: absolute; top: 3px; right: 3px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(20, 18, 15, .72); color: #fff;
 }
+.scr-feed .composer__unimg .ico { width: 14px; height: 14px; }
+.scr-feed .composer__unimg::before { content: ""; position: absolute; inset: -8px; }
+.scr-feed .composer__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-top: 12px; padding-left: 52px; }
+/* 行を折るかどうかを「投稿できない理由」の長さで決めない（1文字打った瞬間にボタンが上へ跳ねないように）。
+   理由の文は残りの幅の中で折り返す */
+.scr-feed .composer__acts { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; justify-content: flex-end; min-width: 0; }
+.scr-feed .composer__photo {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 40px; height: 40px; padding: 0 9px;
+  border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--ink-2); font-size: 12.5px; font-weight: 600;
+}
+.scr-feed .composer__photo:hover { border-color: var(--ink-3); color: var(--ink); }
+.scr-feed .composer__photo[disabled] { opacity: .45; }
+.scr-feed .composer__file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.scr-feed .composer__count { flex: none; font-size: 12.5px; color: var(--ink-3); }
+.scr-feed .composer__count:empty, .scr-feed .composer__why:empty { display: none; }
+.scr-feed .composer__count.is-over { color: var(--warn); font-weight: 700; }
+.scr-feed .composer__why { flex: 0 1 auto; min-width: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-3); text-align: right; text-wrap: balance; word-break: auto-phrase; }
+.scr-feed .composer__send { flex: none; }
 
 /* ---------- 絞り込み（せまい画面では横に流す。ページ全体は横に動かさない） ---------- */
 .scr-feed .feed-chips { position: relative; margin: 18px 0 12px; }
 @media (max-width: 640px) {
-  /* 上下の padding は、札の押せる範囲（上の ::before）が横スクロールの箱で切れないため */
-  .scr-feed .feed-chips {
-    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    margin: 14px -16px 8px; padding: 4px 16px 6px;
-  }
-  .scr-feed .feed-chips::-webkit-scrollbar { display: none; }
-  .scr-feed .feed-chips::after { content: ""; flex: 0 0 8px; }   /* 右端の余白（横に流す箱は右の padding が効かないため） */
-  .scr-feed .feed-chips .chip { flex: none; }
+  .scr-feed .feed-chips { margin-top: 14px; margin-bottom: 8px; }
+}
+
+/* 入会月でしぼったとき（#/feed?kind=intro&cohort=2026-09）：何でしぼっているかと件数、条件を外すリンク */
+.scr-feed .feed-cohort { display: flex; align-items: center; flex-wrap: wrap; gap: 0 14px; margin: -2px 2px 8px; }
+.scr-feed .feed-cohort__txt { font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+.scr-feed .feed-cohort__txt b { color: var(--ink); }
+.scr-feed .feed-cohort__n { margin-left: 8px; font-size: 13px; }
+.scr-feed .feed-cohort__clear {
+  display: inline-flex; align-items: center; min-height: 40px; font-size: 13.5px; font-weight: 600; color: var(--indigo); text-decoration: none;
+}
+.scr-feed .feed-cohort__clear:hover { text-decoration: underline; }
+
+/* 運営が隠した自分の投稿（投稿1件の画面の上・「自分の投稿」の上） */
+.scr-feed .feed-hidden { margin-bottom: 14px; }
+.scr-feed .feed-hidden > div { flex: 1 1 auto; min-width: 0; }
+.scr-feed .feed-hidden__why { margin-top: 2px; }
+.scr-feed .feed-hidden__act { margin-top: 10px; }
+/* 文の切れ目で折る */
+.scr-feed .feed-sent { display: inline-block; }
+.scr-feed .feed-hidden__list { margin: 2px 0 -8px; padding: 0; list-style: none; }
+.scr-feed .feed-hidden__list a {
+  display: inline-flex; align-items: center; min-height: 36px; max-width: 100%; color: inherit; font-weight: 600;
+  text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere;
+}
+@media (max-width: 860px) {
+  .scr-feed .feed-hidden__list a { min-height: 40px; }
 }
 
 /* ---------- 投稿の並び ---------- */
-.scr-feed .feed-list {
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); overflow: hidden;
-}
-.scr-feed .post { padding: 16px 18px 4px; }
+.scr-feed .feed-list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); }
+.scr-feed .feed-list > .post:first-child { border-top-left-radius: var(--r-l); border-top-right-radius: var(--r-l); }
+.scr-feed .feed-list > .post:last-child { border-bottom-left-radius: var(--r-l); border-bottom-right-radius: var(--r-l); }
+.scr-feed .post { position: relative; padding: 16px 18px 6px; }
 .scr-feed .post + .post { border-top: 1px solid var(--line); }
-.scr-feed .post__head { display: flex; align-items: flex-start; gap: 12px; }
-.scr-feed .post__who { flex: 1; min-width: 0; }
-.scr-feed .post__name { font-weight: 700; font-size: 14.5px; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 肩書き・地域が長いときは省略して、時刻は必ず1行に残す */
+.scr-feed .post:focus { outline: none; }
+.scr-feed .post:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-feed .post__head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* 顔の右に名前、その下に肩書き（運営・講師）か地域 */
+.scr-feed .post__head .plink {
+  flex: 0 1 auto; display: grid; grid-template-columns: 40px minmax(0, auto); gap: 0 12px; align-items: center; min-width: 0;
+}
+.scr-feed .post__head .plink .avatar { grid-row: 1 / span 2; }
+.scr-feed .post__head .plink__name { grid-column: 2; font-size: 14.5px; line-height: 1.45; }
+.scr-feed .post__head .plink__name:last-child { grid-row: 1 / span 2; }   /* 地域を出していない人は、名前を顔の真ん中に */
+.scr-feed .post__head .plink__sub { grid-column: 2; font-size: 12.5px; line-height: 1.5; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scr-feed .post__meta {
-  display: flex; align-items: center; gap: 6px; min-width: 0;
-  font-size: 12.5px; color: var(--ink-3); line-height: 1.6; margin-top: 1px; white-space: nowrap;
+  flex: none; margin-left: auto; display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--ink-3); line-height: 1.6; white-space: nowrap;
 }
-.scr-feed .post__meta > * { flex: none; }
-.scr-feed .post__meta > .post__role { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.scr-feed .post__pin { flex: none; font-size: 12px; font-weight: 700; color: var(--ink-2); line-height: 1.6; }
+.scr-feed .post__time { display: inline-flex; align-items: center; min-height: 40px; color: inherit; text-decoration: none; }
+.scr-feed .post__time:hover { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }
+.scr-feed .post__pin { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.scr-feed .post__more, .scr-feed .cmt__more { position: relative; flex: none; margin-right: -8px; }
+.scr-feed .post__menu, .scr-feed .cmt__menu { color: var(--ink-3); }
+.scr-feed .post__menu[aria-expanded="true"], .scr-feed .cmt__menu[aria-expanded="true"] { background: rgba(29, 27, 24, .06); color: var(--ink); }
+.scr-feed .post__pop { top: calc(100% + 4px); right: 0; min-width: 196px; }
 /* 本文は名前の下にそろえる（顔の幅 40px ＋ 間 12px） */
-.scr-feed .post__text, .scr-feed .post__link { margin-left: 52px; }
+.scr-feed .post__kind, .scr-feed .post__text, .scr-feed .post__link, .scr-feed .post__imgs, .scr-feed .post__cmts { margin-left: 52px; }
 .scr-feed .post__foot { margin-left: 42px; }   /* いいねの押せる範囲の左の余白ぶん、少し左へ */
-.scr-feed .post__text { margin-top: 4px; font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
+.scr-feed .post__kind { margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.scr-feed .post__text { margin-top: 2px; font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; text-wrap: pretty; }
 .scr-feed .post__link { margin-top: 8px; font-size: 14px; }
-.scr-feed .post__link a { display: inline-block; padding: 8px 0; margin: -8px 0; color: var(--indigo); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-.scr-feed .post__foot { display: flex; align-items: center; gap: 14px; min-height: 40px; margin-top: 2px; }
-.scr-feed .post__like {
+.scr-feed .post__link a { display: inline-block; padding: 10px 0; margin: -10px 0; color: var(--indigo); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.scr-feed .post__ed { font-size: 12px; }
+/* 写真は 16:9 に切って並べる（2〜4枚は2列、3枚は1枚目を横いっぱい） */
+.scr-feed .post__imgs { display: grid; gap: 4px; margin-top: 10px; border-radius: 12px; overflow: hidden; }
+.scr-feed .post__imgs.n-2, .scr-feed .post__imgs.n-3, .scr-feed .post__imgs.n-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.scr-feed .post__imgs.n-3 > :first-child { grid-column: 1 / -1; }
+.scr-feed .post__img { display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 0; background: var(--line); overflow: hidden; cursor: zoom-in; }
+.scr-feed .post__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.scr-feed .post__img:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-feed .post__foot { display: flex; align-items: center; gap: 4px; min-height: 40px; margin-top: 4px; }
+.scr-feed .post__act {
   display: inline-flex; align-items: center; gap: 6px; height: 40px; min-width: 56px; padding: 0 10px;
-  border: 0; border-radius: 20px; background: none; color: var(--ink-3); font-size: 13px; font-weight: 600;
+  border: 0; border-radius: 20px; background: none; color: var(--ink-3); font-size: 13px; font-weight: 600; text-decoration: none;
 }
-.scr-feed .post__like:hover { background: rgba(29, 27, 24, .05); color: var(--ink-2); }
-.scr-feed .post__like .ico { width: 18px; height: 18px; }
+.scr-feed .post__act:hover { background: rgba(29, 27, 24, .05); color: var(--ink-2); }
+.scr-feed .post__act .ico { width: 18px; height: 18px; }
 .scr-feed .post__like.is-on { color: var(--accent-ink); }
 .scr-feed .post__like.is-on .ico path { fill: currentColor; }
 .scr-feed .post__like.is-pop .ico { animation: feedHeart .4s var(--ease); }
-.scr-feed .post__cmt { font-size: 13px; color: var(--ink-3); }
-.scr-feed .post.is-fresh { animation: feedFresh 2.6s var(--ease); }
+.scr-feed .post__cmt[aria-expanded="true"] { color: var(--ink); background: rgba(29, 27, 24, .05); }
+.scr-feed .feed-empty-cmt { color: var(--ink-3); }
+
+/* タイムラインの中の「最新2件」のコメント */
+.scr-feed .post__cmts { margin-top: 2px; margin-bottom: 12px; padding: 12px 14px 6px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.scr-feed .post__cmts .cmt + .cmt { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.scr-feed .post__cmts .cmt__text { margin-left: 32px; font-size: 14px; line-height: 1.7; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.scr-feed .post__cmts .cmt__ans, .scr-feed .post__cmts .cmt__acts { margin-left: 24px; }
+.scr-feed .post__cmts .cmt__ans, .scr-feed .post__cmts .cmt__hidden { margin-left: 32px; }
+.scr-feed .post__all { margin-top: 2px; border-top: 1px solid var(--line); padding-top: 2px; }
+.scr-feed .post__all a { display: inline-flex; align-items: center; min-height: 40px; font-size: 13.5px; font-weight: 600; color: var(--indigo); text-decoration: none; }
+.scr-feed .post__all a:hover { text-decoration: underline; }
+
+/* もっと見る・終わり */
+.scr-feed .feed-more { margin-top: 14px; text-align: center; }
+.scr-feed .feed-end { margin-top: 16px; text-align: center; font-size: 13px; color: var(--ink-3); }
+
+/* 目印（深いリンクで来た投稿・コメント）。動きを減らす設定の人には、色を付けたままにする */
+.scr-feed .is-target { animation: feedTarget 3s var(--ease); }
+.scr-feed .post.is-fresh, .scr-feed .cmt.is-fresh { animation: feedFresh 2.6s var(--ease); }
 @keyframes feedHeart { 0% { transform: scale(.6); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
-@keyframes feedFresh { 0%, 45% { background: var(--ok-weak); } 100% { background: var(--surface); } }
-@media (max-width: 560px) {
-  .scr-feed .post { padding: 14px 14px 4px; }
-  .scr-feed .post__head { gap: 10px; }
-  /* せまい画面では本文を字下げせず、横幅いっぱいに使う */
-  .scr-feed .post__text, .scr-feed .post__link { margin-left: 0; }
-  .scr-feed .post__text { margin-top: 8px; }
-  .scr-feed .post__foot { margin-left: -10px; }
+@keyframes feedFresh { 0%, 45% { background: var(--ok-weak); } 100% { background: transparent; } }
+@keyframes feedTarget { 0%, 50% { background: var(--indigo-weak); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  .scr-feed .is-target { background: var(--indigo-weak); }
 }
 
-/* ---------- 横の列 ---------- */
-/* app.css の .li__ttl / .li__sub は span のままだと横に並んでしまうため、ここで段にする */
-.scr-feed .li__ttl, .scr-feed .li__sub { display: block; }
-.scr-feed .feed-side .li__ttl { font-size: 14px; }
-.scr-feed .feed-side__rank .li__end { color: var(--ink-2); font-weight: 600; }
-.scr-feed .feed-side__ttl {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-  margin: 24px 2px 8px; font-size: 14px; font-weight: 700; color: var(--ink);
+/* ---------- コメント（投稿1件の画面） ---------- */
+.scr-feed .cmt { position: relative; }
+.scr-feed .cmt:focus { outline: none; }
+.scr-feed .cmt__head { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 32px; }
+.scr-feed .cmt__head .plink { position: relative; flex: 0 1 auto; min-width: 0; }
+/* 顔が小さいぶん、押せる範囲を上下に足して 40px 以上に */
+.scr-feed .cmt__head .plink::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; bottom: -8px; }
+/* 狭いときは肩書きから先に縮める（名前を残す） */
+.scr-feed .cmt__head .plink__name { flex: 0 1 auto; font-size: 13.5px; }
+.scr-feed .cmt__head .plink__sub { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-feed .cmt__time { flex: none; font-size: 12px; color: var(--ink-3); }
+/* 一覧の中のコメントの時刻は、そのコメントの場所へのリンク（押せる範囲は 40px。行の高さは変えない） */
+.scr-feed a.cmt__time { display: inline-flex; align-items: center; min-height: 40px; margin: -4px -4px; padding: 0 4px; text-decoration: none; }
+.scr-feed a.cmt__time:hover { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }
+.scr-feed .cmt__more { margin-left: auto; }
+.scr-feed .cmt__text { margin: 2px 0 0 38px; font-size: 14.5px; line-height: 1.75; overflow-wrap: anywhere; text-wrap: pretty; }
+.scr-feed .cmt__ans { margin: 6px 0 0 38px; }
+.scr-feed .cmt__ans .tag { white-space: normal; height: auto; min-height: 22px; line-height: 1.4; padding-top: 2px; padding-bottom: 2px; }
+.scr-feed .cmt__acts { display: flex; align-items: center; gap: 2px; margin: 2px 0 0 30px; }
+.scr-feed .cmt__thank, .scr-feed .cmt__act {
+  display: inline-flex; align-items: center; gap: 5px; height: 40px; padding: 0 8px; border: 0; border-radius: 20px;
+  background: none; color: var(--ink-3); font-size: 12.5px; font-weight: 600;
 }
-.scr-feed .feed-side__ttl a { font-size: 13px; font-weight: 500; color: var(--indigo); text-decoration: none; padding: 10px 0 10px 12px; margin: -10px 0; }
-.scr-feed .feed-side__ttl a:hover { text-decoration: underline; }
-.scr-feed .feed-rules ol { margin: 0; padding-left: 1.4em; list-style: decimal; }
-.scr-feed .feed-rules li { font-size: 13px; line-height: 1.7; color: var(--ink-2); padding-left: 2px; }
-.scr-feed .feed-rules li + li { margin-top: 6px; }
+.scr-feed .cmt__thank:hover:not([disabled]), .scr-feed .cmt__act:hover { background: rgba(29, 27, 24, .05); color: var(--ink-2); }
+/* 自分のコメントがもらった「ありがとう」の数（押せないので文字だけ。並びはボタンとそろえる） */
+.scr-feed .cmt__got { display: inline-flex; align-items: center; height: 40px; padding: 0 8px; font-size: 12.5px; font-weight: 600; color: var(--ink-3); }
+.scr-feed .cmt__got .num { margin-left: 5px; font-weight: 700; }
+/* 運営が隠した自分のコメント */
+.scr-feed .cmt.is-hidden .cmt__text { color: var(--ink-2); }
+.scr-feed .cmt__hidden { margin: 4px 0 0 38px; font-size: 12.5px; font-weight: 600; line-height: 1.6; color: var(--warn-ink); }
+.scr-feed .cmt__hidden-why { font-weight: 500; overflow-wrap: anywhere; }
+.scr-feed .cmt.is-hidden > .cmt__hidden:last-child { margin-bottom: 10px; }
+.scr-feed .cmt__thank.is-on { color: var(--ok); }
+.scr-feed .cmt__thank.is-on:hover { background: none; color: var(--ok); }
+.scr-feed .cmt__thank .ico { width: 14px; height: 14px; stroke-width: 2; }
+.scr-feed .cmt__thank .num { font-weight: 700; }
+
+.scr-feed .thread { margin-top: 26px; }
+.scr-feed .thread .sec-ttl .num { margin-left: 4px; margin-right: 1px; }
+.scr-feed .thread__list > .cmt { padding: 14px 18px 6px; }
+.scr-feed .thread__list > .cmt + .cmt { border-top: 1px solid var(--line); }
+.scr-feed .thread__list > .cmt:first-child { border-radius: var(--r-l) var(--r-l) 0 0; }
+.scr-feed .thread__list > .cmt:last-child { border-radius: 0 0 var(--r-l) var(--r-l); }
+.scr-feed .thread__list > .cmt:only-child { border-radius: var(--r-l); }
+.scr-feed .cmt__replies { margin: 4px 0 8px 38px; padding-left: 14px; border-left: 2px solid var(--line); }
+.scr-feed .cmt__replies > .cmt { padding: 8px 0 2px; }
+.scr-feed .cmt__replies > .cmt.is-target, .scr-feed .cmt__replies > .cmt.is-fresh { margin-left: -14px; padding-left: 14px; border-radius: 0 10px 10px 0; }
+.scr-feed .thread__none { padding: 4px 2px 12px; font-size: 14px; color: var(--ink-3); }
+
+/* コメントを書く欄（いちばん下）と返信の欄（そのコメントの下） */
+.scr-feed .cmt-form--new { margin-top: 14px; padding: 14px 16px; }
+.scr-feed .cmt-form__row { display: flex; gap: 10px; align-items: flex-start; }
+.scr-feed .cmt-form__main { flex: 1; min-width: 0; }
+.scr-feed .cmt-form__ta { display: block; min-height: 64px; resize: none; overflow-y: hidden; line-height: 1.7; background: var(--surface-2); border-color: var(--line); }
+.scr-feed .cmt-form__ta:focus { background: var(--surface); }
+.scr-feed .cmt-form__foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.scr-feed .cmt-form--reply { margin: 6px 0 12px 38px; padding: 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.scr-feed .cmt-form__to { display: block; margin-bottom: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.scr-feed .cmt-form--reply .cmt-form__ta { background: var(--surface); }
+.scr-feed .feed-muted { align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.scr-feed .feed-muted > div { flex: 1 1 220px; }
+.scr-feed .feed-muted .btn { flex: none; }
+
+/* ---------- 横の列（1180px〜） ---------- */
+.scr-feed .feed-side .li { min-height: 52px; padding-top: 11px; padding-bottom: 11px; }
+.scr-feed .feed-side .li__ttl { font-size: 14px; }
+.scr-feed .feed-side__ttl { margin: 24px 2px 8px; font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.5; }
+/* 見出しと「すべて見る」は横に並べるが、リンクは見出しの外（見出しの名前に混ぜない） */
+.scr-feed .feed-side__head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 24px 2px 8px; }
+.scr-feed .feed-side__head > .feed-side__ttl { margin: 0; }
+.scr-feed .feed-side__head > a { font-size: 13px; font-weight: 500; color: var(--indigo); text-decoration: none; padding: 10px 0 10px 12px; margin: -10px 0; }
+.scr-feed .feed-side__head > a:hover { text-decoration: underline; }
+.scr-feed .feed-rules__list { margin: 0; padding-left: 1.4em; list-style: decimal; }
+.scr-feed .feed-rules__list li { font-size: 13px; line-height: 1.7; color: var(--ink-2); padding-left: 2px; }
+.scr-feed .feed-rules__list li + li { margin-top: 6px; }
+.scr-feed .feed-side__mutes { margin-top: 12px; margin-left: -6px; font-size: 13px; height: 40px; }
+
+/* ---------- 窓（本文の外に出るので .scr-feed を付けて開く） ---------- */
+.modal.scr-feed { max-width: 480px; margin-inline: 0; }
+.modal.scr-feed.modal-wide { max-width: 720px; }
+.modal.scr-feed .feed-rules__list li { font-size: 14px; }
+.modal.scr-feed .feed-mutes__ttl { margin: 22px 0 8px; font-size: 14px; font-weight: 700; }
+.modal.scr-feed .feed-mutes .li { gap: 10px; }
+.modal.scr-feed .feed-report__lead { margin-bottom: 14px; }
+.modal.scr-feed .feed-report__reasons { border: 0; margin: 0; padding: 0; }
+.modal.scr-feed .feed-report__reasons .check { min-height: 40px; align-items: center; }
+.modal.scr-feed .feed-report__reasons .check input { margin-top: 0; }
+.modal.scr-feed .feed-edit__ta { min-height: 180px; line-height: 1.75; }
+.modal.feed-viewer .feed-viewer__img { display: block; width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; background: var(--surface-2); }
+
+/* ---------- せまい本文（スマホ・タブレットの縦） ---------- */
+@container main (max-width: 560px) {
+  .scr-feed .composer { padding: 14px 14px 12px; }
+  .scr-feed .composer__foot { padding-left: 0; }
+  /* 種類は横いっぱいに4つ並べ、その下に写真・投稿する */
+  .scr-feed .composer__seg { display: flex; flex: 1 1 100%; }
+  .scr-feed .composer__seg button { flex: 1 1 0; min-width: 0; padding: 0 4px; }
+  .scr-feed .composer__acts { flex-basis: 100%; }
+  .scr-feed .composer__acts .composer__photo { margin-right: auto; }
+  .scr-feed .post { padding: 14px 14px 6px; }
+  /* 本文を字下げせず、横幅いっぱいに使う */
+  .scr-feed .post__kind, .scr-feed .post__text, .scr-feed .post__link, .scr-feed .post__imgs, .scr-feed .post__cmts { margin-left: 0; }
+  .scr-feed .post__kind { margin-top: 8px; }
+  .scr-feed .post__kind + .post__text { margin-top: 0; }
+  .scr-feed .post__text { margin-top: 8px; }
+  .scr-feed .post__foot { margin-left: -10px; }
+  .scr-feed .post__cmts { padding: 10px 12px 4px; }
+  .scr-feed .post__cmts .cmt__text, .scr-feed .post__cmts .cmt__ans, .scr-feed .post__cmts .cmt__hidden { margin-left: 0; margin-top: 4px; }
+  .scr-feed .post__cmts .cmt__acts { margin-left: -8px; }
+  .scr-feed .thread__list > .cmt { padding: 12px 14px 4px; }
+  .scr-feed .cmt__text, .scr-feed .cmt__ans, .scr-feed .cmt__hidden { margin-left: 0; margin-top: 4px; }
+  .scr-feed .cmt__acts { margin-left: -8px; }
+  .scr-feed .cmt__replies { margin-left: 4px; padding-left: 12px; }
+  .scr-feed .cmt__replies > .cmt.is-target, .scr-feed .cmt__replies > .cmt.is-fresh { margin-left: -12px; padding-left: 12px; }
+  .scr-feed .cmt-form--reply { margin-left: 0; }
+  .scr-feed .cmt-form--new { padding: 12px; }
+}
+@container main (max-width: 340px) {
+  .scr-feed .composer__row > .avatar { display: none; }
+  .scr-feed .composer__why { font-size: 12px; }
+}

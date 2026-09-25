@@ -1,12 +1,15 @@
 /* ============================================================
    スタートガイド（#/start）
-   ここに書くのは .scr-start の中だけ。窓（目標・LINE）の中身も
-   .scr-start で包んでいるので、同じ書き方で効く。
+   ここに書くのは .scr-start の中だけ。窓（目標・LINE）は U.modal の cls で
+   .modal に .scr-start を付けているので、同じ書き方で効く。
+   本文の組み替えは @container main（本文の幅）で書く。
    ============================================================ */
 
-/* 見出しの下の一文（進みぐあい） */
+/* 見出しの下の一文と、細い進みぐあいの棒 */
 .scr-start .st-progress { color: var(--ink); font-size: 14.5px; }
 .scr-start .st-progress b { font-weight: 800; }
+.scr-start .st-bar { max-width: 320px; margin-top: 10px; }
+.scr-start .st-bar .bar { height: 4px; }
 
 .scr-start .st-h2 { font-size: 16px; font-weight: 800; line-height: 1.4; margin: 0 4px 10px; }
 
@@ -15,13 +18,16 @@
 .scr-start .st-main > * + * { margin-top: 20px; }
 .scr-start .st-aside { margin-top: 20px; }
 .scr-start .st-aside > * + * { margin-top: 14px; }
-@media (min-width: 1100px) {
+.scr-start .st-aside > .card + .card, .scr-start .st-aside > .list + .card, .scr-start .st-aside > .card + .list { margin-top: 14px; }
+@container main (min-width: 860px) {
   .scr-start .st-cols { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 24px; align-items: start; }
   .scr-start .st-aside { margin-top: 0; }
 }
-@media (min-width: 641px) and (max-width: 1099px) {
-  .scr-start .st-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
-  .scr-start .st-aside > * + *, .scr-start .st-aside > .card + .card { margin-top: 0; }
+@container main (min-width: 520px) and (max-width: 859px) {
+  .scr-start .st-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 1fr; gap: 14px; align-items: start; }
+  .scr-start .st-aside > .st-staff { grid-row: span 2; }
+  .scr-start .st-aside > * + *, .scr-start .st-aside > .card + .card,
+  .scr-start .st-aside > .list + .card, .scr-start .st-aside > .card + .list { margin-top: 0; }
 }
 
 /* ---------- 30日後の目標 ---------- */
@@ -30,9 +36,11 @@
 .scr-start .st-goal__ttl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; font-size: 13px; font-weight: 700; color: var(--ink-2); line-height: 1.5; }
 .scr-start .st-goal__due { font-weight: 500; }
 .scr-start .st-goal__what { font-size: 15.5px; font-weight: 700; line-height: 1.6; margin-top: 2px; overflow-wrap: anywhere; }
-.scr-start .st-goal .btn { flex: none; }
+.scr-start .st-goal .btn { flex: none; min-width: 88px; }
+/* 終えたあとの「やったこと」の中：下のチェックリストの面との間 */
+.scr-start .st-checklist > .st-goal { margin-bottom: 14px; }
 
-/* ---------- チェックリスト（1枚の面に週ごとのまとまり） ---------- */
+/* ---------- チェックリスト（1枚の面に、週ごとと成果発表会のまとまり） ---------- */
 .scr-start .st-list { overflow: hidden; }
 .scr-start .st-grp + .st-grp { border-top: 1px solid var(--line); }
 .scr-start .st-grp__head {
@@ -40,10 +48,10 @@
   background: var(--surface-2); font-size: 14px; font-weight: 700; line-height: 1.5;
 }
 .scr-start .st-grp__days { font-size: 13px; font-weight: 500; color: var(--ink-3); }
-.scr-start .st-grp__count { margin-left: auto; font-size: 13px; color: var(--ink-2); }
+.scr-start .st-grp__count { margin-left: auto; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
 .scr-start .st-grp.is-full .st-grp__count { color: var(--ok); }
 
-/* 済んだ週（たたんだ形）。押せるので山かっこを付ける */
+/* 済んだまとまり（たたんだ形）。押せるので山かっこを付ける */
 .scr-start summary.st-grp__head { align-items: center; cursor: pointer; list-style: none; min-height: 44px; }
 .scr-start summary.st-grp__head::-webkit-details-marker { display: none; }
 .scr-start summary.st-grp__head:hover { background: #f4f2ee; }
@@ -56,12 +64,13 @@
 .scr-start .st-step__mark { flex: none; display: grid; place-items: center; width: 20px; margin-top: 2px; color: var(--ink-3); }
 .scr-start .st-step__body { flex: 1; min-width: 0; }
 .scr-start .st-step__ttl { font-size: 15px; font-weight: 700; line-height: 1.5; }
-/* 金はレベル章と会員証だけなので、XPは墨の薄い字で */
-.scr-start .st-step__xp { margin-left: 2px; font-size: 12px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
+/* 金はレベル章と会員証だけなので、XPは墨の薄い字で。ボタンの下に置く */
+.scr-start .st-step__xp { font-size: 12px; font-weight: 600; color: var(--ink-3); white-space: nowrap; line-height: 1.4; }
 .scr-start .st-step__desc { font-size: 13px; color: var(--ink-2); line-height: 1.65; margin-top: 2px; }
 .scr-start .st-step__desc .tag { height: 20px; margin-left: 6px; vertical-align: 1px; }
-.scr-start .st-step__act { flex: none; align-self: center; }
-.scr-start .st-step__act .btn { min-width: 76px; }
+.scr-start .st-step__act { flex: none; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* 押しやすさのため、ボタンは88px以上（「続きを見る」でも同じ幅に並ぶ） */
+.scr-start .st-step__act .btn { min-width: 88px; }
 /* いまの項目：背景を少しだけ */
 .scr-start .st-step.is-current { background: #fdf7f5; }
 /* 済んだ項目は1行で */
@@ -69,6 +78,9 @@
 .scr-start .st-step.is-done .st-step__mark { margin-top: 0; color: var(--ok); }
 .scr-start .st-step.is-done .st-step__ttl { flex: 1; min-width: 0; font-weight: 500; color: var(--ink-2); }
 .scr-start .st-step__when { flex: none; font-size: 13px; color: var(--ink-3); }
+
+/* 支払いの猶予切れ・休会のときの知らせ（一覧の上） */
+.scr-start .st-stop { margin-bottom: 14px; }
 
 /* ---------- 全部終えたあと ---------- */
 .scr-start .st-next .li__sub { color: var(--ink-2); }
@@ -82,10 +94,14 @@
 .scr-start .st-staff__role { font-size: 13px; color: var(--ink-2); }
 .scr-start .st-staff__note { font-size: 13.5px; color: var(--ink-2); line-height: 1.7; margin: 12px 0 14px; }
 
-/* ---------- 会員のルール ---------- */
+/* 同期の自己紹介 */
+.scr-start .st-peers .li { padding-left: 18px; padding-right: 16px; min-height: 52px; }
+.scr-start .st-peers .li__ttl { font-size: 14px; font-weight: 700; }
+
+/* ---------- コミュニティのルール ---------- */
 .scr-start .st-rules { overflow: hidden; }
 .scr-start .st-rules__sum {
-  display: flex; align-items: center; gap: 12px; padding: 14px 18px; min-height: 52px;
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 18px; min-height: 52px;
   font-size: 14px; font-weight: 700; cursor: pointer; list-style: none;
 }
 .scr-start .st-rules__sum::-webkit-details-marker { display: none; }
@@ -101,32 +117,68 @@
 .scr-start .st-rules__more a { color: var(--indigo); font-weight: 600; }
 
 /* ---------- 窓：目標 ---------- */
-.scr-start.st-form .modal__ttl { margin-bottom: 16px; }
-.scr-start .st-form__ex-ttl { font-size: 13px; font-weight: 700; margin: -4px 0 8px; }
-.scr-start .st-form__ex { margin-bottom: 18px; }
-.scr-start .st-form__ex .chip { height: auto; min-height: 34px; padding: 6px 14px; border-radius: 14px; line-height: 1.5; text-align: left; }
+.scr-start .st-ex { margin: -4px 0 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.scr-start .st-ex__ttl { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.scr-start .st-ex__item {
+  max-width: 100%; min-height: 38px; padding: 7px 12px; border: 1px solid var(--line-2); border-radius: 10px;
+  background: var(--surface); color: var(--ink-2); font-size: 13.5px; font-weight: 600; line-height: 1.5; text-align: left;
+}
+.scr-start .st-ex__item:hover { border-color: var(--ink-3); color: var(--ink); }
+.scr-start .st-ex__item[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
 .scr-start .st-form__date { max-width: 240px; }
-.scr-start .st-form__err { min-height: 1.2em; margin-top: -6px; font-size: 13px; color: var(--accent-ink); }
-.scr-start.st-form .modal__foot { margin-top: 10px; }
 
 /* ---------- 窓：LINE ---------- */
-.scr-start .st-line__lead { font-size: 13px; font-weight: 700; margin-top: 12px; }
-.scr-start .st-line { list-style: disc; margin: 6px 0 0; padding-left: 1.3em; }
-.scr-start .st-line li { font-size: 14px; line-height: 1.8; }
-.scr-start .st-line__note { font-size: 12.5px; color: var(--ink-3); margin-top: 12px; }
-
-/* ---------- スマホ ---------- */
-@media (max-width: 860px) {
-  /* 指で押すものは高さ40px以上に。文中のリンクは、上下の余白を負の外余白で打ち消して行の高さを変えない */
-  .scr-start .btn-s { height: 40px; }
-  .scr-start .st-rules__more a { display: inline-flex; align-items: center; min-height: 40px; margin-top: -8px; margin-bottom: -8px; }
-  .scr-start .st-form__ex .chip { min-height: 40px; }
+.scr-start .st-line__lead { font-size: 13px; font-weight: 700; }
+.scr-start .st-line__list { list-style: disc; margin: 6px 0 0; padding-left: 1.3em; }
+.scr-start .st-line__list li { font-size: 14px; line-height: 1.8; }
+.scr-start .st-line__err { margin-bottom: 16px; }
+.scr-start .st-line__big { font-size: 15px; font-weight: 700; line-height: 1.7; }
+.scr-start .st-line__wait { margin-top: 12px; font-size: 13px; color: var(--ink-3); }
+.scr-start .st-line__pc { display: flex; align-items: center; gap: 18px; }
+.scr-start .st-line__qr { flex: none; width: 128px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; line-height: 0; color: var(--ink); }
+.scr-start .st-line__qr svg { display: block; width: 100%; height: auto; }
+.scr-start .st-line__steps { list-style: decimal; margin: 0; padding-left: 1.3em; }
+.scr-start .st-line__steps li { font-size: 14px; line-height: 1.7; padding: 2px 0; }
+.scr-start .st-line__code {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; margin-top: 16px; padding: 12px 14px;
+  border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--line);
 }
+.scr-start .st-line__code-l { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+.scr-start .st-line__code-v { font-size: 22px; font-weight: 800; letter-spacing: .06em; font-family: var(--font-num); }
+.scr-start .st-line__code .btn { margin-left: auto; }
+.scr-start .st-line__done { text-align: center; padding: 6px 0 4px; }
+.scr-start .st-line__done .ico { width: 36px; height: 36px; color: var(--ok); }
+.scr-start .st-line__done-ttl { margin-top: 6px; font-size: 18px; font-weight: 800; }
+.scr-start .st-line__done-sub { margin-top: 4px; font-size: 14px; color: var(--ink-2); }
+@media (max-width: 420px) {
+  .scr-start .st-line__pc { flex-direction: column; align-items: flex-start; }
+}
+/* スマホの下から出る窓：下の方に出る一言（toast）と文が重ならないよう、下を空ける */
 @media (max-width: 640px) {
+  .scr-start .st-line__app, .scr-start .st-line__done { min-height: 180px; }
+}
+
+/* ---------- 狭い幅 ---------- */
+@media (max-width: 860px) {
+  /* 文中のリンクは、上下の余白を負の外余白で打ち消して行の高さを変えずに押せる範囲を広げる */
+  .scr-start .st-rules__more a { display: inline-flex; align-items: center; min-height: 40px; margin-top: -8px; margin-bottom: -8px; }
+  .scr-start .st-ex__item { min-height: 40px; }
+}
+@container main (max-width: 600px) {
   .scr-start .st-grp__head { padding: 10px 16px; }
   .scr-start .st-step { gap: 10px; padding: 14px 16px; }
   .scr-start .st-step.is-done { padding-top: 11px; padding-bottom: 11px; }
-  .scr-start .st-step__act .btn { min-width: 64px; padding: 0 12px; }
   .scr-start .st-goal { padding: 14px 16px; gap: 12px; }
   .scr-start .st-staff { padding: 16px; }
+  .scr-start .st-peers .li, .scr-start .st-rules__sum { padding-left: 16px; }
+  .scr-start .st-rules__list { margin: 0 16px; }
+  .scr-start .st-rules__more { padding-left: 16px; padding-right: 16px; }
+}
+/* 360px 以下の画面（本文 328px 以下）：ボタンは文の下に回して、題と説明の幅をとる */
+@container main (max-width: 328px) {
+  .scr-start .st-step:not(.is-done) { flex-wrap: wrap; }
+  .scr-start .st-step:not(.is-done) .st-step__body { flex-basis: calc(100% - 30px); }
+  .scr-start .st-step:not(.is-done) .st-step__act { margin-left: 30px; margin-top: 2px; flex-direction: row; gap: 10px; }
+  .scr-start .st-goal { flex-wrap: wrap; }
+  .scr-start .st-goal__body { flex-basis: 100%; }
 }

@@ -1,30 +1,47 @@
 /* ============================================================
    相談・メッセージ（#/messages）
    1枚の面に、上から：返信する人の帯 → やりとり（中だけスクロール）→ 書く欄。
-   書く欄はふつうの流れに置く（スマホの下のタブに隠れないように）。
+   パソコン：面の高さを「画面の高さ − 面の上端」にする（上端は messages.js が測って --msg-top に入れる）。
+             書く欄は下に留まる（面より画面が低いときも見える）。
+   860px 以下：画面いっぱい。本文の余白（--mv-*、messages.js が測る）の分だけ外へ出し、見出しは読み上げ用に残して隠す。
    ============================================================ */
-.scr-messages { max-width: 760px; }
+/* 下の余白は本文の余白（--mv-pb）を打ち消して 28px にそろえる（ページ全体がスクロールしないように） */
+.scr-messages { max-width: 760px; margin-bottom: calc(28px - var(--mv-pb, 96px)); }
 .scr-messages .page-lead a { color: var(--indigo); }
-.scr-messages .msg-box { overflow: hidden; }
+
+.scr-messages .msg-box {
+  display: flex; flex-direction: column;
+  height: calc(100vh - var(--msg-top, 200px) - 28px);
+  height: calc(100dvh - var(--msg-top, 200px) - 28px);
+  min-height: 460px;
+}
 
 /* 返信する人の帯 */
-.scr-messages .msg-head { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
-.scr-messages .msg-head__who { flex: 1; min-width: 0; line-height: 1.4; }
-.scr-messages .msg-head__who b { display: block; font-size: 14.5px; font-weight: 700; }
-.scr-messages .msg-head__who span { display: block; font-size: 12px; color: var(--ink-3); }
-.scr-messages .msg-head .btn { flex: none; }
-
-/* やりとり */
-.scr-messages .msg-thread__scroll {
-  max-height: min(62vh, 580px); min-height: 220px; overflow-y: auto; overscroll-behavior: contain;
-  padding: 6px 18px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line);
+.scr-messages .msg-head {
+  flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 18px;
+  border-bottom: 1px solid var(--line); border-radius: var(--r-l) var(--r-l) 0 0; background: var(--surface);
 }
-.scr-messages .msg-thread__scroll:focus-visible { outline-offset: -2px; }
-@media (max-width: 640px) { .scr-messages .msg-thread__scroll { max-height: 56vh; padding: 4px 12px 16px; } }
+.scr-messages .msg-head__who { flex: 1; min-width: 0; margin: 0; line-height: 1.4; }
+.scr-messages .msg-head__who b { display: block; font-size: 14.5px; font-weight: 700; }
+.scr-messages .msg-head__role, .scr-messages .msg-head__sla { display: block; font-size: 12.5px; color: var(--ink-2); }
+.scr-messages .msg-head__sla { display: none; }
+.scr-messages .msg-head .btn { flex: none; }
+.scr-messages .msg-head__meet .ico { width: 16px; height: 16px; }
+
+/* やりとり：少ないときは下に寄せる（新しいものが書く欄のすぐ上に来るように）。
+   position:relative は、中の読み上げ用の名前（.sr-only は absolute）をこの枠の中に閉じ込めるため
+   （ないとページ全体が縦に伸びる） */
+.scr-messages .msg-scroll {
+  position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; padding: 4px 18px 16px; background: var(--surface-2);
+}
+.scr-messages .msg-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-messages .msg-log { margin-top: auto; }
+.scr-messages .msg-log > .empty { padding: 48px 12px 24px; }
 
 .scr-messages .msg-day { display: flex; justify-content: center; margin: 18px 0 4px; }
-.scr-messages .msg-day span { font-size: 11.5px; font-weight: 600; color: var(--ink-3); background: rgba(29, 27, 24, .05); padding: 2px 10px; border-radius: 10px; }
-.scr-messages .msg-new { display: flex; align-items: center; gap: 10px; margin: 16px 0 2px; font-size: 11.5px; font-weight: 700; color: var(--accent-ink); }
+.scr-messages .msg-day span { font-size: 12px; font-weight: 600; color: var(--ink-2); background: rgba(29, 27, 24, .06); padding: 2px 10px; border-radius: 10px; }
+.scr-messages .msg-new { display: flex; align-items: center; gap: 10px; margin: 16px 0 2px; font-size: 12px; font-weight: 700; color: var(--accent-ink); }
 .scr-messages .msg-new::before, .scr-messages .msg-new::after { content: ""; flex: 1; height: 1px; background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
 .scr-messages .msg { display: flex; align-items: flex-start; gap: 10px; margin-top: 4px; }
@@ -36,41 +53,216 @@
 .scr-messages .msg__name { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 0 4px 3px; }
 .scr-messages .msg__bubble {
   padding: 10px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.7;
-  overflow-wrap: anywhere; word-break: normal;
+  /* 文節で折り、最後の行に1文字だけ残さない。長い URL などは どこででも折る */
+  overflow-wrap: anywhere; word-break: auto-phrase; text-wrap-style: pretty;
 }
 .scr-messages .msg-them .msg__bubble { background: var(--surface); border: 1px solid var(--line); border-top-left-radius: 6px; }
 .scr-messages .msg-me .msg__bubble { background: var(--ink); color: var(--ink-inv); border-top-right-radius: 6px; }
-.scr-messages .msg__meta { margin: 4px 4px 0; font-size: 11px; color: var(--ink-3); }
+.scr-messages .msg__bubble a { color: inherit; text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
+.scr-messages .msg-them .msg__bubble a { color: var(--indigo); }
+.scr-messages .msg__meta { margin: 4px 4px 0; font-size: 11.5px; color: var(--ink-2); }
+.scr-messages .msg__ref {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%; margin: 5px 4px 0;
+  font-size: 12.5px; font-weight: 600; color: var(--indigo); text-decoration: none;
+}
+.scr-messages .msg__ref:hover { text-decoration: underline; }
+.scr-messages .msg__reftxt { min-width: 0; word-break: auto-phrase; text-wrap-style: pretty; }
+/* 指で押す幅：上下に押せる範囲を足して 44px に（見た目は変えない）。
+   上に添付の画像があるときは、押せる範囲が画像に重ならないよう少し離す */
+@media (max-width: 860px) {
+  .scr-messages .msg__ref { position: relative; }
+  .scr-messages .msg__ref::before { content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
+  .scr-messages .msg__atts + .msg__ref { margin-top: 12px; }
+}
+.scr-messages .msg__ref .ico { flex: none; width: 15px; height: 15px; }
+
+/* 添付（やりとりの中） */
+.scr-messages .msg__atts { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; margin-top: 6px; }
+.scr-messages .msg-me .msg__atts { justify-content: flex-end; }
+.scr-messages .msg-att--img {
+  display: block; width: 132px; height: 132px; padding: 0; overflow: hidden; cursor: zoom-in;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--line);
+}
+.scr-messages .msg-att--img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.scr-messages .msg-att--file {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 260px; min-height: 44px; padding: 8px 12px;
+  border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 13px; text-decoration: none;
+}
+a.msg-att--file:hover { border-color: var(--ink-3); }
+.scr-messages .msg-att__kind { flex: none; padding: 2px 5px; border-radius: 4px; background: var(--ink-2); color: #fff; font-size: 10.5px; font-weight: 800; }
+.scr-messages .msg-att__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-messages .msg-att__size { flex: none; font-size: 12px; color: var(--ink-2); }
+
+/* 面談の予約の札 */
+.scr-messages .msg-card {
+  width: 300px; max-width: 100%; padding: 12px 14px; border-radius: 16px; border-top-right-radius: 6px;
+  background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-1);
+}
+.scr-messages .msg-card__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.scr-messages .msg-card__kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; }
+.scr-messages .msg-card__kv dt { color: var(--ink-2); }
+.scr-messages .msg-card__kv dd { margin: 0; }
+.scr-messages .msg-card__zoom { position: relative; display: inline-flex; align-items: center; gap: 4px; color: var(--indigo); font-weight: 700; }
+@media (max-width: 860px) {
+  .scr-messages .msg-card__zoom::before { content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
+}
+.scr-messages .msg-card__zoom .ico { width: 15px; height: 15px; }
+.scr-messages .msg-card__acts { display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px; }
+.scr-messages .msg-card.is-canceled { background: var(--surface-2); box-shadow: none; }
+.scr-messages .msg-card.is-canceled .msg-card__kv dd { color: var(--ink-2); }
 
 /* 入力中 */
-.scr-messages .msg-typing .msg__bubble { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; color: var(--ink-3); font-size: 13px; }
+.scr-messages .msg-typing[hidden] { display: none; }
+.scr-messages .msg-typing .msg__bubble { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; color: var(--ink-2); font-size: 13px; }
 .scr-messages .msg-dots { display: inline-flex; gap: 4px; }
 .scr-messages .msg-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); animation: msg-dot 1.2s infinite ease-in-out; }
 .scr-messages .msg-dots i:nth-child(2) { animation-delay: .15s; }
 .scr-messages .msg-dots i:nth-child(3) { animation-delay: .3s; }
 @keyframes msg-dot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .scr-messages .msg-dots i { animation: none; opacity: .6; } }
 
-/* 書く欄 */
-.scr-messages .msg-compose { padding: 14px 18px 16px; }
-.scr-messages .msg-compose__lbl { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-.scr-messages .msg-kinds-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-bottom: 10px; }
-.scr-messages .msg-kinds { gap: 6px; }
-.scr-messages .msg-kinds .chip { height: 32px; padding: 0 12px; }
-.scr-messages .msg-compose .textarea { min-height: 104px; }
-.scr-messages .msg-compose__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; flex-wrap: wrap; margin-top: 10px; }
-.scr-messages .msg-tpl { display: flex; align-items: center; gap: 2px 4px; flex-wrap: wrap; min-width: 0; }
-.scr-messages .msg-tpl .msg-compose__lbl { margin-right: 4px; }
-.scr-messages .msg-tpl__btn {
-  background: none; border: 0; padding: 4px 6px; font: inherit; font-size: 13px; color: var(--indigo);
-  cursor: pointer; border-radius: 6px;
+/* ---------- 書く欄（下に留める） ---------- */
+.scr-messages .msg-compose {
+  flex: none; position: sticky; bottom: 0; z-index: 2; padding: 12px 18px 14px;
+  background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 var(--r-l) var(--r-l);
 }
-.scr-messages .msg-tpl__btn:hover { background: var(--indigo-weak); }
-.scr-messages .msg-compose__foot .btn { min-width: 120px; margin-left: auto; }
-@media (max-width: 640px) {
-  .scr-messages .msg-head { padding: 10px 12px; }
-  .scr-messages .msg-compose { padding: 12px 12px 14px; }
-  .scr-messages .msg-compose__foot .btn { flex: 1 1 100%; }
-  /* 指で押しやすい高さ（40px以上）にそろえる */
-  .scr-messages .msg-kinds .chip, .scr-messages .msg-head .btn { height: 40px; }
-  .scr-messages .msg-tpl__btn { min-height: 40px; }
+.scr-messages .msg-compose__lbl { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.scr-messages .msg-kinds-row { display: flex; align-items: center; gap: 8px 10px; margin-bottom: 10px; }
+.scr-messages .msg-kinds { gap: 6px; min-width: 0; }
+
+.scr-messages .msg-extra { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 10px; }
+.scr-messages .msg-extra:empty { display: none; }
+.scr-messages .msg-slots { min-width: 0; margin: 0; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--surface-2); }
+.scr-messages .msg-slots legend { float: left; width: 100%; padding: 0; margin-bottom: 8px; }
+.scr-messages .msg-slots__body { clear: both; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.scr-messages .msg-slots__row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.scr-messages .msg-slot { position: relative; }
+.scr-messages .msg-slot input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.scr-messages .msg-slot span {
+  display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 18px;
+  border: 1px solid var(--line-2); background: var(--surface); font-size: 13.5px; font-weight: 600; color: var(--ink);
+}
+.scr-messages .msg-slot:hover span { border-color: var(--ink-3); }
+.scr-messages .msg-slot input:checked + span { background: var(--ink); border-color: var(--ink); color: #fff; }
+.scr-messages .msg-slot input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 日時を変えるときの、いまの予約の日時（選べない） */
+.scr-messages .msg-slot.is-now input { cursor: default; }
+.scr-messages .msg-slot.is-now span { border-style: dashed; background: transparent; color: var(--ink-2); }
+.scr-messages .msg-slot.is-now:hover span { border-color: var(--line-2); }
+.scr-messages .msg-slots__go { margin-left: auto; }
+.scr-messages .msg-slots__none { clear: both; margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+
+.scr-messages .msg-refchip {
+  display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; max-width: 100%;
+  padding: 3px 3px 3px 10px; border-radius: 8px; background: var(--indigo-weak); color: var(--indigo); font-size: 13px; font-weight: 600;
+}
+.scr-messages .msg-refchip > .ico { flex: none; width: 15px; height: 15px; }
+.scr-messages .msg-refchip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-messages .msg-refchip__x { flex: none; display: grid; place-items: center; width: 40px; height: 40px; margin: -6px -8px -6px 0; border: 0; border-radius: 6px; background: none; color: inherit; }
+.scr-messages .msg-refchip__x:hover { background: rgba(39, 72, 104, .1); }
+
+.scr-messages .msg-pre { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.scr-messages .msg-pre__item {
+  display: flex; align-items: center; gap: 8px; max-width: 230px; padding: 4px;
+  border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface);
+}
+.scr-messages .msg-pre__item img, .scr-messages .msg-pre__kind { flex: none; width: 40px; height: 40px; border-radius: 7px; object-fit: cover; }
+.scr-messages .msg-pre__kind { display: grid; place-items: center; background: var(--surface-2); font-size: 11px; font-weight: 800; color: var(--ink-2); }
+.scr-messages .msg-pre__txt { display: flex; flex-direction: column; min-width: 0; font-size: 12.5px; line-height: 1.4; }
+.scr-messages .msg-pre__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-messages .msg-pre__size { font-size: 11.5px; color: var(--ink-2); }
+.scr-messages .msg-pre__x { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); }
+.scr-messages .msg-pre__x:hover { background: rgba(29, 27, 24, .06); color: var(--ink); }
+
+.scr-messages .msg-ta { min-height: 88px; max-height: 220px; resize: none; }
+.scr-messages .msg-compose__foot { position: relative; display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.scr-messages .msg-attach { flex: none; color: var(--ink-2); }
+.scr-messages .msg-file { display: none; }
+.scr-messages .msg-tpl-btn { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-2); }
+.scr-messages .msg-tpl-btn .ico { width: 15px; height: 15px; }
+.scr-messages .msg-tpl-pop { bottom: calc(100% + 6px); left: 36px; min-width: 250px; }
+.scr-messages .msg-send { flex: none; min-width: 112px; }
+
+/* 画像を大きく見る窓 */
+.msg-view .msg-view__img { display: block; max-width: 100%; max-height: 70vh; margin: 0 auto; border-radius: 8px; }
+
+/* ---------- 860px 以下：画面いっぱいのやりとり ---------- */
+@media (max-width: 860px) {
+  .scr-messages {
+    max-width: none;
+    margin: calc(-1 * var(--mv-pt, 18px)) calc(-1 * var(--mv-pr, 16px)) calc(-1 * var(--mv-pb, 24px)) calc(-1 * var(--mv-pl, 16px));
+  }
+  /* 見出しは読み上げと焦点のために残して、見た目だけ隠す（上の帯に「相談・メッセージ」の代わりに返信の目安を出す） */
+  .scr-messages .page-head {
+    position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+  /* 説明の文は帯の「返信は平日24時間以内…」と定型文の「専門家に相談」に移したので出さない（見えないリンクに焦点が行かないように） */
+  .scr-messages .page-lead { display: none; }
+  .scr-messages .msg-box {
+    height: calc(100vh - var(--msg-top, 56px)); height: calc(100dvh - var(--msg-top, 56px));
+    min-height: 0; border: 0; border-radius: 0; box-shadow: none;
+  }
+  .scr-messages .msg-head { padding: 8px 8px 8px 16px; border-radius: 0; }
+  .scr-messages .msg-head__role { display: none; }
+  .scr-messages .msg-head__sla { display: block; }
+  .scr-messages .msg-head__meet { width: 44px; height: 44px; padding: 0; border-radius: 12px; }
+  .scr-messages .msg-head__meet .ico { width: 20px; height: 20px; }
+  .scr-messages .msg-head__meettxt {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+  .scr-messages .msg-scroll { padding: 2px 12px 14px; }
+  .scr-messages .msg__col { max-width: 84%; }
+  .scr-messages .msg-compose { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-radius: 0; }
+  /* 種類は1行で横に流す（折り返さない） */
+  .scr-messages .msg-kinds-row { margin: 0 -12px 8px; }
+  .scr-messages .msg-kinds-row > .msg-compose__lbl { display: none; }
+  .scr-messages .msg-kinds {
+    flex: 1; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    margin: 0; padding: 2px 12px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+  }
+  .scr-messages .msg-kinds::-webkit-scrollbar { display: none; }
+  .scr-messages .msg-kinds > * { flex: none; }
+  .scr-messages .msg-kinds::after { content: ""; flex: 0 0 12px; }
+  .scr-messages .msg-extra { margin-bottom: 8px; }
+  .scr-messages .msg-slots { padding: 8px 10px; }
+  /* 候補の列だけ横に送る。「この日時で予約する」は列の下の右に（列の外に送られて見えなくならないように） */
+  .scr-messages .msg-slots__body { display: block; }
+  .scr-messages .msg-slots__row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -10px; padding: 2px 10px; }
+  .scr-messages .msg-slots__row::-webkit-scrollbar { display: none; }
+  .scr-messages .msg-slot { flex: none; }
+  .scr-messages .msg-slots__go { display: flex; margin: 8px 0 0 auto; }
+  .scr-messages .msg-slot span { height: 40px; }
+  .scr-messages .msg-ta { min-height: 72px; max-height: 140px; }
+  .scr-messages .msg-compose__foot { margin-top: 6px; }
+  .scr-messages .msg-attach { width: 44px; height: 44px; margin-left: -6px; }
+  /* 添付を外す × は 40px（項目の高さ 48px の中に収まる） */
+  .scr-messages .msg-pre__x { width: 40px; height: 40px; }
+  .scr-messages .msg-send { min-width: 96px; }
+  .scr-messages .msg-att--img { width: 112px; height: 112px; }
+}
+/* 横向きのスマホ：やりとりの行を少しでも残す（帯を1行に、書く欄を低く） */
+@media (max-width: 960px) and (max-height: 500px) {
+  .scr-messages .msg-head__sla { display: none; }
+  .scr-messages .msg-head { padding-top: 4px; padding-bottom: 4px; }
+  .scr-messages .msg-ta { min-height: 44px; max-height: 88px; }
+  /* 面談の候補を開いても、やりとりが数行は見えるように：横は広いので「予約する」を候補の列の右に戻す */
+  .scr-messages .msg-slots__body { display: flex; align-items: center; gap: 8px; }
+  .scr-messages .msg-slots__row { flex: 1 1 auto; }
+  .scr-messages .msg-slots__go { flex: none; margin: 0; }
+}
+
+/* 画面の入りは薄く出すだけにする（下から 6px 上げる動きがあると、画面ちょうどの高さの面が一瞬はみ出して、
+   ページにスクロールバーが出るため）。この画面があるときだけ効く書き方 */
+#view:has(> .scr-messages).view-enter { animation-name: msg-viewin; }
+@keyframes msg-viewin { from { opacity: 0; } }
+
+/* 相談の画面にいるあいだは、一言の知らせ（#toast）を書く欄のすぐ上に出す（「送る」・種類・面談の候補に重ねない）。
+   書く欄の上端は messages.js が測って --msg-toast-b に入れる（測る前は、ふつうの高さの書く欄の上）。
+   この画面があるときだけ効く書き方。窓が開いているときは共通の置き方（画面の上）に任せる */
+body:has(.scr-messages .msg-compose):not(:has(.modal-bg)) #toast { bottom: var(--msg-toast-b, calc(196px + env(safe-area-inset-bottom))); }
+@media (max-width: 860px) {
+  body:has(.scr-messages .msg-compose):not(:has(.modal-bg)) #toast { bottom: var(--msg-toast-b, calc(172px + env(safe-area-inset-bottom))); }
 }

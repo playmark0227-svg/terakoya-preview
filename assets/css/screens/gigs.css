@@ -1,18 +1,34 @@
 /* ============================================================
-   案件（#/gigs・#/gigs/<id>）
-   共通の部品（.list .li .tag .chip .kv）で組み、ここは差分だけ。
-   応募の窓は body 直下に出るので、窓の中身にも .scr-gigs を付けて閉じている。
+   案件（#/gigs・#/gigs/<id>・#/gigs/new）
+   共通の部品（.list .li .tag .chip .kv .field）で組み、ここは差分だけ。
+   窓（応募・作業報告・掲載前の確認）は body 直下に出るので、U.modal の cls で .scr-gigs を付けて閉じている。
+   本文の中の組み替えは @container main（本文の幅）で書く。@media は窓の中とスマホの帯だけ。
    ============================================================ */
 
-/* ---------- 見出し ---------- */
-.scr-gigs .gg-h2 { margin: 0 4px 12px; font-size: 17px; font-weight: 800; line-height: 1.4; }
+/* ---------- 見出しと区切り ---------- */
+.scr-gigs .gg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.scr-gigs .gg-post { flex: none; }
+.scr-gigs .page-head + .sec { margin-top: 0; }
+.scr-gigs .sec + .sec { margin-top: 32px; }
 
-/* ---------- 応募した案件 ---------- */
-.scr-gigs .gg-mine { margin-bottom: 34px; }
-.scr-gigs .gg-mine__row .li__end { flex: none; }
+/* ---------- パンくず（いまのページまで。長い題は1行で … ） ---------- */
+.scr-gigs .gg-crumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+.scr-gigs .gg-crumb li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.scr-gigs .gg-crumb .chev { width: 14px; height: 14px; color: var(--ink-3); flex: none; }
+.scr-gigs .gg-crumb [aria-current] { display: block; max-width: 26em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--ink-3); }
+
+/* ---------- 自分の募集・応募した案件 ---------- */
+.scr-gigs .gg-row .li__end { flex: none; }
+/* 本文が狭いとき（320〜390px）：札を題の下へ回して、題を1行でも多く横に取る */
+@container main (max-width: 400px) {
+  .scr-gigs .gg-row { display: grid; grid-template-columns: minmax(0, 1fr) 16px; column-gap: 10px; row-gap: 6px; }
+  .scr-gigs .gg-row .li__body { grid-column: 1; grid-row: 1; }
+  .scr-gigs .gg-row .li__end { grid-column: 1; grid-row: 2; justify-self: start; }
+  .scr-gigs .gg-row > .chev { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+}
 .scr-gigs .gg-mine__total {
   position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  padding: 12px 18px; font-size: 13.5px; color: var(--ink-2); background: var(--surface-2);
+  padding: 12px var(--inset); font-size: 13.5px; color: var(--ink-2); background: var(--surface-2);
   border-top: 1px solid var(--line);
 }
 .scr-gigs .gg-mine__total b { font-size: 16px; font-weight: 800; color: var(--ink); }
@@ -25,99 +41,307 @@
 
 /* ---------- 絞り込み ---------- */
 .scr-gigs .gg-filter { margin-bottom: 18px; }
-.scr-gigs .gg-postrow { display: flex; justify-content: flex-end; margin: -6px 0 12px; }
 
 /* ---------- 種類ごとのまとまり ---------- */
-.scr-gigs .gg-group + .gg-group { margin-top: 26px; }
-.scr-gigs .gg-group__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; margin: 0 4px 8px; }
-.scr-gigs .gg-group__ttl { font-size: 14px; font-weight: 700; line-height: 1.4; color: var(--ink-2); }
-.scr-gigs .gg-post { flex: none; }
+.scr-gigs .gg-group + .gg-group { margin-top: 24px; }
+.scr-gigs .gg-group__ttl { margin: 0 4px 8px; font-size: 13px; font-weight: 700; line-height: 1.5; color: var(--ink-3); }
 
 /* ---------- 案件の1行 ----------
-   広い幅：左に題と条件、右に報酬。狭い幅：上から題・報酬・条件 */
+   広い幅：左に題・鍵の条件・条件の行、右に報酬と札（.gg-item__side が3段にまたがる。最後の段を 1fr にして、
+   右が高くても左の行のあいだが空かないようにする）。狭い幅：上から題・報酬と札・鍵の条件・条件の行 */
 .scr-gigs .gg-item {
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto 16px;
-  column-gap: 20px; align-items: center; padding: 14px 16px 14px 18px;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto 16px; grid-template-rows: auto auto 1fr;
+  column-gap: 20px; align-items: start; padding: 14px 16px 14px var(--inset);
 }
-.scr-gigs .gg-item + .gg-item::before { content: ""; position: absolute; top: 0; left: 18px; right: 0; height: 1px; background: var(--line); }
-.scr-gigs .gg-item:hover { background: var(--surface-2); }
-.scr-gigs .gg-item__ttl { grid-column: 1; grid-row: 1; font-size: 15px; font-weight: 700; line-height: 1.5; }
-.scr-gigs .gg-item__ttl .tag { height: 20px; padding: 0 6px; font-size: 11px; vertical-align: 2px; margin-left: 2px; }
+.scr-gigs .gg-item + .gg-item::before { content: ""; position: absolute; top: 0; left: var(--inset); right: 0; height: 1px; background: var(--line); }
+.scr-gigs .gg-item:not(.is-preview):hover { background: var(--surface-2); }
+.scr-gigs .gg-item__ttl { grid-column: 1; grid-row: 1; font-size: 15px; font-weight: 700; line-height: 1.5; text-wrap: pretty; word-break: auto-phrase; overflow-wrap: anywhere; }
+.scr-gigs .gg-item__lk { width: 15px; height: 15px; margin-right: 5px; vertical-align: -2px; color: var(--ink-3); }
 .scr-gigs .gg-item__link { color: inherit; text-decoration: none; }
 /* 題のリンクを行全体に広げる（鍵の行の「講座を見る」はその上に出す） */
-.scr-gigs .gg-item__link::after { content: ""; position: absolute; inset: 0; }
-.scr-gigs .gg-item__link:focus-visible { outline: none; }
-.scr-gigs .gg-item__link:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
-.scr-gigs .gg-item__meta { grid-column: 1; grid-row: 2; margin-top: 2px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
-.scr-gigs .gg-item__pay { grid-column: 2; grid-row: 1 / 3; text-align: right; line-height: 1.45; max-width: 20em; }
+.scr-gigs a.gg-item__link::after { content: ""; position: absolute; inset: 0; }
+.scr-gigs a.gg-item__link:focus-visible { outline: none; }
+.scr-gigs a.gg-item__link:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+.scr-gigs .gg-item__side { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 21em; }
+.scr-gigs .gg-item__pay { text-align: right; line-height: 1.5; }
 .scr-gigs .gg-item__pay b { font-size: 15px; font-weight: 800; }
 .scr-gigs .gg-item__pay span { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
-.scr-gigs .gg-item > .chev { grid-column: 3; grid-row: 1 / 3; color: var(--ink-3); }
-.scr-gigs .gg-item__lock { grid-column: 1 / 3; grid-row: 3; margin-top: 6px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.scr-gigs .gg-item__lock { grid-column: 1; grid-row: 2; margin-top: 3px; font-size: 13px; font-weight: 600; color: var(--ink-2); line-height: 1.6; word-break: auto-phrase; }
+.scr-gigs .gg-item__meta { grid-column: 1; grid-row: 3; margin-top: 3px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.scr-gigs .gg-item__lock + .gg-item__meta { margin-top: 1px; }
+.scr-gigs .gg-item > .chev { grid-column: 3; grid-row: 1 / span 3; align-self: center; color: var(--ink-3); }
 .scr-gigs .gg-item__go {
-  position: relative; z-index: 1; display: inline-block; padding: 8px 4px; margin: -8px 0;
-  border: 0; background: none; font: inherit; font-weight: 700; color: var(--indigo); text-decoration: none; cursor: pointer;
+  position: relative; z-index: 1; display: inline-block; padding: 10px 4px; margin: -10px 0;   /* 押せる高さ 40px */
+  border: 0; background: none; font: inherit; font-weight: 700; color: var(--indigo); text-decoration: none; cursor: pointer; white-space: nowrap;
 }
 .scr-gigs .gg-item__go:hover { text-decoration: underline; }
+/* 鍵のかかった行：題は少し弱く、報酬は灰の 600（応募できる案件と見分ける） */
 .scr-gigs .gg-item.is-locked .gg-item__ttl { color: var(--ink-2); font-weight: 600; }
-.scr-gigs .gg-item.is-locked .gg-item__pay b { color: var(--ink-2); font-weight: 700; }
+.scr-gigs .gg-item.is-locked .gg-item__pay b { color: var(--ink-3); font-weight: 600; }
 
-@media (max-width: 1000px) {
-  .scr-gigs .gg-item { grid-template-columns: minmax(0, 1fr) 16px; column-gap: 12px; }
-  .scr-gigs .gg-item__pay { grid-column: 1; grid-row: 2; margin-top: 2px; text-align: left; max-width: none; }
-  .scr-gigs .gg-item__meta { grid-row: 3; }
-  .scr-gigs .gg-item__lock { grid-column: 1; grid-row: 4; }
+@container main (max-width: 620px) {
+  .scr-gigs .gg-item { grid-template-columns: minmax(0, 1fr) 16px; grid-template-rows: none; column-gap: 10px; }
+  .scr-gigs .gg-item__side { grid-column: 1; grid-row: 2; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; max-width: none; margin-top: 2px; }
+  .scr-gigs .gg-item__pay { text-align: left; min-width: 0; }
+  .scr-gigs .gg-item__tag { flex: none; }
+  .scr-gigs .gg-item__lock { grid-column: 1; grid-row: 3; }
+  .scr-gigs .gg-item__meta { grid-column: 1; grid-row: 4; }
   .scr-gigs .gg-item > .chev { grid-column: 2; grid-row: 1 / span 4; }
 }
+@supports not (container-type: inline-size) {
+  @media (max-width: 760px) {
+    .scr-gigs .gg-item { grid-template-columns: minmax(0, 1fr) 16px; grid-template-rows: none; }
+    .scr-gigs .gg-item__side { grid-column: 1; grid-row: auto; flex-direction: row; justify-content: space-between; max-width: none; }
+    .scr-gigs .gg-item__lock, .scr-gigs .gg-item__meta { grid-column: 1; grid-row: auto; }
+    .scr-gigs .gg-item > .chev { grid-column: 2; grid-row: 1; }
+  }
+}
+
+/* ---------- 募集終了（直近30日）：たたんでおく ---------- */
+.scr-gigs .gg-closed { margin-top: 18px; }
+.scr-gigs .gg-closed__sum {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 0 4px;
+  font-size: 14px; font-weight: 700; color: var(--ink-2); cursor: pointer; list-style: none; border-radius: 8px;
+}
+.scr-gigs .gg-closed__sum::-webkit-details-marker { display: none; }
+.scr-gigs .gg-closed__sum .num { margin-left: 6px; font-weight: 600; color: var(--ink-3); }
+.scr-gigs .gg-closed__sum:hover { color: var(--ink); }
+.scr-gigs .gg-closed__caret { transition: transform .2s var(--ease); }
+.scr-gigs .gg-closed[open] .gg-closed__caret { transform: rotate(180deg); }
+.scr-gigs .gg-closed .list { margin-top: 4px; }
+.scr-gigs .gg-closed .li__ttl { color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .scr-gigs .gg-closed__caret { transition: none; } }
 
 /* ---------- 下の注意書き ---------- */
 .scr-gigs .gg-safe { margin: 28px 4px 0; font-size: 13px; color: var(--ink-2); line-height: 1.7; }
 .scr-gigs .gg-safe a { color: var(--indigo); font-weight: 700; }
 
-/* ---------- くわしく ---------- */
+/* ============================================================
+   くわしく
+   ============================================================ */
 .scr-gigs .gd-head { margin-bottom: 18px; }
 .scr-gigs .gd { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
 .scr-gigs .gd__main { grid-column: 1; grid-row: 1; min-width: 0; }
+.scr-gigs .gd__main > .card + .card, .scr-gigs .gd__main > .notice + .card, .scr-gigs .gd__main > .card + .sec { margin-top: 14px; }
+.scr-gigs .gd__main > .notice { margin-bottom: 14px; }
 .scr-gigs .gd__side { grid-column: 2; grid-row: 1; position: sticky; top: 24px; }
-/* 左のメニューがある幅で横に並べると本文が細くなりすぎるので、早めに1列にする */
-@media (max-width: 1080px) {
-  .scr-gigs .gd { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .scr-gigs .gd__main, .scr-gigs .gd__side { grid-column: auto; grid-row: auto; }
-  .scr-gigs .gd__side { position: static; margin: 0 0 16px; }
-}
 
+/* 右の面 */
 .scr-gigs .gd-side { padding: 18px 20px 20px; }
 .scr-gigs .gd-pay { line-height: 1.4; }
 .scr-gigs .gd-pay b { font-size: 22px; font-weight: 800; }
 .scr-gigs .gd-pay span { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 .scr-gigs .gd-pay__note { margin-top: 4px; font-size: 13px; color: var(--ink-2); }
 .scr-gigs .gd-act { display: grid; gap: 10px; margin-top: 16px; }
-.scr-gigs .gd-state { font-size: 13.5px; color: var(--ink-2); line-height: 1.7; }
-.scr-gigs .gd-state b { color: var(--ink); }
-.scr-gigs .gd-sent { border-left: 3px solid var(--line-2); padding: 2px 0 2px 12px; font-size: 13px; color: var(--ink-2); word-break: break-word; }
+.scr-gigs .gd-state { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: 13.5px; color: var(--ink-2); line-height: 1.7; }
+.scr-gigs .gd-state:focus { outline: none; }
+/* 別のタブ（運営画面）で状態が進んだとき、描き直したあとに短く色を付ける（gigs.js の noticeChange） */
+.scr-gigs .gd-state { border-radius: 6px; transition: background-color .4s var(--ease), box-shadow .4s var(--ease); }
+.scr-gigs .gd-state.is-flash { background: var(--indigo-weak); box-shadow: 0 0 0 8px var(--indigo-weak); }
+@media (prefers-reduced-motion: reduce) { .scr-gigs .gd-state { transition: none; } }
+.scr-gigs .gd-state--lock { flex-direction: row; gap: 8px; font-weight: 600; }
+.scr-gigs .gd-state--lock .ico { flex: none; margin-top: 3px; color: var(--ink-3); }
+.scr-gigs .gd-reward { font-size: 13.5px; }
+.scr-gigs .gd-reward th { width: 5.5em; padding: 8px 10px 8px 0; }
+.scr-gigs .gd-reward td { padding: 8px 0; overflow-wrap: anywhere; }
+.scr-gigs .gd-reward b { font-size: 15px; }
+.scr-gigs .gd-warn { color: var(--warn-ink); font-weight: 700; }
+/* 支払日を繰り越した理由（振込先が未登録など）は、日付の下に小さく */
+.scr-gigs .gd-reward__note { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.6; color: var(--ink-2); }
+.scr-gigs .gd-sent { border-left: 3px solid var(--line-2); padding: 2px 0 2px 12px; font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
 .scr-gigs .gd-sent__label { font-size: 12px; font-weight: 700; color: var(--ink-3); }
 .scr-gigs .gd-withdraw { justify-self: center; height: 40px; padding: 0 12px; font-size: 13px; color: var(--ink-2); }
 
+/* 本文が狭いとき：1列にして、右の面は本文の上へ。報酬を左、ボタンを右（ボタンは320pxまで） */
+@container main (max-width: 759px) {
+  .scr-gigs .gd { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .scr-gigs .gd__main, .scr-gigs .gd__side { grid-column: auto; grid-row: auto; }
+  .scr-gigs .gd__side { position: static; margin: 0 0 14px; }
+  .scr-gigs .gd-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: 12px 24px; align-items: start; }
+  .scr-gigs .gd-act { margin-top: 0; }
+}
+@container main (max-width: 520px) {
+  .scr-gigs .gd-side { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+}
+@supports not (container-type: inline-size) {
+  @media (max-width: 1080px) {
+    .scr-gigs .gd { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .scr-gigs .gd__main, .scr-gigs .gd__side { grid-column: auto; grid-row: auto; }
+    .scr-gigs .gd__side { position: static; margin: 0 0 14px; }
+    .scr-gigs .gd-act { max-width: 320px; }
+  }
+}
+
+/* スマホ：応募のボタンは下のタブの上に留まる帯へ（右の面の中のボタンは隠す） */
+.scr-gigs .gd-bar { display: none; }
+@media (max-width: 640px) {
+  .scr-gigs.has-bar .gd-side .gd-act { display: none; }
+  .scr-gigs .gd-bar {
+    position: sticky; bottom: calc(59px + env(safe-area-inset-bottom)); z-index: calc(var(--z-bar) - 1);
+    display: flex; align-items: center; gap: 12px; margin: 16px calc(-1 * var(--gutter)) 0; padding: 10px var(--gutter);
+    background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgba(29, 27, 24, .06);   /* 透けると下の文字が重なって読みにくい */
+  }
+  .scr-gigs .gd-bar__pay { flex: 1; min-width: 0; line-height: 1.35; }
+  .scr-gigs .gd-bar__pay b { display: block; font-size: 15px; font-weight: 800; overflow-wrap: anywhere; }
+  .scr-gigs .gd-bar__pay span { font-size: 12px; color: var(--ink-3); }
+  .scr-gigs .gd-bar__btn { flex: none; min-width: 132px; height: 46px; }
+}
+/* 320px 前後：報酬が3行に割れないよう、ボタンを詰めて報酬の字を少し小さく */
+@container main (max-width: 360px) {
+  .scr-gigs .gd-bar { gap: 10px; }
+  .scr-gigs .gd-bar__pay b { font-size: 14px; }
+  .scr-gigs .gd-bar__btn { min-width: 0; padding: 0 14px; }
+}
+
+/* 応募の状況：日付つきの流れ（表のような箇条書き。図にはしない） */
+.scr-gigs .gd-hist { padding: 6px var(--inset) 14px; }
+.scr-gigs .gd-hist li { display: grid; grid-template-columns: 8.2em minmax(0, 1fr); gap: 12px; padding: 7px 0; font-size: 14px; line-height: 1.6; border-top: 1px solid var(--line); }
+.scr-gigs .gd-hist li:first-child { border-top: 0; }
+.scr-gigs .gd-hist__at { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+/* 流れの文も文節で折り、最後の行に1文字だけ残さない（共通の決まりは p と行の題だけに効いている） */
+.scr-gigs .gd-hist__txt { word-break: auto-phrase; text-wrap-style: pretty; }
+.scr-gigs .gd-hist li.is-next { color: var(--ink-2); }
+.scr-gigs .gd-hist li.is-next .gd-hist__at { color: var(--ink-3); }
+/* 「予定」：半透明の灰の上なので字は --ink-2（--ink-3 では 4.5:1 に届かない） */
+.scr-gigs .gd-hist__soon { margin-left: 8px; padding: 1px 6px; border-radius: 4px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); background: rgba(29, 27, 24, .05); white-space: nowrap; }
+@container main (max-width: 420px) {
+  .scr-gigs .gd-hist li { grid-template-columns: 6.9em minmax(0, 1fr); gap: 10px; font-size: 13.5px; }
+  .scr-gigs .gd-hist__at { font-size: 12px; }
+}
+.scr-gigs .gd-reports { padding: 4px var(--inset) 16px; border-top: 1px solid var(--line); }
+.scr-gigs .gd-reports .group-ttl { margin: 10px 0 4px; }
+.scr-gigs .gd-reports__list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 14px; }
+.scr-gigs .gd-reports__list li + li { border-top: 1px solid var(--line); }
+.scr-gigs .gd-reports__main { min-width: 0; }
+.scr-gigs .gd-reports__main b { margin-right: 8px; }
+.scr-gigs .gd-reports__sub { font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.scr-gigs .gd-none { padding: 8px var(--inset) 18px; font-size: 14px; color: var(--ink-2); }
+
+/* やりとり（3者のスレッド）。相談・メッセージの画面と同じ吹き出し */
+.scr-gigs .gt-who { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px var(--inset) 12px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.scr-gigs .gt-who__lbl { font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.scr-gigs .gt-who__p { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
+.scr-gigs .gt-who__role { flex: none; font-size: 12px; color: var(--ink-3); }
+.scr-gigs .gt-list { padding: 4px var(--inset) 16px; background: var(--surface-2); border-bottom: 1px solid var(--line); max-height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; }
+.scr-gigs .gt-list:focus { outline: none; }
+.scr-gigs .gt-list:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-gigs .gt-msg { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; }
+.scr-gigs .gt-msg.is-me { justify-content: flex-end; }
+.scr-gigs .gt-msg__col { display: flex; flex-direction: column; align-items: flex-start; max-width: min(80%, 520px); min-width: 0; }
+.scr-gigs .gt-msg.is-me .gt-msg__col { align-items: flex-end; }
+.scr-gigs .gt-msg__name { margin: 0 4px 3px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.scr-gigs .gt-msg__name span { font-weight: 500; color: var(--ink-3); }
+.scr-gigs .gt-msg__bubble { padding: 10px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.7; overflow-wrap: anywhere; }
+.scr-gigs .gt-msg:not(.is-me) .gt-msg__bubble { background: var(--surface); border: 1px solid var(--line); border-top-left-radius: 6px; }
+.scr-gigs .gt-msg.is-me .gt-msg__bubble { background: var(--ink); color: var(--ink-inv); border-top-right-radius: 6px; }
+.scr-gigs .gt-msg__at { margin: 4px 4px 0; font-size: 11px; color: var(--ink-3); }
+.scr-gigs .gt-compose { padding: 14px var(--inset) 16px; }
+.scr-gigs .gt-compose .textarea { min-height: 88px; }
+.scr-gigs .gt-compose .form-err { margin-top: 6px; }
+.scr-gigs .gt-compose__foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+.scr-gigs .gt-compose__foot .btn { min-width: 120px; }
+
+/* 中身と募集要項 */
 .scr-gigs .gd-body { padding: 20px 24px 8px; }
-.scr-gigs .gd-desc { font-size: 15px; line-height: 1.9; }
+.scr-gigs .gd-desc { font-size: 15px; line-height: 1.9; overflow-wrap: anywhere; word-break: auto-phrase; }
 .scr-gigs .gd-note { margin-top: 10px; font-size: 13.5px; line-height: 1.8; color: var(--ink-2); }
 .scr-gigs .gd-note a { color: var(--indigo); font-weight: 700; }
 .scr-gigs .gd-h { margin-top: 24px; padding-bottom: 4px; font-size: 15px; font-weight: 800; border-bottom: 1px solid var(--line-2); }
 .scr-gigs .gd-kv th { width: 7em; }
 .scr-gigs .gd-kv td a { color: var(--indigo); }
+.scr-gigs .gd-kv .plink { vertical-align: -6px; }
+.scr-gigs .gd-host { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
+.scr-gigs .gd-host__role { flex: none; color: var(--ink-2); }
 .scr-gigs .gd-steps { list-style: decimal; padding-left: 1.4em; }
 .scr-gigs .gd-steps li + li { margin-top: 2px; }
 .scr-gigs .gd-related { margin-top: 26px; }
+
+/* 自分の募集：応募した人 */
+.scr-gigs .gd-count { font-size: 13px; color: var(--ink-2); }
+.scr-gigs .gd-appl__list { padding: 4px var(--inset) 6px; }
+.scr-gigs .gd-appl__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.scr-gigs .gd-appl__row:first-child { border-top: 0; }
+.scr-gigs .gd-appl__row:focus { outline: none; }
+.scr-gigs .gd-appl__head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-width: 0; }
+.scr-gigs .gd-appl__at { font-size: 12.5px; color: var(--ink-3); }
+.scr-gigs .gd-appl__note { grid-column: 1; font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
+.scr-gigs .gd-appl__act { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 8px; }
+@container main (max-width: 520px) {
+  .scr-gigs .gd-appl__row { grid-template-columns: minmax(0, 1fr); }
+  .scr-gigs .gd-appl__act { grid-column: 1; grid-row: auto; margin-top: 6px; }
+  .scr-gigs .gd-appl__act .btn { flex: 1; }
+}
+
 @media (max-width: 860px) {
   .scr-gigs .gd-body { padding: 16px 16px 4px; }
   .scr-gigs .gd-kv th { width: 5.5em; padding-right: 10px; }
 }
 
-/* ---------- 応募の窓 ---------- */
-.scr-gigs .gg-apply__reward { font-size: 13.5px; color: var(--ink-2); margin: -4px 0 18px; }
+/* ============================================================
+   募集を出す（#/gigs/new）
+   ============================================================ */
+.scr-gigs .gn-reason { max-width: 720px; margin-bottom: 14px; }
+.scr-gigs .gn-form { max-width: 720px; padding: 22px 24px 20px; }
+.scr-gigs .gn-rule { margin-bottom: 20px; }
+.scr-gigs .gn-2, .scr-gigs .gn-3 { display: grid; gap: 0 14px; }
+.scr-gigs .gn-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.scr-gigs .gn-3 { grid-template-columns: 7.5em minmax(0, 1fr) minmax(0, 1fr); }
+.scr-gigs .gn-f[hidden] { display: none; }
+.scr-gigs .gn-where { margin: 0 0 16px; padding: 0; border: 0; min-width: 0; }
+.scr-gigs .gn-where > legend { padding: 0; }   /* legend の既定の左右2px をなくし、ほかの欄の名前と頭をそろえる */
+/* 欄の下の誤りも文節で折る（「（収入の保／証）」のような割れをなくす） */
+.scr-gigs .field__err { word-break: auto-phrase; text-wrap-style: pretty; }
+.scr-gigs .gn-radios { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.scr-gigs .gn-radios .check { min-height: 40px; align-items: center; cursor: pointer; }
+.scr-gigs .gn-radios .check input { margin-top: 0; }
+.scr-gigs .field > .gn-unit { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; }
+.scr-gigs .gn-unit .input { width: 5.5em; }
+.scr-gigs .gn-unit > span { font-size: 14px; color: var(--ink-2); }
+.scr-gigs .gn-agree { padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+.scr-gigs .gn-agree .check { min-height: 40px; align-items: center; cursor: pointer; font-weight: 600; }
+.scr-gigs .gn-foot { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+@container main (max-width: 600px) {
+  .scr-gigs .gn-form { padding: 16px; }
+  .scr-gigs .gn-2 { grid-template-columns: minmax(0, 1fr); }
+  .scr-gigs .gn-3 { grid-template-columns: 7.5em minmax(0, 1fr); }
+  .scr-gigs .gn-f--closesAt { grid-column: 1 / -1; }
+  .scr-gigs .gn-foot .btn { flex: 1; }
+}
+/* 320px 前後：「Lv1 入門（だれでも）」が選ぶ欄の中で切れないよう、人数とレベルも縦に並べる */
+@container main (max-width: 380px) {
+  .scr-gigs .gn-3 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================
+   窓（応募・作業報告・掲載前の確認）。窓の中は本文の container の外なので @media で
+   ============================================================ */
+.scr-gigs .gg-apply__reward { font-size: 13.5px; color: var(--ink-2); margin: -2px 0 16px; }
 .scr-gigs .gg-apply__reward b { color: var(--ink); }
 .scr-gigs .gg-apply__lead { margin-bottom: 14px; font-size: 13.5px; color: var(--ink-2); }
+.scr-gigs .gg-apply__okf { margin-bottom: 12px; }
 .scr-gigs .gg-apply__check { padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; line-height: 1.6; cursor: pointer; }
-.scr-gigs .gg-apply__hint:empty { display: none; }
-.scr-gigs .gg-apply__hint { margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--accent-ink); }
-.scr-gigs .gg-apply .modal__foot { margin-top: 10px; }
+.scr-gigs .gg-apply__okf.is-err .gg-apply__check { border-color: var(--accent); background: #fffaf8; }
+.scr-gigs .gg-apply__disc { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.scr-gigs .gg-apply__disc .ico { flex: none; margin-top: 2px; color: var(--indigo); }
+.scr-gigs .gg-file { padding: 9px 10px; font-size: 14px; }
+.scr-gigs .gn-pv__row { margin-bottom: 18px; }
+/* 確認の窓の1行：窓の端と同じだけ内側に。押せないので右端の山かっこの列はなくす */
+.modal.scr-gigs .gg-item.is-preview { grid-template-columns: minmax(0, 1fr) auto; padding: 14px var(--mpx); }
+.scr-gigs .gn-pv__ttl { margin-top: 4px; }
+.modal.scr-gigs .gd-desc { margin-bottom: 8px; font-size: 14.5px; }
+@media (max-width: 640px) {
+  .modal.scr-gigs .gg-item, .modal.scr-gigs .gg-item.is-preview { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .modal.scr-gigs .gg-item__side { grid-column: 1; grid-row: 2; flex-direction: row; justify-content: flex-start; max-width: none; margin-top: 2px; }
+  .modal.scr-gigs .gg-item__pay { text-align: left; }
+  .modal.scr-gigs .gg-item__meta { grid-column: 1; grid-row: 3; }
+  .modal.scr-gigs .gd-kv th { width: 5.5em; padding-right: 10px; }
+}
+
+/* 指で押す幅：表や行の中の名前（顔＋名前のリンク）は、上下に押せる範囲を足して 40px に（見た目は変えない） */
+@media (max-width: 860px) {
+  .scr-gigs .gd-kv .plink { padding: 8px 0; margin: -8px 0; }
+  .scr-gigs .gd-appl__head .plink { padding: 5px 0; margin: -5px 0; }
+  /* やりとりの「見られる人」：折り返したとき、下の行の名前の押せる範囲（44px）が上の行の名前にかからない行間に
+     （名前の行は24px。行の間を20px にすると、次の行の押せる範囲は行の中心から22px下で始まる） */
+  .scr-gigs .gt-who { row-gap: 20px; }
+}

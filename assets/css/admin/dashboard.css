@@ -1,0 +1,95 @@
+/* ============================================================
+   運営画面：ダッシュボード（.a-dashboard で閉じる）
+   上に数字、左に「今日やること」、右にデモ会員とのやりとり。その下に新入生・イベント・操作の記録。
+   ============================================================ */
+.a-dashboard .a-dash__kpis { margin-bottom: 16px; }
+.a-dashboard .a-dash__grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
+.a-dashboard .a-dash__grid > .ad-panel { margin-top: 0; }
+@container adview (max-width: 920px) { .a-dashboard .a-dash__grid { grid-template-columns: minmax(0, 1fr); } }
+@supports not (container-type: inline-size) { @media (max-width: 1180px) { .a-dashboard .a-dash__grid { grid-template-columns: minmax(0, 1fr); } } }
+
+/* 今日やること */
+.a-dashboard .a-dash__todoN { font-size: 12.5px; color: var(--ink-3); }
+.a-dashboard .a-todo li + li .a-todo__row { border-top: 1px solid var(--line); }
+.a-dashboard .a-todo__row {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 9px 16px 9px 18px;
+  color: inherit; text-decoration: none;
+}
+.a-dashboard .a-todo li:last-child .a-todo__row { border-radius: 0 0 11px 11px; }
+.a-dashboard .a-todo__row:hover { background: var(--surface-2); }
+.a-dashboard .a-todo__row:focus-visible { outline-offset: -2px; }
+.a-dashboard .a-todo__ico { flex: none; display: grid; place-items: center; color: var(--ink-3); }
+.a-dashboard .a-todo__ico .ico { width: 18px; height: 18px; }
+.a-dashboard .a-todo__body { flex: 1; min-width: 0; }
+.a-dashboard .a-todo__ttl { display: block; font-size: 13.5px; font-weight: 700; line-height: 1.45; }
+.a-dashboard .a-todo__sub { display: block; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+.a-dashboard .a-todo__n { flex: none; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.a-dashboard .a-todo__n b { margin-right: 2px; font-size: 17px; font-weight: 800; color: var(--ink); }
+.a-dashboard .a-todo__n.is-alert b { color: var(--accent-ink); }
+.a-dashboard .a-todo__row.is-alert .a-todo__ico { color: var(--accent-ink); }
+.a-dashboard .a-todo__row.is-zero .a-todo__ttl { font-weight: 500; color: var(--ink-3); }
+.a-dashboard .a-todo__row.is-zero .a-todo__n b { font-weight: 600; color: var(--ink-3); }
+.a-dashboard .a-todo__row.is-zero .a-todo__ico { opacity: .6; }
+
+/* デモ会員 */
+.a-dashboard .a-dash__live .ad-panel__body { padding-top: 2px; }
+.a-dashboard .a-live__who { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.a-dashboard .a-live__id { min-width: 0; }
+.a-dashboard .a-live__name { font-size: 15px; font-weight: 800; color: inherit; text-decoration: none; }
+.a-dashboard .a-live__name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.a-dashboard .a-live__meta { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.7; }
+.a-dashboard .a-live__meta .ad-steps { margin-left: 4px; vertical-align: -1px; }
+.a-dashboard .a-live__wait { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--accent-ink); }
+.a-dashboard .a-live__msgs { display: grid; gap: 8px; margin: 12px 0; }
+.a-dashboard .a-live__msg { padding: 8px 12px 9px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+.a-dashboard .a-live__msg.is-member { background: var(--surface-2); border: 1px solid var(--line); margin-right: 28px; }
+.a-dashboard .a-live__msg.is-staff { background: var(--indigo-weak); margin-left: 28px; }
+.a-dashboard .a-live__from { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); }
+.a-dashboard .a-live__from time { font-weight: 500; color: var(--ink-2); white-space: nowrap; }   /* 藍の淡い地では ink-3 が 4.5:1 に届かない */
+.a-dashboard .a-live__text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.a-dashboard .a-live__reply .textarea { min-height: 76px; font-size: 14px; }
+.a-dashboard .a-live__acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.a-dashboard .a-live__acts .btn-text { padding-left: 0; }
+
+/* 止まっている新入生 */
+.a-dashboard .a-dash__stalled .ad-who__name { max-width: 10em; }
+
+/* 今週のイベント */
+.a-dashboard .a-ev li + li .a-ev__row { border-top: 1px solid var(--line); }
+.a-dashboard .a-ev__row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 9px 16px 9px 18px; color: inherit; text-decoration: none; }
+.a-dashboard .a-ev li:last-child .a-ev__row { border-radius: 0 0 11px 11px; }
+.a-dashboard .a-ev__row:hover { background: var(--surface-2); }
+.a-dashboard .a-ev__row:focus-visible { outline-offset: -2px; }
+.a-dashboard .a-ev__when { flex: none; width: 7.6em; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.a-dashboard .a-ev__body { flex: 1; min-width: 0; }
+.a-dashboard .a-ev__ttl { display: block; font-size: 13.5px; font-weight: 700; line-height: 1.45; overflow-wrap: anywhere; }
+.a-dashboard .a-ev__sub { display: block; font-size: 12px; color: var(--ink-3); }
+.a-dashboard .a-ev__cap { flex: none; display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.a-dashboard .a-ev__bar { width: 44px; height: 5px; border-radius: 3px; background: rgba(29, 27, 24, .1); overflow: hidden; }
+.a-dashboard .a-ev__bar i { display: block; height: 100%; background: var(--ink-2); }
+.a-dashboard .a-ev__bar.is-full i { background: var(--warn); }
+@container adview (max-width: 520px) {
+  .a-dashboard .a-ev__row { flex-wrap: wrap; row-gap: 2px; }
+  .a-dashboard .a-ev__when { width: 100%; }
+  .a-dashboard .a-ev__row > .chev { display: none; }
+}
+
+/* 最近の操作 */
+.a-dashboard .a-log__row { display: grid; grid-template-columns: 5.5em 6.5em minmax(0, 1fr); gap: 12px; padding: 9px 18px; font-size: 13px; line-height: 1.55; }
+.a-dashboard .a-log__row + .a-log__row { border-top: 1px solid var(--line); }
+.a-dashboard .a-log__at { color: var(--ink-3); white-space: nowrap; }
+.a-dashboard .a-log__who { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.a-dashboard .a-log__what { min-width: 0; overflow-wrap: anywhere; }
+/* 相手の名前と中身は、狭い幅で途中から割れないよう、入らなければ塊ごと次の行へ送る（長いものは中で折れる）。
+   あいだは半角の空白を word-spacing で広げて空ける（margin や全角の空白だと、次の行へ送ったときに頭が下がるため） */
+.a-dashboard .a-log__what { word-spacing: .55em; }
+.a-dashboard .a-log__what > * { word-spacing: normal; }
+.a-dashboard .a-log__target, .a-dashboard .a-log__detail { display: inline-block; max-width: 100%; vertical-align: top; }
+.a-dashboard .a-log__detail { color: var(--ink-2); }
+.a-dashboard .a-log__why { display: block; font-size: 12px; color: var(--ink-3); }
+@container adview (max-width: 560px) {
+  .a-dashboard .a-log__row { display: block; }
+  .a-dashboard .a-log__at, .a-dashboard .a-log__who { display: inline; font-size: 12px; }
+  .a-dashboard .a-log__what { display: block; }
+  .a-dashboard .a-log__who::before { content: "・"; }
+}

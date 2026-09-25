@@ -1,0 +1,88 @@
+/* ============================================================
+   探す（#/search）。共通の .list / .li / .chips の上に、欄・件数・抜き出し・最近の言葉だけを足す。
+   結果を読みやすい幅（760px）で止める。当たった言葉の印は藍の薄い地＋太字（金はレベル・会員証だけなので使わない）
+   ============================================================ */
+.scr-search { max-width: 760px; }
+
+/* 探す欄：虫めがねは欄の中に置く（押せないので飾り。読み上げは label） */
+.scr-search .sr-form { display: flex; gap: 8px; margin: 0 0 18px; }
+.scr-search .sr-form__box { position: relative; flex: 1; min-width: 0; display: block; }
+.scr-search .sr-form__box > .ico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.scr-search .sr-form .input { width: 100%; padding-left: 42px; }
+.scr-search .sr-form .btn { flex: none; }
+
+/* 件数と種類の札 */
+.scr-search .sr-count { margin: 0 2px 12px; font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.scr-search .sr-count b { color: var(--ink); margin: 0 2px 0 4px; }
+.scr-search .sr-count:focus { outline: none; }
+.scr-search .sr-chips { margin-bottom: 6px; }
+.scr-search .sr-group { margin-top: 24px; }
+.scr-search .sr-chips + .sr-group, .scr-search .sr-count + .sr-group { margin-top: 18px; }
+
+/* 群の見出し（h2 を .sec-ttl の中に置き、右に「すべて見る」） */
+.scr-search .sr-h { font: inherit; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.scr-search .sr-h__n { font-size: 12.5px; font-weight: 600; color: var(--ink-3); }
+
+/* 結果の行 */
+.scr-search .sr-item .li__end .tag { margin-left: 2px; }
+.scr-search .sr-snip {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  margin-top: 3px; font-size: 13px; line-height: 1.65; color: var(--ink-2);
+}
+.scr-search .sr-item--post > .avatar { align-self: flex-start; margin-top: 2px; }
+.scr-search .sr-item--post + .li::before { left: calc(var(--inset) + 44px); }
+.scr-search .sr-lock { color: var(--ink-3); }
+.scr-search .sr-cap { margin: 10px 2px 0; }
+.scr-search mark {
+  background: var(--indigo-weak); color: var(--ink); font-weight: 700;
+  border-radius: 3px; padding: 0 1px; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.scr-search .is-locked mark { color: var(--ink-2); }
+
+/* 最近探した言葉：行の左は言葉へのリンク、右は消すボタン */
+.scr-search .sr-recent .sec-ttl { align-items: center; }
+.scr-search .sr-recent__clear { font-size: 13px; }
+.scr-search .sr-recent__row { padding: 0 calc(var(--inset) - 10px) 0 0; min-height: 50px; gap: 4px; }
+.scr-search .sr-recent__go {
+  flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; gap: 12px;
+  padding: 12px 8px 12px var(--inset); color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 600;
+  border-radius: inherit;
+}
+.scr-search .sr-recent__go > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scr-search .sr-recent__go > .ico { color: var(--ink-3); }
+.scr-search .sr-recent__go:hover { text-decoration: underline; }
+.scr-search .sr-recent__go:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-search .sr-recent__x { flex: none; color: var(--ink-3); }
+.scr-search .sr-recent__x:hover { color: var(--ink); }
+.scr-search .sr-recent__row + .sr-recent__row::before { left: calc(var(--inset) + 28px); }
+
+/* 一覧から探す（8つを4列・狭い幅では2列にそろえる） */
+.scr-search .sr-browse__links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.scr-search .sr-browse__links .btn { justify-content: flex-start; padding: 0 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.scr-search .sr-browse__links .btn .ico { color: var(--ink-2); }
+@container main (max-width: 560px) { .scr-search .sr-browse__links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 見つからないとき */
+.scr-search .sr-none:focus { outline: none; }
+.scr-search .sr-none .empty { padding-bottom: 28px; }
+.scr-search .sr-none .empty > p { overflow-wrap: anywhere; color: var(--ink); font-weight: 700; }
+.scr-search .sr-none .empty__act { margin-top: 6px; }
+.scr-search .sr-none__tip { margin: 0 0 14px; font-size: 13.5px; color: var(--ink-2); }
+.scr-search .sr-none__split { border-top: 1px solid var(--line); padding: 14px var(--inset) 16px; }
+.scr-search .sr-none__split .group-ttl { margin-bottom: 8px; }
+.scr-search .sr-none__split .chips { flex-wrap: wrap; margin: 0; padding: 0; -webkit-mask-image: none; mask-image: none; overflow: visible; }
+.scr-search .sr-none__split .chips::after { content: none; }
+.scr-search a.chip { text-decoration: none; }
+
+@container main (max-width: 440px) {
+  .scr-search .sr-form .btn { padding: 0 14px; }
+}
+/* せまい幅では、状態の札を題の下に置く（右に置くと「キャンセル待ち（2番目）」で題が縦に細くなる） */
+@container main (max-width: 520px) {
+  .scr-search .sr-item.has-tag { flex-wrap: wrap; row-gap: 6px; }
+  .scr-search .sr-item.has-tag > .li__body { flex: 1 1 0; }
+  .scr-search .sr-item.has-tag > .chev { order: 1; }
+  .scr-search .sr-item.has-tag > .li__end { order: 2; flex: 0 0 100%; margin: 0; }
+  .scr-search .sr-item.has-tag.has-ico > .li__end { padding-left: 34px; }
+  .scr-search .sr-item .li__end .tag { margin-left: 0; }
+}
