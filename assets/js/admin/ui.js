@@ -81,7 +81,7 @@
      AU.kpi({ label, value, unit, sub, href, tone: 'alert'|'warn' })   数字のかたまり（押すとその画面へ）
      AU.panel({ title, id, actions, body, flush, cls })               区切りの面（見出し＋右にリンク）
      AU.tabs([{ id, label, href, n }], いまのid, '会員の詳細')         画面の中のタブ（リンク。?tab= で切り替える）
-     AU.status(種類, キー, 文言?)   状態の札。種類：member / thread / payment / reward / review / app / report / expert / interview
+     AU.status(種類, キー, 文言?)   状態の札。種類：member / thread / payment / reward / review / app / report / expert / interview / request
                                    いつもの状態（有効・完了・支払済）は札にせず文字だけ（札は例外に付ける）
      AU.who(行 or 会員番号, { sub, link:false, size })   顔＋名前＋会員番号（#/members/<会員番号> へ）
      AU.kv([['会員番号', 'TS-000271'], ['メール', html, true（html のまま）]])
@@ -135,7 +135,9 @@
     app: { applied: ['review', '応募'], meeting: ['meeting', '面談'], active: ['active', '稼働中'], done: ['done', '完了'], rewarded: ['', '報酬確定'], declined: ['closed', '見送り'] },
     report: { 受付: ['new', '受付'], 非表示: ['closed', '非表示'], 注意: ['waitlist', '注意した'], 対応不要: ['', '対応不要'] },
     expert: { 受付: ['new', '受付'], 日程調整: ['meeting', '日程調整'], 予約確定: ['confirmed', '予約確定'], 相談済み: ['', '相談済み'] },
-    interview: { pending: ['review', '確定待ち'], confirmed: ['confirmed', '予約済み'], done: ['', '済み'], canceled: ['canceled', '取消'] }
+    interview: { pending: ['review', '確定待ち'], confirmed: ['confirmed', '予約済み'], done: ['', '済み'], canceled: ['canceled', '取消'] },
+    // 「あったらいい」リクエスト（R.requests の status）。受付中は運営が返事を書くものなので朱
+    request: { open: ['new', '受付中'], considering: ['review', '検討中'], added: ['done', '追加しました'], declined: ['closed', '今回は見送り'] }
   };
   function status(group, key, label) {
     var g = ST[group] || {}, s = g[key];
@@ -150,7 +152,7 @@
      値：true できる / false 見るだけ / 文字 一部だけ（'lesson'＝講座の質問だけ、'own'＝自分の講座とイベントだけ） */
   var ROLES = ['代表', '運営', '講師', '経理'];
   var ROLE_TABLE = [
-    { id: 'members', name: '会員・メッセージ・新入生への声かけ', can: { 代表: true, 運営: true, 講師: 'lesson', 経理: false }, part: { lesson: '講座の質問だけ' } },
+    { id: 'members', name: '会員・メッセージ・新入生への声かけ・リクエストへの返事', can: { 代表: true, 運営: true, 講師: 'lesson', 経理: false }, part: { lesson: '講座の質問だけ' } },
     { id: 'content', name: '講座・案件・イベント・タイムラインの掲載', can: { 代表: true, 運営: true, 講師: 'own', 経理: false }, part: { own: '自分の講座とイベントだけ' } },
     { id: 'money', name: '返金・支払いのやり直し・領収書', can: { 代表: true, 運営: true, 講師: false, 経理: true } },
     { id: 'rewards', name: '紹介報酬の確定・締め・振込', can: { 代表: true, 運営: true, 講師: false, 経理: true } },

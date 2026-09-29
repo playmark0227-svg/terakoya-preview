@@ -74,6 +74,13 @@
 .scr-account .acc-row__s a { color: var(--indigo); }
 .scr-account .acc-row__end { flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .scr-account .acc-row--stack { display: block; }
+/* やりたいこと：選んだものの印（U.goalTags。長い名前）*/
+.scr-account .acc-goals__tags { display: flex; margin-top: 4px; }
+.scr-account .acc-goals__tags .goal-tag { font-size: 13px; }
+/* 切り替えの行：切り替えは文の右に置いたまま（狭い幅でも下に回さない） */
+.scr-account .acc-row--sw { flex-wrap: nowrap; }
+.scr-account .acc-row--sw .acc-row__main { flex: 1 1 0; }
+.scr-account .acc-sent { display: inline-block; max-width: 100%; }
 
 /* メールの確認待ち（いまのアドレスは上の行に残したまま） */
 .scr-account .acc-pending { flex: 1 1 100%; padding: 12px 14px; border-radius: var(--r); background: var(--indigo-weak); color: var(--indigo); }

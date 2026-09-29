@@ -2,7 +2,11 @@
    探す（#/search?q=<言葉>&type=<群>）
    ------------------------------------------------------------
    R.search(q) の群（講座・講座の回・勉強会の録画・案件・イベント・投稿・ヘルプ）に、
-   この画面で持っている「ページ」（解約・領収書・振込先など、言葉で行き先が決まる場所）を足して出す。
+   この画面で持っている「ページ」（解約・領収書・振込先など、言葉で行き先が決まる場所）と、
+   「あったらいい」リクエスト（R.requests。題・種類・中身・運営の返事で当てる。どの状態も出す）を足して出す。
+   - リクエストの行は #/requests?focus=<id> へ。右に状態の札（受付中・検討中・追加しました・今回は見送り）
+   - ページの群には、修了した講座の修了証（#/courses/<id>/certificate。シェアの窓はそこから）も「修了証」「シェア」で出す
+   - お試しの回がある講座（freeFirst）は、Lv で閉じていても鍵にせず「1回目は入会直後から見られます・2回目から Lv…で開きます」
    - すべて：群ごとに PER 件まで。多い群は「すべて見る」で ?type=<群> に切り替える
    - 当たった言葉は <mark>。文字は esc（U.jp）してから包む。位置は R.search と同じ「1文字ずつそろえる」やり方で探す
    - 最近探した言葉は、見る人（デモの人と会員番号）ごとに localStorage へ。使えないときは出さないだけ
@@ -48,6 +52,9 @@
     if (raw.normalize) raw = raw.normalize('NFKC');
     return norm(raw).split(/\s+/).filter(Boolean);
   }
+  /** 言葉の位置（どちらも norm 済み）。R.termAt があればそれを使う（R.search と同じ決まり。短い英字の「ai」が
+      「taisei」「mai」の中で当たらないように）。なければ indexOf */
+  function at(n, t, from) { return R.termAt ? R.termAt(n, t, from || 0) : n.indexOf(t, from || 0); }
   function qOf(ctx) { return String((ctx.query && ctx.query.q) || '').trim().slice(0, 100); }
 
   /** 当たった言葉をすべて <mark> で包む。範囲が重なったらまとめる。中の文字は U.jp（esc と同じく安全） */
@@ -56,7 +63,7 @@
     if (!text || !terms.length) return glue(U.jp(text));
     var n = norm(text), hits = [];
     terms.forEach(function (t) {
-      for (var i = 0, k; (k = n.indexOf(t, i)) >= 0; i = k + t.length) hits.push([k, k + t.length]);
+      for (var i = 0, k; (k = at(n, t, i)) >= 0; i = k + t.length) hits.push([k, k + t.length]);
     });
     if (!hits.length) return glue(U.jp(text));
     hits.sort(function (a, b) { return a[0] - b[0]; });
@@ -106,10 +113,12 @@
     ['スタートガイド', '#/start', 'flag', '', 'はじめ 最初 入会 30日 オリエンテーション やること'],
     ['講座の一覧', '#/courses', 'play', '', '講座 動画 コース 学び レベル'],
     ['勉強会の録画', '#/courses?tab=archive', 'play', '講座', '録画 勉強会 アーカイブ 見逃し'],
-    ['タイムライン', '#/feed', 'feed', '', '投稿 質問 成果 つぶやき'],
+    ['タイムライン', '#/feed', 'feed', '', '投稿 質問 成果 つぶやき 自己紹介'],
     ['会員名簿', '#/members', 'users', '', '名簿 会員 メンバー 仲間 地域'],
+    ['リクエスト', '#/requests', 'chat', '', 'あったらいい 要望 ほしい 欲しい 案件 講座 イベント 勉強会 +1 ＋1'],
+    ['やりたいこと', '#/account?focus=goals', 'flag', 'アカウント', 'やりたいこと 目標 道 sns 発信 在宅 リモート ai 動画 変わりたい 変えたい これから'],
     ['ランキング', '#/ranking', 'trophy', '', '順位 貢献ポイント pt xp'],
-    ['イベント', '#/events', 'calendar', '', 'オフ会 勉強会 成果発表会 予約 オンライン zoom'],
+    ['イベント', '#/events', 'calendar', '', 'オフ会 勉強会 成果発表会 予約 オンライン zoom 一般公開 誘う'],
     ['案件', '#/gigs', 'briefcase', '', '仕事 お小遣い 業務委託 副業 応募 募集'],
     ['紹介', '#/referral', 'link', '', '紹介リンク 紹介コード 紹介報酬 報酬 明細 友だち'],
     ['相談・メッセージ', '#/messages', 'message', '', '相談 質問 運営 問い合わせ 連絡'],
@@ -141,16 +150,53 @@
     return PAGES.filter(function (p) {
       if (p[5] && !p[5]()) return false;
       var all = norm(p[0] + ' ' + p[4]);
-      return terms.every(function (t) { return all.indexOf(t) >= 0; });
-    }).map(function (p) { return { type: 'page', id: p[1], title: p[0], href: p[1], ico: p[2], sub: p[3] }; });
+      return terms.every(function (t) { return at(all, t) >= 0; });
+    }).map(function (p) { return { type: 'page', id: p[1], title: p[0], href: p[1], ico: p[2], sub: p[3] }; })
+      .concat(certHits(terms));
+  }
+  /** 修了した講座の修了証（シェアの窓もここから）。言葉のどれかが「修了証・シェア」に当たるときだけ
+      （講座の名前だけで探したときは講座の群に出るので足さない）。ほかの言葉は講座の名前でしぼる */
+  var CERT_WORDS = norm('修了証 修了 シェア 共有');
+  function certHits(terms) {
+    if (!terms.some(function (t) { return at(CERT_WORDS, t) >= 0; })) return [];
+    return DATA.COURSES.filter(function (c) {
+      var st = R.courseState(c);
+      if (!st || !st.completed) return false;
+      var all = CERT_WORDS + ' ' + norm(c.title);
+      return terms.every(function (t) { return at(all, t) >= 0; });
+    }).map(function (c) {
+      var h = '#/courses/' + encodeURIComponent(c.id) + '/certificate';
+      return { type: 'page', id: h, title: '「' + c.title + '」の修了証', href: h, ico: 'checkc', sub: '講座' };
+    });
   }
 
-  /** 全部の群（ページを先頭に）。R.search の群の形にそろえる */
+  /** 「あったらいい」リクエスト。言葉がすべて、題・種類・中身・運営の返事のどこかにあるもの。
+      題で当たったものを先に、あとは＋1の多い順（R.requests の並び）。R.search の群と同じく 20 件まで */
+  var REQ_CAP = 20;
+  function requestHits(terms) {
+    if (!R.requests) return null;
+    var list = R.requests({ status: 'all', sort: 'popular' }).filter(function (r) {
+      var all = norm([r.title, r.kindLabel, r.detail, r.reply ? r.reply.text : ''].join(' '));
+      return terms.every(function (t) { return at(all, t) >= 0; });
+    }).map(function (r, i) {
+      return { type: 'request', id: r.id, title: r.title, sub: r.kindLabel, href: r.href, at: r.at, score: hasAny(r.title, terms) ? 10 : 0, _i: i };
+    });
+    list.sort(function (a, b) { return b.score - a.score || a._i - b._i; });
+    return list.length ? { key: 'requests', label: 'リクエスト', total: list.length, items: list.slice(0, REQ_CAP) } : null;
+  }
+
+  /** 全部の群（ページを先頭に）。R.search の群の形にそろえる。リクエストは投稿・ヘルプの前 */
   function results(q) {
     var terms = termsOf(q), res = R.search(q) || { groups: [] }, groups = [];
     var pages = terms.length ? pageHits(terms) : [];
     if (pages.length) groups.push({ key: 'pages', label: 'ページ', total: pages.length, items: pages });
     groups = groups.concat(res.groups || []);
+    var rq = terms.length ? requestHits(terms) : null;
+    if (rq) {
+      var at = groups.length;
+      groups.some(function (g, i) { if (g.key === 'posts' || g.key === 'help') { at = i; return true; } return false; });
+      groups.splice(at, 0, rq);
+    }
     // R.search は新しい順に並べる。これからのイベントは近い順のほうが探しやすい（題で当たったものが先なのは同じ）
     groups.forEach(function (g) {
       if (g.key !== 'events') return;
@@ -179,10 +225,10 @@
   /* 抜き出しを元のデータから作り直す。R.search は「学べること」「章」「資料」を空白でつないで探すので、
      そのまま出すと「はじめに 読みやすいテロップ 参加者の…」と並んでしまう。当たった1項目だけを出す。
      parts：[文, 頭に付ける言葉, 一覧の1項目か]。どこにも当たらない（題で当たった）ときは最初の文の頭 */
-  function hasAny(text, terms) { var n = norm(text); return terms.some(function (t) { return n.indexOf(t) >= 0; }); }
+  function hasAny(text, terms) { var n = norm(text); return terms.some(function (t) { return at(n, t) >= 0; }); }
   function around(text, terms) {
     var n = norm(text), k = -1, len = 0;
-    terms.some(function (t) { var i = n.indexOf(t); if (i >= 0) { k = i; len = t.length; return true; } return false; });
+    terms.some(function (t) { var i = at(n, t); if (i >= 0) { k = i; len = t.length; return true; } return false; });
     if (k < 0) return '';
     var s = Math.max(0, k - 20), e = Math.min(text.length, k + len + 50);
     return tidy((s > 0 ? '…' : '') + text.slice(s, e) + (e < text.length ? '…' : ''));
@@ -216,6 +262,11 @@
     // 案件の報酬・種類、イベントの場所は補足に出ているので、抜き出しは説明から
     if (it.type === 'gig') { var g = R.gig(it.id); return g ? snipFrom([[g.desc, '']], terms) : null; }
     if (it.type === 'event') { var e = R.event(it.id); return e ? snipFrom([[e.desc, '']], terms) : null; }
+    // リクエストは中身から。当たらなければ運営の返事（頭に「運営の返事：」）
+    if (it.type === 'request') {
+      var rq = R.request ? R.request(it.id) : null;
+      return rq ? snipFrom([[rq.detail, '']].concat(rq.reply ? [[rq.reply.text, '運営の返事：']] : []), terms) : null;
+    }
     return null;
   }
 
@@ -228,8 +279,14 @@
       o.lead = '<span class="li__ico">' + icon(it.ico) + '</span>';
     } else if (it.type === 'course') {
       var cs = R.courseState(it.id), c = R.course(it.id);
-      // 開いていない講座は「Lv2・全4回・Lv2「手習い」で開きます」と Lv が2回出るので、回の数と開く条件だけにする
-      if (cs && cs.locked) { o.locked = true; o.sub = (c ? '全' + c.lessons.length + '回・' : '') + cs.lockReason; o.end = lock(); }
+      // 開いていない講座は「Lv2・全4回・Lv2「手習い」で開きます」と Lv が2回出るので、回の数と開く条件だけにする。
+      // お試しの回がある講座（freeFirst）は鍵にせず「1回目は入会直後から見られます・2回目からLv2「手習い」で開きます」
+      if (cs && cs.trial && cs.nextOpen) {
+        o.sub = (c ? '全' + c.lessons.length + '回・' : '') + cs.trialNote + '・' + (cs.freeFirst + 1) + '回目から' + cs.lockReason;
+      } else if (cs && cs.locked) {
+        o.locked = true; o.sub = (c ? '全' + c.lessons.length + '回・' : '') + cs.lockReason; o.end = lock();
+        if (cs.trial) o.sub += '（お試しの回は見終わりました）';
+      }
       else if (cs && cs.completed) o.end = U.statusTag('done', '修了');
       else if (cs && cs.started) o.sub += '・' + cs.done + '/' + cs.total + '回';
     } else if (it.type === 'lesson') {
@@ -241,7 +298,11 @@
         else if (ls === 'locked') {
           var cs2 = R.courseState(f.c), why = cs2.locked ? cs2.lockReason : '前の回を見ると開きます';
           o.locked = true; o.sub += '・' + why; o.end = lock();
-        } else if (isNew(f.l.newAt)) o.end = U.statusTag('new');
+        } else {
+          // Lv で閉じた講座のお試しの回（freeFirst）
+          if (R.courseState(f.c).trial) o.sub += '・入会直後から見られます';
+          if (isNew(f.l.newAt)) o.end = U.statusTag('new');
+        }
       }
     } else if (it.type === 'archive') {
       var ar = byId(DATA.ARCHIVE, it.id), seen = st.archiveSeen && st.archiveSeen[it.id];
@@ -258,6 +319,13 @@
       if (R.isReserved(it.id)) o.end = U.statusTag('reserved');
       else if (wp) o.end = U.statusTag('waitlist', 'キャンセル待ち（' + wp + '番目）');
       else if (R.isFull(it.id)) o.end = U.statusTag('closed', '満席');
+    } else if (it.type === 'request') {
+      // 種類・自分のものか・＋1の数・＋1したか（言い方はリクエストの画面と同じ）。右に状態の札（U.statusTag(tag, statusLabel)）
+      var rr = R.request ? R.request(it.id) : null;
+      if (rr) {
+        o.sub = [rr.kindLabel, rr.mine ? 'あなたのリクエスト' : '', '＋1が' + U.num(rr.votes) + '人', rr.voted ? '＋1しました' : ''].filter(Boolean).join('・');
+        o.end = U.statusTag(rr.tag, rr.statusLabel);
+      }
     } else if (it.type === 'post') {
       var p = R.post(it.id), who = p ? R.person(p.by) : null;
       o.lead = who ? U.avatar(who, 's') : '';
@@ -319,7 +387,7 @@
   function browse(title) {
     var L = [['#/courses', 'play', '講座'], ['#/courses?tab=archive', 'play', '勉強会の録画'], ['#/gigs', 'briefcase', '案件'],
       ['#/events', 'calendar', 'イベント'], ['#/feed', 'feed', 'タイムライン'], ['#/members', 'users', '会員名簿'],
-      ['#/perks', 'gift', '福利厚生'], ['#/help', 'help', 'ヘルプ']];
+      ['#/requests', 'chat', 'リクエスト'], ['#/perks', 'gift', '福利厚生'], ['#/help', 'help', 'ヘルプ']];
     return '<section class="sec sr-browse" aria-labelledby="srBrowse"><h2 class="sec-ttl" id="srBrowse">' + esc(title) + '</h2>' +
       '<div class="sr-browse__links">' + L.map(function (x) {
         return '<a class="btn btn-ghost" href="' + x[0] + '">' + icon(x[1], 'ico-s') + esc(x[2]) + '</a>';

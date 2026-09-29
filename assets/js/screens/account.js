@@ -4,7 +4,9 @@
    - アカウント：プロフィール・契約とお支払い・請求と領収書・ログインとセキュリティ・
      通知（種類 × LINE／メール）・ミュートしている人（いるときだけ）・振込先・記録の書き出しと削除・ホーム画面に追加・ログアウト。
      契約が「有効」でないとき（解約予定・終了・支払いエラー・休会中）は、契約の欄をいちばん上に出す。
-   - #/account?focus=card|plan|invoices|notify|password|email|bank（ほかに profile・line・sessions・mutes・data）：
+   - やりたいこと（R.goals）：いまの2つまでと「変更する」（窓で U.goalPicker → R.setGoals → CLG.app.reward）、
+     「名簿に出さない」の切り替え（R.setHideGoals。その場で効く）。プロフィールの1行の「ひとことの目標」（m.goal。30日後の目標を決めるとここにも入る）とは別のもの。
+   - #/account?focus=card|plan|invoices|notify|password|email|bank|goals（ほかに profile・line・sessions・mutes・data）：
      その場所へスクロールして焦点を置き、短く目印を付ける。描き直しで同じ場所へ飛ばないよう、URL からは外す。
    - 請求の行：支払済（領収書を保存）・お支払いエラー・予定・返金（R.refundInvoice。返金の日と額を2行目に書く。
      全額は「返金済み」の札で領収書なし、一部は領収書を残す。領収書は返金のあとの額で、返金の行を足す）。
@@ -41,7 +43,7 @@
   /* ?focus= の名前 → 動かす先の id */
   var FOCUS = { profile: 'acc-profile', plan: 'acc-plan', card: 'acc-plan', invoices: 'acc-invoices', security: 'acc-security',
     email: 'acc-email', password: 'acc-password', sessions: 'acc-sessions', notify: 'acc-notify', line: 'acc-line',
-    mutes: 'acc-mutes', bank: 'acc-bank', data: 'acc-data' };
+    mutes: 'acc-mutes', bank: 'acc-bank', data: 'acc-data', goals: 'acc-goals' };
   var EXPORT_DAYS = 7;       // 書き出したファイルを保存できる日数
   var DELETE_DAYS = 30;      // 会員期間が終わってから削除するまでの日数
   var EXPORT_WAIT = 2500;    // 試作版：書き出しの受付から「できた」にするまで
@@ -89,16 +91,19 @@
     if (!area || vis === 'none') return '';
     return vis === 'city' ? area : area.split(' ')[0];
   }
-  /** 開いていて見終えていない講座の、残りの本数と分数 */
+  /** 開いていて見終えていない講座の、残りの本数と分数。
+      Lv で閉じている講座でも、お試しの回（freeFirst。1回目は入会直後から見られる）がまだなら、その回だけ数える */
   function remaining() {
     var r = { courses: 0, lessons: 0, minutes: 0 };
     DATA.COURSES.forEach(function (c) {
-      var st = R.courseState(c);
-      if (st.locked || st.completed) return;
-      r.courses++;
-      c.lessons.forEach(function (l) {
-        if (R.lessonState(c, l.id) !== 'done') { r.lessons++; r.minutes += l.min; }
+      var st = R.courseState(c), n = 0;
+      if (st.completed) return;
+      c.lessons.forEach(function (l, i) {
+        if (R.lessonState(c, l.id) === 'done') return;
+        if (st.locked && !(st.trial && i < (st.freeFirst || 0))) return;
+        n++; r.lessons++; r.minutes += l.min;
       });
+      if (n) r.courses++;
     });
     return r;
   }
@@ -152,6 +157,7 @@
     var m = R.me(), p = R.plan();
     var parts = {
       profile: sec('acc-profile', 'プロフィール', profileCard(m, p)),
+      goals: sec('acc-goals', 'やりたいこと', goalsCard()),
       plan: sec('acc-plan', '契約とお支払い', planCard(m, p, ctx.state)),
       invoices: sec('acc-invoices', '請求と領収書', invoiceList(p)),
       security: sec('acc-security', 'ログインとセキュリティ', securityCard(m)),
@@ -163,8 +169,8 @@
       data: sec('acc-data', '記録の書き出しと削除', dataCard(p))
     };
     var order = p.status === 'active'
-      ? ['profile', 'plan', 'invoices', 'security', 'notify', 'mutes', 'bank', 'data']
-      : ['plan', 'invoices', 'profile', 'security', 'notify', 'mutes', 'bank', 'data'];
+      ? ['profile', 'goals', 'plan', 'invoices', 'security', 'notify', 'mutes', 'bank', 'data']
+      : ['plan', 'invoices', 'profile', 'goals', 'security', 'notify', 'mutes', 'bank', 'data'];
     return '<div class="scr-account">' +
       '<div class="page-head"><h1 class="page-ttl" data-page-title tabindex="-1">アカウント</h1></div>' +
       order.map(function (k) { return parts[k]; }).join('') +
@@ -196,12 +202,56 @@
           ? esc(m.area) + '<span class="acc-kv__sub">ほかの会員には' + (shown ? '「' + esc(shown) + '」と表示' : '表示しません') + '（' + esc(visName) + '）</span>'
           : '<span class="muted">未入力</span>') +
         kvRow('いまのお仕事', orEmpty(m.job)) +
-        kvRow('やりたいこと', m.goal ? jp(m.goal, { br: true }) : '<span class="muted">未入力</span>') +
+        kvRow('ひとことの目標', m.goal ? jp(m.goal, { br: true }) : '<span class="muted">未入力</span>') +
       '</tbody></table></div>' +
       '<div class="card-foot">' +
         '<button type="button" class="btn ' + (urge ? 'btn-primary' : 'btn-ghost') + ' btn-s" data-acc-profile="edit">変更する</button>' +
       '</div>' +
     '</div>';
+  }
+
+  /* ---------- やりたいこと（R.goals。2つまで・いつでも変えられる・名簿に出さないこともできる） ----------
+     変えるのは窓（U.goalPicker → R.setGoals → CLG.app.reward）。名簿に出すかは切り替え（R.setHideGoals。その場で効く） */
+  function goalsCard() {
+    var g = R.goals();
+    var now = g.ids.length ? U.goalTags(g.ids, { long: true, cls: 'acc-goals__tags' })
+      : '<span class="muted">' + (g.chosen ? 'まだ決めていない' : '未選択') + '</span>';
+    return '<div class="card acc-goals">' +
+      '<div class="acc-row acc-row--fit">' +
+        '<div class="acc-row__main"><p class="acc-row__k">選んでいるもの（2つまで）</p><p class="acc-row__v">' + now + '</p></div>' +
+        '<div class="acc-row__end"><button type="button" class="btn btn-ghost btn-s" data-acc-goals="edit">' + (g.chosen ? '変更する' : '選ぶ') + '</button></div>' +
+      '</div>' +
+      '<div class="acc-row acc-row--sw">' +
+        '<div class="acc-row__main"><p class="acc-row__v" id="accHideGoalsL">名簿に出さない</p>' +
+          '<p class="acc-row__s" id="accHideGoalsS"><span class="acc-sent">会員名簿と会員のページに出しません。</span><span class="acc-sent">運営には見えます。</span></p></div>' +
+        '<div class="acc-row__end"><label class="switch acc-sw">' +
+          '<input type="checkbox" data-acc-hidegoals aria-labelledby="accHideGoalsL" aria-describedby="accHideGoalsS"' + (g.hidden ? ' checked' : '') + '><i></i></label></div>' +
+      '</div>' +
+    '</div>';
+  }
+  function openGoals() {
+    var g = R.goals();
+    var box = U.modal('<form class="acc-form acc-goalsform" id="accGoalsForm" novalidate>' +
+        U.goalPicker(g.ids, { name: 'accGoals', legend: 'やりたいこと', noneChecked: g.chosen && g.undecided }) +
+        '<p class="field__err" data-acc-goals-err role="alert" hidden></p>' +
+      '</form>', {
+      title: g.chosen ? 'やりたいことを変更' : 'やりたいことを選ぶ', cls: 'scr-account', dirty: true,
+      foot: cancelBtn() + '<button type="submit" form="accGoalsForm" class="btn btn-primary">保存する</button>'
+    });
+    wireCancel(box);
+    var form = box.querySelector('form'), err = form.querySelector('[data-acc-goals-err]');
+    form.addEventListener('change', function () { err.hidden = true; err.textContent = ''; });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var picked = U.goalPicked(form);
+      if (!picked.count && !picked.none) { err.textContent = '選ぶか、「まだ決めていない」にしてください'; err.hidden = false; return; }
+      var r = R.setGoals(picked.ids);
+      if (!r || !r.ok) { err.textContent = (r && r.error) || '保存できませんでした'; err.hidden = false; return; }
+      box.close();
+      if (r.steps && r.steps.length) CLG.app.reward(r);
+      else U.toast('やりたいことを保存しました', 'ok');
+      CLG.app.refresh();
+    });
   }
 
   /* ---------- 契約とお支払い ---------- */
@@ -636,7 +686,7 @@
       '</fieldset>' +
       '<label class="field"><span>いまのお仕事<span class="opt">任意</span></span>' +
         '<input class="input" name="job" maxlength="40" placeholder="例：会社員（事務）・2児の母" value="' + esc(m.job) + '"></label>' +
-      '<label class="field"><span>やりたいこと<span class="opt">任意</span></span>' +
+      '<label class="field"><span>ひとことの目標<span class="opt">任意</span></span>' +
         '<textarea class="textarea" name="goal" maxlength="120" rows="3" placeholder="例：動画編集を覚えて、在宅の仕事を1件受ける">' + esc(m.goal) + '</textarea></label>' +
     '</form>';
     var fine = false;
@@ -1058,8 +1108,8 @@
     setTimeout(function () {
       if (!el.isConnected) return;
       var box = el.classList.contains('acc-sec') ? (el.querySelector('.card,.list') || el) : el;
-      if (key === 'card') {
-        var btn = el.querySelector('[data-acc-card]');
+      if (key === 'card' || key === 'goals') {
+        var btn = el.querySelector(key === 'card' ? '[data-acc-card]' : '[data-acc-goals]');
         U.smoothScroll(btn || el, { block: 'center', focus: true });
       } else if (el.classList.contains('acc-sec')) {
         var h = el.querySelector('.sec-ttl');
@@ -1088,6 +1138,7 @@
     var b;
 
     if ((b = t.closest('[data-acc-profile]'))) { openProfile(); return; }
+    if ((b = t.closest('[data-acc-goals]'))) { openGoals(); return; }
     if ((b = t.closest('[data-acc-card]'))) { openCard(); return; }
     if ((b = t.closest('[data-acc-bank]'))) {
       if (b.getAttribute('data-acc-bank') === 'edit') { openBank(); return; }
@@ -1286,6 +1337,12 @@
   }
 
   function onChange(e) {
+    var hg = e.target.closest && e.target.closest('.scr-account [data-acc-hidegoals]');
+    if (hg && cur) {
+      R.setHideGoals(hg.checked);
+      cur.announce(hg.checked ? 'やりたいことを名簿に出さないようにしました' : 'やりたいことを名簿に出すようにしました');
+      return;
+    }
     var ctx = cur, sw = e.target.closest && e.target.closest('.scr-account [data-acc-notify]');
     if (!ctx || !sw) return;
     var type = sw.getAttribute('data-acc-notify'), ch = sw.getAttribute('data-ch'), on = sw.checked;

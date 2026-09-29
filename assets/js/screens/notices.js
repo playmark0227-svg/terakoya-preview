@@ -9,11 +9,20 @@
    - 通知を LINE・メールで受け取るかは、アカウントの「通知」（#/account?focus=notify）。会員期間が終わった人には出さない
      （アカウントに「通知」の欄がないため）。
    - 契約の状態で止めている画面へのお知らせは、リンクにしない（押しても止めた画面になるだけのため）。
+   - 「リクエストへの返事」（type 'request'。R.answerRequest が出す）は、時刻の横に種類の名前（DATA.NOTIFY_TYPES）を添える。
+     押すとそのリクエストの行（#/requests?focus=<id>）へ。返事を見た印はリクエストの画面が付ける（R.markRequestsSeen）。
    ============================================================ */
 (function () {
   'use strict';
-  var CLG = window.CLG, U = CLG.ui, R = CLG.rules;
+  var CLG = window.CLG, U = CLG.ui, R = CLG.rules, DATA = CLG.DATA;
   var esc = U.esc, icon = U.icon;
+  /* 時刻の横に種類の名前を添えるお知らせ（ほかの種類は文だけで分かるので添えない） */
+  var LABELED = { request: 1 };
+  function typeName(type) {
+    if (!LABELED[type]) return '';
+    var t = ((DATA && DATA.NOTIFY_TYPES) || []).filter(function (x) { return x.id === type; })[0];
+    return t ? t.name : '';
+  }
   var cur = null;
   var PAGE = 30, upTo = PAGE;              // 長くなったら30件ずつ出す（画面を離れたら30件に戻す）
 
@@ -43,10 +52,11 @@
   }
 
   function row(n, tab) {
-    var href = safe(n.link || n.go), cls = 'li has-ico nt-row' + (n.unread ? ' is-unread' : '');
+    var href = safe(n.link || n.go), cls = 'li has-ico nt-row' + (n.unread ? ' is-unread' : ''), kind = typeName(n.type);
     var inner = '<span class="li__ico">' + icon(n.icon || 'bell') + '</span>' +
       '<span class="li__body"><span class="li__ttl">' + U.jp(n.text) + '</span>' +
-        '<span class="li__sub"><time datetime="' + esc(n.at) + '">' + esc(timeText(n.at)) + '</time></span></span>' +
+        '<span class="li__sub"><time datetime="' + esc(n.at) + '">' + esc(timeText(n.at)) + '</time>' +
+          (kind ? '<span class="nt-kind">・' + esc(kind) + '</span>' : '') + '</span></span>' +
       (n.unread ? '<span class="udot" aria-hidden="true"></span><span class="sr-only">未読</span>' : '') +
       // リンクのない行も、未読の点をほかの行と同じ位置にそろえる（山かっこの幅をあける）
       (href ? U.chevron() : n.unread ? '<span class="nt-nochev" aria-hidden="true"></span>' : '');

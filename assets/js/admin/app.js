@@ -31,12 +31,14 @@
    ■ URL と画面
      #/<画面名>/<引数>?<キー>=<値>。#/members/<会員番号> だけは会員の詳細（screens.member・member-detail.js）に回す。
      ほかの画面の引数（#/inbox/<スレッドid>、#/gigs/<id>、#/events/<id>）は、その画面が ctx.params で受ける。
-     画面の一覧：dashboard members member onboarding inbox courses gigs events feed perks payments referrals points reports settings
+     画面の一覧：dashboard members member onboarding inbox requests courses gigs events feed perks payments referrals points reports settings
      ? の後ろだけが変わるとき（絞り込み・タブ）は同じ画面の描き直し：先頭に戻さず、焦点も残す。
      リンクの形（ほかの画面から飛んでくるもの。受ける側で作る）：
        #/members?status=past_due  #/members/<会員番号>?tab=pay  #/onboarding  #/inbox?status=open  #/inbox/<id>（デモ会員は live）
        #/gigs?tab=apps|review  #/events?tab=proposals  #/feed?tab=reports  #/perks?tab=experts
        #/payments?status=failed  #/referrals?status=ready  #/points  #/reports  #/settings?tab=audit|staff|templates
+       #/requests?status=open|considering|added|declined&kind=gig|course|event&sort=-votes|-at|-answeredAt  #/requests/<リクエストid>（返事を書く）
+       #/members?goal=<GOALS の id|none>（&status=enrolled で在籍中だけ）  #/events?tab=signups（成果発表会の一般公開の申込み）  #/requests?focus=<id>（会員ページと同じ形。その1件を開く）  #/events/<成果発表会のid>（一般公開の枠）
 
    ■ ctx
      name params query key（会員ページと同じ）/ go(hash) / refresh({ focus }) / setQuery(patch, { replace, focus }) / announce(text)
@@ -74,7 +76,8 @@
      [画面名, 名前, 記号, 細い帯（タブレット）で出す短い名前, 数のキー] */
   var NAV = [
     { items: [['dashboard', 'ダッシュボード', 'grid', 'ホーム']] },
-    { label: '会員', items: [['members', '会員', 'users'], ['onboarding', '新入生の30日', 'flag', '新入生', 'stalled'], ['inbox', 'メッセージ', 'message', null, 'inbox']] },
+    { label: '会員', items: [['members', '会員', 'users'], ['onboarding', '新入生の30日', 'flag', '新入生', 'stalled'], ['inbox', 'メッセージ', 'message', null, 'inbox'],
+      ['requests', 'リクエスト', 'chat', null, 'requests']] },
     { label: '掲載', items: [['courses', '講座', 'play'], ['gigs', '案件', 'briefcase', null, 'gigs'], ['events', 'イベント', 'calendar', null, 'proposals'],
       ['feed', 'タイムライン・お知らせ', 'feed', '投稿', 'reports'], ['perks', '福利厚生・専門家', 'ticket', '特典', 'experts']] },
     { label: 'お金とポイント', items: [['payments', '支払い', 'yen', null, 'failed'], ['referrals', '紹介報酬', 'gift', '紹介', 'rewards'], ['points', '貢献ポイント', 'star', 'pt']] },
@@ -354,7 +357,9 @@
     },
     experts: function (m) { return { n: m.experts, sr: '専門家の相談' + m.experts + '件' }; },
     failed: function (m) { return { n: m.failed, alert: m.failed > 0, sr: '支払いエラー' + m.failed + '件' }; },
-    rewards: function (m) { return { n: m.rewardsReady, sr: '確定待ち' + m.rewardsReady + '件' }; }
+    rewards: function (m) { return { n: m.rewardsReady, sr: '確定待ち' + m.rewardsReady + '件' }; },
+    // 「あったらいい」リクエスト：受付中で、運営の返事がまだのもの（R.requestCounts().pending）
+    requests: function (m) { return { n: m.requests || 0, sr: '返事がまだのリクエスト' + (m.requests || 0) + '件' }; }
   };
   function chrome() {
     if (!doc.getElementById('adApp')) return;
@@ -485,7 +490,7 @@
     try {
       var m = AD.data.metrics(), t = R.thread(), lastMe = null;
       t.forEach(function (x) { if (x.from === 'me') lastMe = x; });
-      return { msgAt: lastMe ? lastMe.at : null, msg: lastMe, peer: m.peerGigs, prop: m.proposals, rep: m.reports, gig: m.gigApps, exp: m.experts, no: store.state.me.id };
+      return { msgAt: lastMe ? lastMe.at : null, msg: lastMe, peer: m.peerGigs, prop: m.proposals, rep: m.reports, gig: m.gigApps, exp: m.experts, req: m.requestsMine || 0, no: store.state.me.id };
     } catch (e) { return null; }
   }
   function rememberSeen() { lastSeen = seenNow(); }
@@ -502,6 +507,11 @@
     else if (now.gig > before.gig) U.toast(name + 'さんが案件に応募しました', null, { action: '開く', onAction: function () { go('#/gigs?tab=apps'); } });
     else if (now.rep > before.rep) U.toast('タイムラインに通報が届きました', null, { action: '開く', onAction: function () { go('#/feed?tab=reports'); } });
     else if (now.exp > before.exp) U.toast(name + 'さんから専門家への相談が届きました', null, { action: '開く', onAction: function () { go('#/perks?tab=experts'); } });
+    else if (now.req > before.req) U.toast(name + 'さんがリクエストを出しました', null, { action: '開く', onAction: function () {
+      // いちばん新しいデモ会員のリクエストを開く（見つからなければ受付中の新しい順）
+      var nw = null; try { nw = (R.requests({ mine: true, sort: 'new' }) || [])[0]; } catch (e) { nw = null; }
+      go(nw ? '#/requests/' + encodeURIComponent(nw.id) : '#/requests?status=open&sort=-at');
+    } });
     refreshSoon();
   }
 

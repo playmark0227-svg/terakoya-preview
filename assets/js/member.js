@@ -25,7 +25,7 @@
   var NAV = [
     { items: [['home', 'ホーム', 'home'], ['start', 'スタートガイド', 'flag', 'ガイド']] },
     { label: '学び', items: [['courses', '講座', 'play']] },
-    { label: 'コミュニティ', items: [['feed', 'タイムライン', 'feed', '投稿'], ['events', 'イベント', 'calendar'], ['ranking', 'ランキング', 'trophy']] },
+    { label: 'コミュニティ', items: [['feed', 'タイムライン', 'feed', '投稿'], ['events', 'イベント', 'calendar'], ['ranking', 'ランキング', 'trophy'], ['requests', 'リクエスト', 'chat']] },
     // 決定事項：主メニューの名前は「紹介」（報酬は紹介の画面の中に置く）
     { label: '案件と紹介', items: [['gigs', '案件', 'briefcase'], ['referral', '紹介', 'gift']] },
     { label: '会員特典', items: [['perks', '福利厚生・専門家', 'ticket', '特典'], ['card', '会員証', 'card']] },
@@ -35,14 +35,14 @@
   /* スマホのメニューに並べるもの（下のタブにないもの）。<wbr> は 320px で折る位置 */
   var GRID = [
     ['start', 'スタート<wbr>ガイド', 'flag'], ['events', 'イベント', 'calendar'], ['ranking', 'ランキング', 'trophy'],
-    ['referral', '紹介', 'gift'], ['messages', '相談・<wbr>メッセージ', 'message'], ['perks', '福利厚生・<wbr>専門家', 'ticket'],
+    ['requests', 'リクエスト', 'chat'], ['referral', '紹介', 'gift'], ['messages', '相談・<wbr>メッセージ', 'message'], ['perks', '福利厚生・<wbr>専門家', 'ticket'],
     ['card', '会員証', 'card'], ['account', 'アカウント', 'user'], ['help', 'ヘルプ', 'help']
   ];
   /* ナビでどの項目を光らせるか（画面名 → ナビの項目） */
   var NAV_OF = { lesson: 'courses', archive: 'courses', members: 'feed' };
   /* 戻る先の名前（スマホの上の帯。「◯◯に戻る」と読み上げる） */
   var LABEL = { courses: '講座', gigs: '案件', feed: 'タイムライン', events: 'イベント', members: '会員名簿', account: 'アカウント',
-    perks: '福利厚生・専門家', referral: '紹介', messages: '相談', notices: 'お知らせ', help: 'ヘルプ', ranking: 'ランキング',
+    perks: '福利厚生・専門家', referral: '紹介', messages: '相談', notices: 'お知らせ', help: 'ヘルプ', ranking: 'ランキング', requests: 'リクエスト',
     start: 'スタートガイド', card: '会員証', search: '探す', home: 'ホーム' };
   /* ログインしていなくても開ける画面（パスワードの再設定など） */
   var AUTH = { forgot: 1, reset: 1, 'set-password': 1 };
@@ -275,8 +275,10 @@
     var d = host.querySelector('.dot'), s = host.querySelector('.dot-sr');
     if (on && !d) {
       host.insertAdjacentHTML('beforeend', '<span class="dot" aria-hidden="true"></span>' + (sr ? '<span class="sr-only dot-sr">' + esc(sr) + '</span>' : ''));
-    } else if (!on) { if (d) d.parentNode.removeChild(d); if (s) s.parentNode.removeChild(s); }
+    } else if (on && s && sr && s.textContent !== sr) s.textContent = sr;
+    else if (!on) { if (d) d.parentNode.removeChild(d); if (s) s.parentNode.removeChild(s); }
   }
+  function requestUpdates() { try { return R.requestCounts ? (R.requestCounts().updates || 0) : 0; } catch (e) { return 0; } }
   function levelLabel(lv) { return 'レベルのしくみ（Lv' + lv.lv + '・' + (lv.next ? 'あと' + lv.toNext + 'XP' : '最高レベル') + '）'; }
   function currentPlanKey() {
     var p = R.plan ? R.plan() : { status: 'active' };
@@ -301,6 +303,9 @@
       });
       setCount(doc.querySelector('[data-nav="messages"]'), unreadMsg, '', '未読' + unreadMsg + '件');
       setCount(doc.querySelector('[data-nav="start"]'), ob.finished ? 0 : ob.total - ob.done, 'count-soft', '残り' + (ob.total - ob.done) + '項目');
+      // リクエスト：自分が出した・＋1したものに、まだ見ていない運営の返事がある数（一覧を開くと R.markRequestsSeen で消える）
+      var reqUpd = requestUpdates();
+      setCount(doc.querySelector('[data-nav="requests"]'), reqUpd, '', '新しい返事' + reqUpd + '件');
 
       var onTab = TABS.some(function (t) { return t[0] === cur; });
       U.$$('[data-tab]', tabbar).forEach(function (a) {
@@ -308,7 +313,7 @@
         a.classList.toggle('is-active', on);
         if (t !== 'menu') { if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
       });
-      setDot(doc.querySelector('[data-tab="menu"]'), !!unreadMsg, '未読メッセージあり');
+      setDot(doc.querySelector('[data-tab="menu"]'), !!(unreadMsg || reqUpd), unreadMsg ? '未読メッセージあり' : 'リクエストに新しい返事あり');
 
       var bell = unreadN ? 'お知らせ（未読' + unreadN + '件）' : 'お知らせ';
       ['sideBell', 'topBell'].forEach(function (id) {
@@ -818,7 +823,8 @@
     if (r.levelUp) { celebrate(r); return; }
     if (r.courseCompleted) { completed(r); return; }
     if (r.steps && r.steps.length) {
-      U.toast('スタートガイド「' + r.steps[r.steps.length - 1].title + '」が済みました　+' + r.xp + ' XP', 'ok');
+      // XP の付かない項目（やりたいことを選ぶ など）は「+0 XP」を出さない
+      U.toast('スタートガイド「' + r.steps[r.steps.length - 1].title + '」が済みました' + (r.xp ? '　+' + r.xp + ' XP' : ''), 'ok');
       return;
     }
     var parts = [];
@@ -831,11 +837,12 @@
     var up = r.levelUp;
     // レベルだけでなく講座の修了条件も満たして、いま本当に応募できるものだけ
     var gigs = up.gigs || (DATA.GIGS || []).filter(function (g) { return g.level > up.from && g.level <= up.to && !R.gigLock(g).locked; });
-    U.modal(
+    var m = U.modal(
       '<div class="lvup">' +
         '<div class="lvup__seal" aria-hidden="true"><span>Lv</span><b class="num">' + esc(up.to) + '</b></div>' +
         '<h2 class="lvup__ttl">Lv' + esc(up.to) + '「' + esc(up.name) + '」になりました</h2>' +
-        (r.courseCompleted ? '<p class="sub" style="margin-top:6px">講座「' + esc(r.courseCompleted.title) + '」も修了しました。</p>' + courseLinks(r.courseCompleted) : '') +
+        (r.courseCompleted ? '<p class="sub" style="margin-top:6px">講座「' + esc(r.courseCompleted.title) + '」も修了しました。</p>' + courseLinks(r.courseCompleted, shareBtn('level', up.to)) :
+          shareRow(shareBtn('level', up.to))) +
       '</div>' +
       (up.unlocked.length ?
         '<h3 class="group-ttl" style="margin:18px 0 8px">見られるようになった講座</h3>' +
@@ -852,14 +859,30 @@
       { label: 'レベルアップ', foot: '<button type="button" class="btn btn-soft" data-close>閉じる</button>' +
         (up.unlocked.length ? '<a class="btn btn-primary" href="#/courses" data-close>講座を見る</a>' : '') }
     );
+    wireShareBtns(m);
     store.update(function (s) { s.seenLevel = up.to; });
+  }
+  /* 「シェアする」（レベルアップ・修了の窓）。シェアの窓は U.shareSheet（XP・ポイントは付けない）。その場面をまだ満たしていなければ出さない */
+  function shareBtn(moment, id) {
+    var ok = false;
+    try { ok = !!(R.shareText && U.shareSheet && R.shareText(moment, id)); } catch (e) { ok = false; }
+    return ok ? '<button type="button" class="btn btn-text" data-lvup-share="' + esc(moment) + '" data-lvup-id="' + esc(id) + '" aria-haspopup="dialog">' +
+      icon('share', 'ico-s') + 'シェアする</button>' : '';
+  }
+  function shareRow(btn) { return btn ? '<p class="lvup__links">' + btn + '</p>' : ''; }
+  function wireShareBtns(m) {
+    if (!m) return;
+    m.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-lvup-share]') : null;
+      if (b) U.shareSheet(b.getAttribute('data-lvup-share'), { id: b.getAttribute('data-lvup-id') });
+    });
   }
 
   /** 修了したときの「修了証を見る」と、まだ合格していなければ「確認テストを受ける」（決定事項：テストは修了の条件にしない） */
-  function courseLinks(c) {
+  function courseLinks(c, extra) {
     var id = encodeURIComponent(c.id), q = R.quiz ? R.quiz(c.id) : null, quiz = q && !(q.result && q.result.passed);
     return '<p class="lvup__links"><a class="btn btn-text" href="#/courses/' + id + '/certificate" data-close>修了証を見る</a>' +
-      (quiz ? '<a class="btn btn-text" href="#/courses/' + id + '?focus=quiz" data-close>確認テストを受ける（' + q.total + '問）</a>' : '') + '</p>';
+      (quiz ? '<a class="btn btn-text" href="#/courses/' + id + '?focus=quiz" data-close>確認テストを受ける（' + q.total + '問）</a>' : '') + (extra || '') + '</p>';
   }
   function completed(r) {
     var c = r.courseCompleted;
@@ -868,11 +891,12 @@
         '<div class="lvup__seal lvup__seal-ok" aria-hidden="true">' + icon('check', 'ico-l') + '</div>' +
         '<h2 class="lvup__ttl">講座「' + esc(c.title) + '」を修了しました</h2>' +
         '<p class="sub" style="margin-top:6px">全' + c.lessons.length + '回を見終えました。<b class="num xp-num">+' + esc(r.xp) + '</b> XP</p>' +
-        courseLinks(c) +
+        courseLinks(c, shareBtn('course', c.id)) +
       '</div>',
       { label: '講座の修了', foot: '<button type="button" class="btn btn-soft" data-close>閉じる</button>' +
         '<button type="button" class="btn btn-primary" data-share>タイムラインに投稿する</button>' }
     );
+    wireShareBtns(m);
     m.querySelector('[data-share]').addEventListener('click', function () {
       var res = R.addPost('講座「' + c.title + '」を修了しました。', 'win');
       m.close(); U.toast('タイムラインに投稿しました', 'ok');
@@ -959,7 +983,8 @@
 
   /** スマホのメニュー：自分とレベル → 下のタブにない行き先 → 規約など → 試作版 */
   function menuSheet() {
-    var m = R.me(), lv = R.level(), cur = curNav(parse().name), unreadMsg = R.unread(), s = store.state;
+    var m = R.me(), lv = R.level(), cur = curNav(parse().name), unreadMsg = R.unread(), reqUpd = requestUpdates(), s = store.state;
+    function cnt(n, sr) { return n ? '<span class="count"><span aria-hidden="true">' + n + '</span><span class="sr-only">（' + sr + '）</span></span>' : ''; }
     var prof = R.profile ? R.profile() : {};
     var planLabel = (PLAN_DEMO.filter(function (p) { return p[0] === currentPlanKey(); })[0] || ['', '有効'])[1];
     U.modal(
@@ -971,7 +996,7 @@
       '<nav class="igrid" aria-label="ほかのページ">' + GRID.map(function (g) {
         var on = cur === g[0];
         return '<a class="igrid__item" href="#/' + g[0] + '" data-close' + (on ? ' aria-current="page"' : '') + '>' + icon(g[2]) + '<span>' + g[1] + '</span>' +
-          (g[0] === 'messages' && unreadMsg ? '<span class="count"><span aria-hidden="true">' + unreadMsg + '</span><span class="sr-only">（未読' + unreadMsg + '件）</span></span>' : '') + '</a>';
+          (g[0] === 'messages' ? cnt(unreadMsg, '未読' + unreadMsg + '件') : g[0] === 'requests' ? cnt(reqUpd, '新しい返事' + reqUpd + '件') : '') + '</a>';
       }).join('') + '</nav>' +
       // 規約などは1行に収める（320px でも折り返さない4つだけ）
       '<p class="msheet__legal">' + LEGAL.map(function (l) { return '<a href="' + l[0] + '">' + l[1] + '</a>'; }).join('') + '</p>' +
@@ -1007,6 +1032,7 @@
     }
     var tips = [tip,
       ['紹介、ランキング', '紹介リンクと報酬の明細、今月の順位。ランキングは紹介の人数とは関係ありません。'],
+      ['リクエスト', 'あったらいい案件・講座・イベントを出したり、ほかの人のものに＋1したりできます。運営画面で返事を付けると、お知らせが届きます。'],
       ['スタートガイド', '入会から30日でやることの一覧。「試作版」のメニューで「入会したて」を選ぶと、1日目の画面になります。'],
       ['公開サイト →「入会する」', '申込み、決済（デモ）、会員番号の発行、会員ページまで通しで動きます。']];
     U.modal(

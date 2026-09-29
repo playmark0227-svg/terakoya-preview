@@ -1,0 +1,114 @@
+/* ============================================================
+   「あったらいい」リクエスト（#/requests）
+   共通の部品（.seg .chips .list .li .tag .notice .field .check .empty）で組み、ここは差分だけ。
+   一覧は1枚の面（.card.rq-list）の中に行（article.rq）を線で区切って並べる（入れ子の面にしない）。
+   出す・直すの窓は body 直下に出るので、U.modal の cls で .scr-requests を付けて閉じている（.rq-modal）。
+   本文の中の組み替えは @container main（本文の幅）で書く。@media は押しやすさ（860px 以下）と窓の中だけ。
+   ============================================================ */
+.scr-requests:not(.modal) { max-width: 820px; }
+
+/* ---------- 見出し（広い幅は題の右にボタン。せまい幅は題 → 説明 → ボタン） ---------- */
+.scr-requests .rq-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "ttl btn" "lead lead"; align-items: center; gap: 0 16px; }
+.scr-requests .rq-head > .page-ttl { grid-area: ttl; }
+.scr-requests .rq-head > .rq-post { grid-area: btn; }
+.scr-requests .rq-head > .page-lead { grid-area: lead; max-width: 40em; }
+
+/* 開いた時点で新しかった返事 */
+.scr-requests .rq-fresh { align-items: center; margin-bottom: 22px; }
+.scr-requests .rq-fresh__txt { flex: 1; min-width: 0; line-height: 1.6; }
+.scr-requests .rq-fresh .btn { flex: none; }
+.scr-requests .rq-fresh + .sec { margin-top: 0; }
+.scr-requests .page-head + .sec { margin-top: 0; }
+
+/* ---------- タブと種類 ---------- */
+.scr-requests .rq-bar { display: grid; gap: 12px; margin-bottom: 14px; min-width: 0; }
+.scr-requests .rq-tabs { justify-self: start; }
+.scr-requests .rq-kinds { min-width: 0; }
+.scr-requests .rq-board .sec-ttl:focus { outline: none; }
+
+/* ---------- 一覧の1行 ---------- */
+.scr-requests .rq-list { padding: 0; overflow: hidden; }
+.scr-requests .rq { position: relative; padding: 18px var(--inset) 16px; min-width: 0; }
+.scr-requests .rq + .rq { border-top: 1px solid var(--line); }
+.scr-requests .rq:focus { outline: none; }
+.scr-requests .rq:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-requests .rq__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px 12px; }
+.scr-requests .rq__ttl {
+  min-width: 0; font-size: 16px; font-weight: 700; line-height: 1.55; color: var(--ink);
+  overflow-wrap: anywhere; word-break: auto-phrase; text-wrap: pretty;
+}
+.scr-requests .rq__head > .tag { flex: none; margin-top: 2px; }
+.scr-requests .rq__meta { margin-top: 3px; font-size: 13px; line-height: 1.6; color: var(--ink-3); overflow-wrap: anywhere; }
+.scr-requests .rq__detail { margin-top: 8px; font-size: 14.5px; line-height: 1.8; color: var(--ink-2); overflow-wrap: anywhere; text-wrap: pretty; }
+
+/* 運営の返事（見送りは理由）。新しい返事は藍の淡い地（その上の灰の字は --ink-2） */
+.scr-requests .rq__reply { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-s); background: var(--surface-2); }
+.scr-requests .rq__reply.is-new { background: var(--indigo-weak); }
+.scr-requests .rq__rhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.scr-requests .rq__rhead b { color: var(--ink); font-weight: 700; }
+.scr-requests .rq__reply.is-new .rq__rhead b { color: var(--indigo); }
+.scr-requests .rq__rtext { margin-top: 4px; font-size: 14px; line-height: 1.75; color: var(--ink); overflow-wrap: anywhere; text-wrap: pretty; }
+/* 講座・イベントの名前が長いと1行に収まらないので、ボタンの中で折り返す（.btn は nowrap・高さ固定） */
+.scr-requests .rq__link {
+  margin-top: 10px; max-width: 100%; height: auto; min-height: 34px; padding-top: 7px; padding-bottom: 7px;
+  white-space: normal; line-height: 1.5; justify-content: flex-start;
+}
+.scr-requests .rq__link > span { min-width: 0; overflow-wrap: anywhere; word-break: auto-phrase; text-align: left; }
+.scr-requests .rq__gone { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+
+/* ＋1 と、自分のものの直す・消す */
+.scr-requests .rq__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 12px; }
+.scr-requests .rq__vote {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px;
+  border: 1px solid var(--line-2); border-radius: 18px; background: var(--surface);
+  font: inherit; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer;
+}
+.scr-requests .rq__vote:hover { border-color: var(--ink-3); }
+.scr-requests .rq__vote:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scr-requests .rq__vote[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--ink-inv); }
+.scr-requests .rq__vote .num { min-width: 1.2em; text-align: left; }
+.scr-requests .rq__votes { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+.scr-requests .rq__votes .num { margin: 0 2px; font-weight: 700; color: var(--ink); }
+.scr-requests .rq__mine { margin-left: 10px; }
+.scr-requests .rq__own { display: inline-flex; gap: 4px; margin-left: auto; }
+.scr-requests .rq__del { color: var(--accent-ink); }
+
+/* ?focus= で来た行・出した行に、短く目印（動きを減らす設定の人には色だけ） */
+.scr-requests .rq.is-target { animation: rq-flash 2.4s var(--ease); }
+.scr-requests .rq.is-target .rq__meta { color: var(--ink-2); }
+@keyframes rq-flash { 0%, 45% { background: var(--indigo-weak); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .scr-requests .rq.is-target { background: var(--indigo-weak); } }
+
+.scr-requests .rq-empty .empty > p { color: var(--ink-2); }
+
+/* ---------- 自分のリクエスト（早見） ---------- */
+.scr-requests .rq-mine__row .li__ttl { overflow-wrap: anywhere; }
+
+/* ---------- 出す・直すの窓 ---------- */
+.scr-requests .rq-form { display: grid; gap: 18px; }
+.scr-requests .rq-form .field { margin-bottom: 0; min-width: 0; }
+.scr-requests .rq-form__lead { font-size: 14px; line-height: 1.7; color: var(--ink-2); }
+.scr-requests .rq-form__kinds { border: 0; padding: 0; margin: 0; min-width: 0; }
+.scr-requests .rq-radios { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.scr-requests .rq-radios .check { min-height: 40px; align-items: center; cursor: pointer; }
+.scr-requests .rq-radios .check input { margin-top: 0; }
+.scr-requests .rq-form .textarea { width: 100%; min-height: 128px; resize: vertical; }
+.scr-requests .rq-form .input { width: 100%; }
+.scr-requests .rq-count { text-align: right; }
+.scr-requests .rq-count.is-over { color: var(--warn-ink); font-weight: 700; }
+.scr-requests .rq-form__anon .check { min-height: 40px; align-items: center; cursor: pointer; }
+.scr-requests .rq-form__anon .check input { margin-top: 0; }
+.scr-requests .rq-dup { display: grid; gap: 8px; justify-items: start; margin-top: -8px; padding: 12px 14px; border-radius: var(--r-s); background: var(--surface-2); }
+.scr-requests .rq-dup[hidden] { display: none; }
+.scr-requests .rq-dup__txt { font-size: 14px; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; }
+
+/* ---------- 押しやすさ（860px 以下） ---------- */
+@media (max-width: 860px) {
+  .scr-requests .rq__vote { min-height: 40px; }
+  .scr-requests .rq__link { min-height: 40px; }
+}
+@container main (max-width: 520px) {
+  .scr-requests .rq-head { grid-template-columns: minmax(0, 1fr); grid-template-areas: "ttl" "lead" "btn"; }
+  .scr-requests .rq-head > .rq-post { justify-self: start; margin-top: 14px; }
+  .scr-requests .rq__head { flex-wrap: wrap; }
+}

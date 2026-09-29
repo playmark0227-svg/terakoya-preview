@@ -866,6 +866,338 @@
       (sub ? '<span class="brandmark__sub">' + esc(sub) + '</span>' : '') + '</span>';
   }
 
+  /* ---------- シェアの画像（1080×1080） ----------
+     地は生成り（--paper）、字は墨（--ink）、頭の四角とハッシュタグだけ朱（--accent）。ロゴは LOGO と同じ形を描く（描き直さない）。
+     入れるもの：ロゴ・場面の一行（card.headline）・表示名（外せる）・日付・#TAISEI。金額・収入・数字の成果は入れない（R.shareText が作る）。 */
+  function cssVar(name, fb) {
+    try { var v = global.getComputedStyle(doc.documentElement).getPropertyValue(name).trim(); return v || fb; } catch (e) { return fb; }
+  }
+  /** 行の途中で割らないかたまり（句）に分ける。漢字・カタカナ・英数字の続きと、そのあとのひらがなまでを1つにする
+      （「30日を」「見られます」）。ひらがなの続きは、読点のあとと、助詞の「を」、漢字のあとの「は」のあとで区切る。
+      開きかっこは次に、閉じかっこ・句読点は前に付ける（行の頭に来ないように） */
+  function shareUnits(text) {
+    var out = [], cur = '';
+    function kind(ch) { return /[ぁ-ゖ]/.test(ch) ? 'h' : /[「『（〔【(]/.test(ch) ? 'o' : /[」』）〕】)、。，．！？!?・]/.test(ch) ? 'c' : /\s/.test(ch) ? 's' : 'k'; }
+    String(text || '').split('').forEach(function (ch, i, all) {
+      var k = kind(ch), p = i ? all[i - 1] : '', pk = p ? kind(p) : '', pp = i > 1 ? kind(all[i - 2]) : '';
+      var cut = cur && (k === 'o' && pk !== 'o' || k === 'k' && /[hcs]/.test(pk) || pk === 's' ||
+        k === 'h' && (/[、。，．]/.test(p) || p === 'を' || (p === 'は' && pp === 'k')));
+      if (cut) { out.push(cur); cur = ''; }
+      cur += ch;
+    });
+    if (cur) out.push(cur);
+    return out;
+  }
+  /* かっこ・句読点の半分の空きを詰めて描く（canvas には palt が無いため）。「 は左の空き、」、。は右の空きを詰める */
+  var OPEN_P = '「『（〔【', CLOSE_P = '」』）〕】、。，．';
+  function tightParts(s) { return String(s).match(/[「『（〔【」』）〕】、。，．]|[^「『（〔【」』）〕】、。，．]+/g) || []; }
+  function tightWidth(g, s, size) {
+    return tightParts(s).reduce(function (w, t) { return w + g.measureText(t).width - (OPEN_P.indexOf(t) >= 0 || CLOSE_P.indexOf(t) >= 0 ? size * 0.5 : 0); }, 0);
+  }
+  function drawTight(g, s, x, y, size) {
+    tightParts(s).forEach(function (t) {
+      var w = g.measureText(t).width;
+      if (OPEN_P.indexOf(t) >= 0) { x -= size * 0.5; g.fillText(t, x, y); x += w; }
+      else if (CLOSE_P.indexOf(t) >= 0) { g.fillText(t, x, y); x += w - size * 0.5; }
+      else { g.fillText(t, x, y); x += w; }
+    });
+  }
+  /** maxW に収まるように行に分ける。行の数は変えずに、行の長さをそろえる（text-wrap: balance と同じ考え方） */
+  function shareWrap(g, text, maxW, size) {
+    var lines = shareWrapOnce(g, text, maxW, size), w = maxW, groups = String(text).match(/「[^」]*」/g) || [];
+    function whole(ls) { return groups.filter(function (gp) { return ls.some(function (l) { return l.indexOf(gp) >= 0; }); }).length; }
+    // いちばん長い句より狭くはしない（句の途中で割らない）
+    var floor = Math.max(maxW * 0.5, shareUnits(text).reduce(function (m, u) { var x = tightWidth(g, u, size); return x > maxW ? m : Math.max(m, x); }, 0));
+    while (lines.length > 1 && w - 16 >= floor) {
+      var next = shareWrapOnce(g, text, w - 16, size);
+      if (next.length !== lines.length || whole(next) < whole(lines)) break;
+      lines = next; w -= 16;
+    }
+    return lines;
+  }
+  function shareWrapOnce(g, text, maxW, size) {
+    var lines = [], line = '';
+    function mw(s) { return tightWidth(g, s, size); }
+    function push() { if (line) lines.push(line); line = ''; }
+    shareUnits(text).forEach(function (u) {
+      if (mw(line + u) <= maxW) { line += u; return; }
+      if (mw(u) <= maxW) { push(); line = u.replace(/^\s+/, ''); return; }
+      u.split('').forEach(function (ch) { if (line && mw(line + ch) > maxW) push(); line += ch; });
+    });
+    push();
+    var n = lines.length;
+    if (n > 1 && lines[n - 1].length <= 1 && lines[n - 2].length > 2) {
+      var last = lines[n - 2].slice(-1);
+      if (mw(last + lines[n - 1]) <= maxW) { lines[n - 2] = lines[n - 2].slice(0, -1); lines[n - 1] = last + lines[n - 1]; }
+    }
+    return lines;
+  }
+  /** card（R.shareText の card）を canvas に描く。o.name：表示名を入れるか。o.moment：'invite' なら日付に「次回」 */
+  function drawShareCard(cv, card, o) {
+    o = o || {};
+    var g = cv.getContext && cv.getContext('2d');
+    if (!g) return false;
+    var W = 1080, P = 96, font = cssVar('--font-sans', 'sans-serif');
+    var C = { paper: cssVar('--paper', '#f7f4ee'), ink: cssVar('--ink', '#1d1b18'), ink2: cssVar('--ink-2', '#55514a'),
+      accent: cssVar('--accent', '#c63f25'), line: cssVar('--line-2', '#d6d1c7') };
+    cv.width = W; cv.height = W;
+    g.fillStyle = C.paper; g.fillRect(0, 0, W, W);
+    // ロゴ（横組み。高さ 72px）
+    try {
+      g.save(); g.translate(P, P); g.scale(0.72, 0.72);
+      g.fillStyle = C.ink; g.fill(new Path2D(LOGO.mark)); g.fill(new Path2D(LOGO.word), 'evenodd');
+      g.fillStyle = C.accent; g.fill(new Path2D(LOGO.head));
+      g.restore();
+    } catch (e) { g.restore(); g.fillStyle = C.ink; g.font = '800 56px ' + font; g.textBaseline = 'top'; g.fillText(card.brand || '', P, P); }
+    // 場面の一行：3行までに収まる大きさ。「」の中（講座の名前）は、60px までは1行に収まるよう小さくする
+    var size = 88, lines, groups = String(card.headline || '').match(/「[^」]*」/g) || [];
+    function broken(ls) { return groups.some(function (gp) { return !ls.some(function (l) { return l.indexOf(gp) >= 0; }); }); }
+    for (;;) {
+      g.font = '800 ' + size + 'px ' + font;
+      lines = shareWrap(g, card.headline || '', W - P * 2, size);
+      if ((lines.length <= 3 && (!broken(lines) || size <= 60)) || size <= 52) break;
+      size -= 4;
+    }
+    var lh = Math.round(size * 1.4), top = 250 + Math.max(0, (560 - lh * lines.length) / 2);
+    g.fillStyle = C.ink; g.textBaseline = 'middle'; g.textAlign = 'left';
+    lines.forEach(function (l, i) { drawTight(g, l, P, top + lh * i + lh / 2, size); });
+    // 下の行：線・表示名・日付・#TAISEI
+    g.fillStyle = C.line; g.fillRect(P, 836, W - P * 2, 2);
+    var date = (o.moment === 'invite' ? '次回 ' : '') + (card.dateText || '');
+    g.textBaseline = 'alphabetic';
+    if (o.name !== false && card.name) {
+      g.fillStyle = C.ink; g.font = '700 44px ' + font; g.fillText(fitText(g, card.name, 600), P, 922);
+      g.fillStyle = C.ink2; g.font = '500 32px ' + font; g.fillText(date, P, 978);
+    } else {
+      g.fillStyle = C.ink2; g.font = '500 36px ' + font; g.fillText(date, P, 944);
+    }
+    g.fillStyle = C.accent; g.font = '800 40px ' + font; g.textAlign = 'right';
+    g.fillText(card.hashtag || '', W - P, o.name !== false && card.name ? 922 : 944);
+    g.textAlign = 'left';
+    return true;
+  }
+  /** 長い表示名は末尾を「…」にして幅に収める */
+  function fitText(g, s, maxW) {
+    s = String(s || '');
+    if (g.measureText(s).width <= maxW) return s;
+    while (s.length > 1 && g.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+    return s + '…';
+  }
+  /** canvas を PNG で保存させる（toBlob が無い・失敗したら data: で） */
+  function saveCanvas(cv, name) {
+    function go(url, revoke) {
+      var a = doc.createElement('a');
+      a.href = url; a.download = name || 'taisei.png'; a.hidden = true;
+      doc.body.appendChild(a); a.click(); a.remove();
+      if (revoke) setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+    return new Promise(function (ok, ng) {
+      try {
+        if (cv.toBlob) cv.toBlob(function (b) { if (b) { go(URL.createObjectURL(b), true); ok(); } else { go(cv.toDataURL('image/png')); ok(); } }, 'image/png');
+        else { go(cv.toDataURL('image/png')); ok(); }
+      } catch (e) { ng(e); }
+    });
+  }
+
+  /* ---------- シェアの窓 ----------
+     shareSheet(moment, opts)。moment：course（講座の修了）/ level（レベルアップ）/ showcase（成果発表会で発表）/
+     start30（スタートガイドの30日）/ invite（成果発表会に誘う）。opts：{ id }（講座の id・Lv・発表した成果発表会のイベントの id・誘う回のイベントの id。
+     省くとその場面の最新）か id そのもの。中身は R.shareText が作る。窓の外側の要素を返す。
+     - 画像：1080×1080（ロゴ・場面・表示名（外せる）・日付・#TAISEI）。「画像を保存」で PNG（名前は fileName）
+     - 文面：直せる。コピー・X・LINE の前に必ず R.shareCompose を通す（紹介リンクを付けているときは #PR と紹介リンクを入れ直す。
+       収入や金額を書いていたら止めて知らせる）
+     - 「紹介リンクを付ける」：初めは外す。付けると先頭に #PR（消せない）と本人の紹介リンク
+     - シェアしても XP・貢献ポイントは付けない（ここからポイントの関数は呼ばない。ステマ規制） */
+  function shareSheet(moment, opts) {
+    var R = CLG.rules;
+    if (opts == null || typeof opts !== 'object') opts = { id: opts };
+    var base = R && R.shareText ? R.shareText(moment, opts.id, { withLink: false }) : null;
+    if (!base) return modal(empty('share', 'いまシェアできるものはありません。'), { title: 'シェアする', foot: true });
+    var id = base.id, withLink = false, data = base, lastText = base.text, sid = 'shs' + (++uid);
+    var btn = function (key, ico, label, cls, extra) {
+      return '<button type="button" class="btn ' + cls + '" data-shs-' + key + (extra || '') + '>' + icon(ico, 'ico-s') + '<span>' + esc(label) + '</span></button>';
+    };
+    var m = modal(
+      '<div class="shs">' +
+        '<div class="shs__media">' +
+          '<canvas class="shs__img" width="1080" height="1080" role="img" data-shs-canvas></canvas>' +
+          '<label class="check shs__opt"><input type="checkbox" data-shs-name checked><span>画像に表示名を入れる</span></label>' +
+        '</div>' +
+        '<div class="shs__main">' +
+          '<div class="field shs__field"><label class="field__label" for="' + sid + '-text">文面</label>' +
+            '<textarea class="textarea shs__text" id="' + sid + '-text" rows="5" data-shs-text aria-describedby="' + sid + '-err"></textarea>' +
+            '<p class="field__err" id="' + sid + '-err" role="alert" data-shs-err></p></div>' +
+          '<label class="check shs__opt"><input type="checkbox" data-shs-link><span>紹介リンクを付ける</span></label>' +
+          '<p class="shs__pr" id="' + sid + '-pr" data-shs-pr hidden>先頭の「#PR」と紹介リンクは消せません（広告であることを示す決まりです）。</p>' +
+          '<div class="shs__acts">' +
+            btn('save', 'download', '画像を保存', 'btn-ink') + btn('copy', 'copy', '文面をコピー', 'btn-ink') +
+            btn('x', 'external', 'Xで投稿', 'btn-ghost', ' aria-label="Xで投稿（新しいタブ）"') +
+            btn('line', 'line', 'LINEで送る', 'btn-ghost', ' aria-label="LINEで送る（新しいタブ）"') +
+          '</div>' +
+          '<p class="shs__ig">Instagram は、画像を保存して Instagram のアプリから投稿してください。</p>' +
+          '<ul class="shs__guide">' + (base.guide || []).map(function (t) { return '<li>' + jp(t) + '</li>'; }).join('') + '</ul>' +
+          '<p class="sr-only" role="status" data-shs-live></p>' +
+        '</div>' +
+      '</div>',
+      { title: 'シェアする', wide: true, cls: 'shs-modal', foot: true, dirty: function () { return edited(); } });
+    var box = $('.modal', m), cv = $('[data-shs-canvas]', box), ta = $('[data-shs-text]', box), err = $('[data-shs-err]', box);
+    var nameBox = $('[data-shs-name]', box), linkBox = $('[data-shs-link]', box), pr = $('[data-shs-pr]', box), live = $('[data-shs-live]', box);
+    var sent = false;
+    ta.value = base.text;
+    function edited() { return !sent && ta.value.trim() !== String(lastText).trim(); }
+    function say(t) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 40); }
+    function showErr(t) {
+      err.innerHTML = t ? icon('alert', 'ico-s') + '<span>' + esc(t) + '</span>' : '';
+      if (t) ta.setAttribute('aria-invalid', 'true'); else ta.removeAttribute('aria-invalid');
+    }
+    function draw() {
+      var withName = nameBox.checked, c = data.card;
+      drawShareCard(cv, c, { name: withName, moment: moment });
+      cv.setAttribute('aria-label', 'シェアの画像：' + [c.headline, withName ? c.name : '', (moment === 'invite' ? '次回 ' : '') + c.dateText, c.hashtag].filter(Boolean).join('、'));
+    }
+    draw();
+    return wireShare(m, { moment: moment, id: id, box: box, cv: cv, ta: ta, nameBox: nameBox, linkBox: linkBox, pr: pr,
+      get: function () { return { data: data, withLink: withLink, lastText: lastText }; },
+      set: function (d, w, t) { data = d; withLink = w; lastText = t; },
+      draw: draw, say: say, showErr: showErr, sent: function () { sent = true; } });
+  }
+  /** シェアの窓の動き（名前の切り替え・紹介リンク・保存・コピー・X・LINE） */
+  function wireShare(m, S) {
+    var R = CLG.rules, tmr = null, shown = '';
+    var prId = S.pr.id, errId = S.ta.getAttribute('aria-describedby').split(' ')[0];
+    function setErr(t) { if (t === shown) return; shown = t; S.showErr(t); }
+    /** 使う前に整える。紹介リンクを付けていれば #PR とリンクを入れ直す。収入や金額を書いていたら止める */
+    function composeNow() {
+      var st = S.get();
+      var res = R.shareCompose(S.ta.value, { withLink: st.withLink, moment: S.moment, id: S.id });
+      if (!res.ok) { setErr('文面を入れてください。'); S.ta.focus(); return null; }
+      if (res.fixed) { S.ta.value = res.text; toast('先頭の「#PR」と紹介リンクを入れ直しました'); }
+      if (res.warnings.length) { setErr(res.warnings.join('')); S.ta.focus(); return null; }
+      setErr('');
+      return res;
+    }
+    if (global.document.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { if (m.parentNode) S.draw(); });
+    S.nameBox.addEventListener('change', function () {
+      S.draw();
+      S.say(S.nameBox.checked ? '画像に表示名を入れました。' : '画像から表示名を外しました。');
+    });
+    S.ta.addEventListener('input', function () {
+      clearTimeout(tmr);
+      tmr = setTimeout(function () {
+        var res = R.shareCompose(S.ta.value, { withLink: false });
+        setErr(!String(S.ta.value).trim() ? '' : res.warnings.join(''));
+      }, 350);
+    });
+    S.linkBox.addEventListener('change', function () {
+      var st = S.get(), on = S.linkBox.checked, next = R.shareText(S.moment, S.id, { withLink: on });
+      if (!next) return;
+      var cur = String(S.ta.value).replace(/\r\n?/g, '\n'), text;
+      if (cur.trim() === String(st.lastText).trim()) text = next.text;
+      else {
+        // 直した文面は活かす：前の #PR の行と前のリンクを外してから、今の形で入れる
+        text = cur;
+        if (st.withLink) text = text.split('\n').filter(function (l) { return !/^#PR(\s|$)/.test(l.trim()); }).join('\n');
+        if (st.data.link) text = text.split(st.data.link).join('');
+        text = text.replace(/\n{3,}/g, '\n\n').trim() + (next.link ? '\n' + next.link : '');
+        if (on) text = next.prLine + '\n' + text;
+      }
+      S.ta.value = text;
+      S.set(next, on, next.text);
+      S.pr.hidden = !on;
+      S.ta.setAttribute('aria-describedby', on ? errId + ' ' + prId : errId);
+      S.say(on ? '先頭に「#PR」、最後に紹介リンクを入れました。' : '「#PR」と紹介リンクを外しました。');
+    });
+    S.box.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-shs-save],[data-shs-copy],[data-shs-x],[data-shs-line]') : null;
+      if (!b) return;
+      if (b.hasAttribute('data-shs-save')) {
+        saveCanvas(S.cv, S.get().data.fileName).then(function () { toast('画像を保存しました', 'ok'); },
+          function () { toast('画像を保存できませんでした。もう一度お試しください', 'error'); });
+        return;
+      }
+      var res = composeNow();
+      if (!res) return;
+      if (b.hasAttribute('data-shs-copy')) {
+        copyText(res.text).then(function () { S.sent(); toast('文面をコピーしました', 'ok'); });
+        return;
+      }
+      var url = b.hasAttribute('data-shs-x') ? res.urls.x : res.urls.line, w = null;
+      try { w = global.open(url, '_blank'); } catch (x) { w = null; }
+      if (w) { try { w.opener = null; } catch (x) {} S.sent(); }
+      else toast('新しいタブを開けませんでした。文面をコピーして貼り付けてください', 'error');
+    });
+    return m;
+  }
+
+  /* ---------- やりたいこと（DATA.GOALS） ----------
+     goalTags(ids, { long, link, cls })：名簿・自己紹介の投稿・会員のページに添える印（状態の札ではない。1人2つまで。押せない）。
+       ids は R.goalsOf(…) などの id の配列。知らない id は出さない。無ければ ''。long で長い名前（label）、既定は短い名前（short）。
+       link: true で各印が #/members?goal=<id> へのリンクになる。読み上げは「やりたいこと：SNS発信 在宅・リモート」。
+     goalPicker(selected, { name, legend, none, noneChecked })：選ぶ欄（2つまで・先に選んだものが1つ目＝主・「まだ決めていない」）。
+       スタートガイドとアカウントで使う。2つ選ぶと残りは押せなくなる（ui.js が document の change で見る）。
+     goalPicked(root)：選んだもの → { ids:[先に選んだ順], none（「まだ決めていない」だけに印）, count }。R.setGoals(ids) に渡す。 */
+  var goalSeq = 100;
+  function goalList(ids) {
+    var G = (CLG.DATA && CLG.DATA.GOALS) || [];
+    return (ids || []).map(function (id) { return G.filter(function (g) { return g.id === id; })[0]; }).filter(Boolean).slice(0, 2);
+  }
+  function goalTags(ids, o) {
+    o = o || {};
+    var list = goalList(ids);
+    if (!list.length) return '';
+    return '<span class="goal-tags' + (o.cls ? ' ' + esc(o.cls) : '') + '"><span class="sr-only">やりたいこと：</span>' + list.map(function (g) {
+      var t = esc(o.long ? g.label : g.short);
+      return o.link ? '<a class="goal-tag" href="#/members?goal=' + encodeURIComponent(g.id) + '">' + t + '</a>' : '<span class="goal-tag">' + t + '</span>';
+    }).join('') + '</span>';
+  }
+  function goalPicker(selected, o) {
+    o = o || {};
+    var name = o.name || 'goals', G = (CLG.DATA && CLG.DATA.GOALS) || [];
+    var sel = goalList(selected).map(function (g) { return g.id; }), full = sel.length >= 2;
+    return '<fieldset class="goal-pick" data-goal-pick>' +
+      '<legend class="goal-pick__lgd">' + esc(o.legend || 'やりたいこと') + '<span class="goal-pick__max">2つまで</span></legend>' +
+      '<div class="goal-pick__opts">' + G.map(function (g) {
+        var i = sel.indexOf(g.id), on = i >= 0;
+        return '<label class="goal-opt"><input type="checkbox" name="' + esc(name) + '" value="' + esc(g.id) + '"' +
+          (on ? ' checked data-seq="' + (i + 1) + '"' : '') + (full && !on ? ' disabled' : '') + '>' +
+          '<span class="goal-opt__txt">' + jp(g.label) + '</span><span class="goal-opt__n" aria-hidden="true">' + (on ? (i + 1) : '') + '</span></label>';
+      }).join('') + '</div>' +
+      (o.none === false ? '' : '<label class="check goal-pick__none"><input type="checkbox" name="' + esc(name) + '-none" value="none" data-goal-none' +
+        (o.noneChecked && !sel.length ? ' checked' : '') + '><span>まだ決めていない</span></label>') +
+      '<p class="goal-pick__note" data-goal-note aria-live="polite">' + (full ? goalNote(2) : '') + '</p>' +
+    '</fieldset>';
+  }
+  function goalNote(n) { return n >= 2 ? '2つ選びました。ほかを選ぶときは、どちらかを外してください。' : ''; }
+  function goalChecked(fs) {
+    return $$('input[type=checkbox]:not([data-goal-none])', fs).filter(function (b) { return b.checked; })
+      .sort(function (a, b) { return (+a.getAttribute('data-seq') || 0) - (+b.getAttribute('data-seq') || 0); });
+  }
+  function syncGoalPick(fs, changed) {
+    var none = $('[data-goal-none]', fs);
+    if (changed && changed === none && none.checked) $$('input[type=checkbox]:not([data-goal-none])', fs).forEach(function (b) { b.checked = false; b.removeAttribute('data-seq'); });
+    else if (changed && changed !== none) {
+      if (changed.checked) { changed.setAttribute('data-seq', ++goalSeq); if (none) none.checked = false; } else changed.removeAttribute('data-seq');
+    }
+    var on = goalChecked(fs);
+    $$('input[type=checkbox]:not([data-goal-none])', fs).forEach(function (b) {
+      b.disabled = on.length >= 2 && !b.checked;
+      var n = $('.goal-opt__n', b.parentNode); if (n) n.textContent = b.checked ? String(on.indexOf(b) + 1) : '';
+    });
+    var note = $('[data-goal-note]', fs); if (note) note.textContent = goalNote(on.length);
+  }
+  function goalPicked(root) {
+    var fs = root && root.matches && root.matches('[data-goal-pick]') ? root : $('[data-goal-pick]', root);
+    if (!fs) return { ids: [], none: false, count: 0 };
+    var on = goalChecked(fs), none = $('[data-goal-none]', fs);
+    return { ids: on.map(function (b) { return b.value; }).slice(0, 2), none: !!(none && none.checked) && !on.length, count: on.length };
+  }
+  if (doc && doc.addEventListener) {
+    doc.addEventListener('change', function (e) {
+      var fs = e.target && e.target.closest ? e.target.closest('[data-goal-pick]') : null;
+      if (fs) syncGoalPick(fs, e.target);
+    });
+  }
+
   CLG.ui = {
     esc: esc, nl2br: nl2br, jp: jp, $: $, $$: $$,
     yen: yen, num: num, fmtDate: fmtDate, fmtShort: fmtShort, relTime: relTime, pad: pad,
@@ -873,6 +1205,7 @@
     smoothScroll: smoothScroll, focusables: focusables,
     initials: initials, avatar: avatar, personLink: personLink, progressBar: progressBar, lvBadge: lvBadge, empty: empty,
     statusTag: statusTag, STATUS: STATUS, notFound: notFound, resumeCard: resumeCard, skeleton: skeleton, fieldErrors: fieldErrors,
-    icon: icon, chevron: chevron, brandmark: brandmark, ICONS: ICONS
+    icon: icon, chevron: chevron, brandmark: brandmark, ICONS: ICONS,
+    shareSheet: shareSheet, drawShareCard: drawShareCard, goalTags: goalTags, goalPicker: goalPicker, goalPicked: goalPicked
   };
 })(window);

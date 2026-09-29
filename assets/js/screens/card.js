@@ -11,6 +11,10 @@
    - 表の左上は屋号のロゴ（U.brandmark。濃い面の色は会員証の色 --t-fg に合わせる：card.css）
    - 割引の一覧は、会員証を見せて使う福利厚生（使い方の決め方と期限は福利厚生の画面と同じ：CLG.screens.perks.howKind / isOpen）
    - QRは試作版では会員番号から作った模様（読み取れない）。スタートガイドの LINE の窓も同じものを使う（qr）
+   - シェア用の文面（コピー）は、レベルと入会の月と #TAISEI だけ。紹介リンクは付けないので #PR も入れない
+     （紹介リンクを付けるのはシェアの窓 U.shareSheet だけ。付けたら #PR が必ず入る）。金額・順位・ポイントは入れない
+   - スタートガイドを全部済ませたら（R.shareText('start30') があるとき）「最初の30日をシェアする」→ U.shareSheet('start30')。
+     スタートガイドの画面の「シェアする」と同じ窓。シェアしても XP・貢献ポイントは付けない（ここからポイントの関数は呼ばない）
    ============================================================ */
 (function () {
   'use strict';
@@ -119,13 +123,21 @@
       plan: plan, off: off, term: term, courses: R.completedCount(), badges: badges()
     };
   }
+  /* シェアの窓と同じハッシュタグ（DATA.SHARE.hashtag。無ければ付けない） */
+  function hashtag() { return (DATA.SHARE && DATA.SHARE.hashtag) || ''; }
   function shareText(v) {
-    return DATA.SITE.name + 'で学んでいます（Lv' + v.lv.lv + '「' + v.lv.name + '」・' + v.cohort + '）';
+    var h = hashtag();
+    return DATA.SITE.name + 'で学んでいます（Lv' + v.lv.lv + '「' + v.lv.name + '」・' + v.cohort + '）' + (h ? ' ' + h : '');
   }
   /** 画面に出すときの同じ文。レベルと入会の月は途中で割らない（「独り／立ち」と割れるため） */
   function shareHtml(v) {
+    var h = hashtag();
     return esc(DATA.SITE.name) + 'で学んでいます（<span class="nw">Lv' + esc(v.lv.lv) + '「' + esc(v.lv.name) + '」</span>・' +
-      '<span class="nw">' + esc(v.cohort) + '</span>）';
+      '<span class="nw">' + esc(v.cohort) + '</span>）' + (h ? ' <span class="nw">' + esc(h) + '</span>' : '');
+  }
+  /** 最初の30日（スタートガイドを全部済ませた）をシェアできるか。使えない状態の人には出さない */
+  function can30(v) {
+    return !v.off && !!(R.shareText && U.shareSheet && R.shareText('start30'));
   }
 
   /* ---------- 会員証そのもの ----------
@@ -202,6 +214,10 @@
         '<span class="li__body"><span class="li__ttl">シェア用の文面をコピー</span>' +
           '<span class="cd-share">' + shareHtml(v) + '</span></span>' +
         '<span class="li__end">' + icon('copy') + '</span></button>') +
+      (can30(v) ? '<button type="button" class="li" data-cd-share30 aria-haspopup="dialog">' +
+        '<span class="li__body"><span class="li__ttl">最初の30日をシェアする</span>' +
+          '<span class="li__sub">スタートガイドを全部済ませました</span></span>' +
+        '<span class="li__end">' + icon('share') + '</span></button>' : '') +
     '</div></section>';
   }
 
@@ -348,7 +364,7 @@
       if (root.__boundCard) return;
       root.__boundCard = true;
       root.addEventListener('click', function (e) {
-        var b = e.target.closest('.scr-card [data-cd-tier], .scr-card [data-cd-present], .scr-card [data-cd-share], .scr-card [data-cd-resume]');
+        var b = e.target.closest('.scr-card [data-cd-tier], .scr-card [data-cd-present], .scr-card [data-cd-share], .scr-card [data-cd-share30], .scr-card [data-cd-resume]');
         if (!b || b.closest('.modal')) return;
         if (b.hasAttribute('data-cd-resume')) {
           if (R.plan().status !== 'canceling') { cur.refresh(); return; }   // 描き直す前の古いボタン
@@ -360,6 +376,8 @@
           cur.refresh();
           return;
         }
+        // シェアの窓（XP・ポイントは付けない。紹介リンクを付けたときだけ #PR が入る）
+        if (b.hasAttribute('data-cd-share30')) { if (can30(model())) U.shareSheet('start30'); else cur.refresh(); return; }
         if (b.hasAttribute('data-cd-tier')) openTier(b.getAttribute('data-cd-tier'));
         else if (b.hasAttribute('data-cd-present')) openPresent();
         else U.copyText(shareText(model())).then(function () { U.toast('シェア用の文面をコピーしました', 'ok'); });

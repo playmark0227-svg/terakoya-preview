@@ -6,6 +6,9 @@
    - 絞り込み・ページは URL の ?kind= ?cohort= ?page= で持つ（戻るボタンで戻れるように）
    - #/feed?kind=intro&cohort=2026-09 … 書いた人の入会月でしぼる（スタートガイドの「9月入会の仲間の自己紹介」）。
      運営の投稿（staff）・自分の投稿（mine）ではしぼらない。種類の札を押すと入会月の条件は外れる
+   - #/feed?kind=intro&goal=<GOALS の id> … 自己紹介を、書いた人のやりたいことでしぼる（cohort と重ねられる）。
+     やりたいことの札は自己紹介のときだけ出す。本人が名簿に出さないようにしている人（R.goalsOf の public）は当たらない。
+     自己紹介の投稿には、書いた人のいまのやりたいこと（U.goalTags。押せない印）を添える。隠している人には出さない
    - #/feed?intro=1 … 自己紹介のひな形が入った状態で始まる
    - #/feed?compose=<種類>&text=<書き出し> … 種類と書き出しを入れた状態で始まる（イベントの「感想を書く」）。
      書きかけがあるときは消さずに残し、一言の知らせの「置きかえる」で入れかえられる
@@ -83,10 +86,24 @@
   }
   /** 「2026年9月入会」 */
   function cohortName(c) { var m = COHORT_RE.exec(c); return m ? m[1] + '年' + (+m[2]) + '月入会' : ''; }
-  function listHash(kind, page, cohort) {
+  /* ---------- やりたいこと（自己紹介だけ。DATA.GOALS の順） ---------- */
+  function goalDef(id) { return (DATA.GOALS || []).filter(function (g) { return g.id === id; })[0] || null; }
+  /** ?goal=sns。知らない id・自己紹介でない種類のときは '' */
+  function goalOf(q, kind) {
+    var g = String((q && q.goal) || '');
+    return kind === 'intro' && goalDef(g) ? g : '';
+  }
+  function goalName(id) { var g = goalDef(id); return g ? g.short : ''; }
+  /** 書いた人のやりたいこと（名簿に出さないようにしている人は []。運営は []） */
+  function goalsOfPost(p) {
+    if (!R.goalsOf) return [];
+    return R.goalsOf(p.mine ? 'me' : (p.by || 'me'), { public: true }) || [];
+  }
+  function listHash(kind, page, cohort, goal) {
     var p = [];
     if (kind && kind !== 'all') p.push('kind=' + enc(kind));
     if (cohort) p.push('cohort=' + enc(cohort));
+    if (goal && kind === 'intro') p.push('goal=' + enc(goal));
     if (page > 1) p.push('page=' + page);
     return '#/feed' + (p.length ? '?' + p.join('&') : '');
   }
@@ -106,10 +123,11 @@
       return (pr && pr.joinedAt && ym(pr.joinedAt)) || ym(p.at);
     };
   }
-  /** 一覧の1ページ（R.feed の形）。入会月でしぼるときは、しぼってからページに分ける */
-  function pageOf(kind, cohort, page) {
+  /** 一覧の1ページ（R.feed の形）。入会月・やりたいことでしぼるときは、しぼってからページに分ける */
+  function pageOf(kind, cohort, page, goal) {
     var all = R.feed({ kind: kind, page: 1, pageSize: 100000 }).items;
     if (cohort) { var of = cohortTable(); all = all.filter(function (p) { return of(p) === cohort; }); }
+    if (goal) all = all.filter(function (p) { return goalsOfPost(p).indexOf(goal) >= 0; });
     var pages = Math.max(1, Math.ceil(all.length / PAGE));
     page = Math.min(pages, Math.max(1, page));
     return { all: all, items: all.slice((page - 1) * PAGE, page * PAGE), shown: all.slice(0, page * PAGE), total: all.length,
@@ -227,6 +245,19 @@
       return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" data-feed-filter="' + f[0] + '" aria-pressed="' + on + '">' + esc(f[1]) + '</button>';
     }).join('') + '</div>';
   }
+  /** 自己紹介のときだけ：やりたいことの札（すべて＋DATA.GOALS）。入会月の条件は残す */
+  function goalChips(goal) {
+    var G = DATA.GOALS || [];
+    if (!G.length) return '';
+    var list = [['', 'すべて']].concat(G.map(function (g) { return [g.id, g.short]; }));
+    return '<div class="feed-goals">' +
+      '<p class="feed-goals__lbl" id="feedGoalsLbl">やりたいこと</p>' +
+      '<div class="chips feed-goals__chips" role="group" aria-labelledby="feedGoalsLbl">' + list.map(function (x) {
+        var on = x[0] === goal;
+        return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" data-feed-goal="' + esc(x[0]) + '" aria-pressed="' + on + '">' + esc(x[1]) + '</button>';
+      }).join('') + '</div>' +
+    '</div>';
+  }
 
   /* ---------- 部品：投稿 ---------- */
   function popItem(attr, val, label, danger, extra) {
@@ -335,6 +366,8 @@
     var link = p.link && /^#\/[\w]/.test(p.link) ? p.link : '';
     // 種類の名前は、その種類でしぼった一覧では出さない（全部に同じ名前が並ぶだけになるため）
     var kindTxt = KIND_LABEL[p.kind] && p.kind !== 'post' && p.kind !== o.kind ? KIND_LABEL[p.kind] : '';
+    // 自己紹介には、書いた人のやりたいこと（押せない印。名簿に出さないようにしている人・運営には出さない）
+    var goalTxt = p.kind === 'intro' && !who.staff && U.goalTags ? U.goalTags(goalsOfPost(p), { cls: 'post__goals' }) : '';
     var rel = U.relTime(p.at), when = '<time datetime="' + esc(p.at) + '">' + esc(rel) + '</time>';
     var n = p.comments, isOpen = !o.detail && open[p.id] && n > 0;
     var cmtCtl = o.detail ? ''
@@ -351,7 +384,7 @@
         '</p>' +
         postMenu(p, who) +
       '</header>' +
-      (kindTxt ? '<p class="post__kind">' + esc(kindTxt) + '</p>' : '') +
+      (kindTxt || goalTxt ? '<p class="post__kind">' + (kindTxt ? '<span class="post__kname">' + esc(kindTxt) + '</span>' : '') + goalTxt + '</p>' : '') +
       '<div class="post__text">' + U.jp(p.text, { br: true }) + '</div>' +
       postImages(p) +
       (link ? '<p class="post__link"><a href="' + esc(link) + '">' + esc(linkLabel(p, link)) + '</a></p>' : '') +
@@ -422,10 +455,15 @@
   }
 
   /* ---------- 画面：一覧 ---------- */
-  /** 入会月でしぼっているときの帯（件数と「条件を外す」） */
-  function cohortBar(kind, cohort, n) {
+  /** 何でしぼっているか（「2026年9月入会」「「SNS発信」」「2026年9月入会で「AI・動画」」）。どちらもなければ '' */
+  function whoName(cohort, goal) {
+    var g = goalName(goal);
+    return cohortName(cohort) + (g ? (cohort ? 'で' : '') + '「' + g + '」' : '');
+  }
+  /** 入会月・やりたいことでしぼっているときの帯（件数と「条件を外す」。外すと種類だけ残す） */
+  function cohortBar(kind, cohort, n, goal) {
     return '<div class="feed-cohort">' +
-      '<p class="feed-cohort__txt"><b>' + esc(cohortName(cohort)) + '</b>の人の' + esc(KIND_LABEL[kind] || '投稿') +
+      '<p class="feed-cohort__txt"><b>' + esc(whoName(cohort, goal)) + '</b>の人の' + esc(KIND_LABEL[kind] || '投稿') +
         '<span class="num feed-cohort__n">' + U.num(n) + '件</span></p>' +
       '<a class="feed-cohort__clear" href="' + esc(listHash(kind, 1)) + '" data-focus-after="' + esc("[data-feed-filter='" + kind + "']") + '">条件を外す</a>' +
     '</div>';
@@ -477,14 +515,14 @@
       } else if (incoming.trim()) composeLater = { text: incoming, kind: kindIn };
       focusComposer = true;
     }
-    var kind = filterOf(q), cohort = cohortOf(q, kind), page = Math.max(1, parseInt(q.page, 10) || 1);
+    var kind = filterOf(q), cohort = cohortOf(q, kind), goal = goalOf(q, kind), page = Math.max(1, parseInt(q.page, 10) || 1);
     // 「質問」などの種類で絞っているときは、まだ何も書いていなければ書く欄の種類もそれに合わせる。
     // 絞り込みを外したら（すべて・運営から・自分の投稿）、絞り込みで合わせた種類だけを近況に戻す（自分で選んだ種類は残す）
     if (!draft.text.trim() && !(draft.images || []).length) {
       if (KIND_LABEL[kind]) { draft.kind = kind; draft.auto = true; }
       else if (draft.auto) { draft.kind = 'post'; draft.auto = false; }
     }
-    var res = pageOf(kind, cohort, page);
+    var res = pageOf(kind, cohort, page, goal);
     pending = null;
     if (q.post) {
       // 深いリンク：その投稿が出るページまで開く。絞り込みで見えないときは「すべて」で探す
@@ -493,16 +531,18 @@
         return -1;
       };
       var idx = find(res.all);
-      if (idx < 0 && (kind !== 'all' || cohort)) { kind = 'all'; cohort = ''; res = pageOf(kind, '', 1); idx = find(res.all); }
-      if (idx >= 0 && Math.floor(idx / PAGE) + 1 > res.page) res = pageOf(kind, cohort, Math.floor(idx / PAGE) + 1);
-      pending = { id: String(q.post), found: idx >= 0, hash: listHash(kind, res.page, cohort) };
+      if (idx < 0 && (kind !== 'all' || cohort || goal)) { kind = 'all'; cohort = ''; goal = ''; res = pageOf(kind, '', 1); idx = find(res.all); }
+      if (idx >= 0 && Math.floor(idx / PAGE) + 1 > res.page) res = pageOf(kind, cohort, Math.floor(idx / PAGE) + 1, goal);
+      pending = { id: String(q.post), found: idx >= 0, hash: listHash(kind, res.page, cohort, goal) };
     }
     page = res.page;
     var d = sideData();
     var hidden = kind === 'mine' ? myHidden() : [];
-    var empty = cohort
-      ? U.empty('', cohortName(cohort) + 'の人の' + (KIND_LABEL[kind] || '投稿') + 'はまだありません',
-          { href: listHash(kind, 1), label: 'すべての' + (KIND_LABEL[kind] || '投稿') + 'を見る' })
+    // 条件を外すリンクは押すと消えるので、焦点は「条件を外す」と同じく種類の札へ
+    var empty = cohort || goal
+      ? U.empty('', whoName(cohort, goal) + 'の人の' + (KIND_LABEL[kind] || '投稿') + 'はまだありません',
+          '<a class="btn btn-soft btn-s" href="' + esc(listHash(kind, 1)) + '" data-focus-after="' + esc("[data-feed-filter='" + kind + "']") + '">' +
+            esc('すべての' + (KIND_LABEL[kind] || '投稿') + 'を見る') + '</a>')
       : U.empty('', hidden.length ? 'ほかの会員に見えている投稿はありません' : EMPTY[kind]);
 
     return '<div class="scr-feed">' +
@@ -514,13 +554,14 @@
           (introOpen && showIntroCard() ? introCard() : '') +
           composer() +
           chips(kind) +
-          (cohort && res.total ? cohortBar(kind, cohort, res.total) : '') +
+          (kind === 'intro' ? goalChips(goal) : '') +
+          ((cohort || goal) && res.total ? cohortBar(kind, cohort, res.total, goal) : '') +
           hiddenMine(hidden) +
           '<div class="feed-list">' +
             (res.shown.length ? res.shown.map(function (p) { return postItem(p, { kind: kind }); }).join('') : empty) +
           '</div>' +
           (res.next
-            ? '<p class="feed-more"><a class="btn btn-ghost" href="' + esc(listHash(kind, page + 1, cohort)) + '" data-focus-after="' +
+            ? '<p class="feed-more"><a class="btn btn-ghost" href="' + esc(listHash(kind, page + 1, cohort, goal)) + '" data-focus-after="' +
                 esc("[data-post='" + res.next.id + "']") + '">これより前の投稿を見る</a></p>'
             : res.total ? '<p class="feed-end">これより前の投稿はありません</p>' : '') +
         '</div>' +
@@ -903,6 +944,13 @@
       cur.go(listHash(k, 1));
       return;
     }
+    // やりたいことの札（自己紹介のときだけ）：入会月の条件は残して、1ページ目から
+    if ((b = t.closest('[data-feed-goal]'))) {
+      if (b.getAttribute('aria-pressed') === 'true') return;
+      var gq = cur.query || {};
+      cur.go(listHash('intro', 1, cohortOf(gq, 'intro'), goalOf({ goal: b.getAttribute('data-feed-goal') }, 'intro')));
+      return;
+    }
     if ((b = t.closest('[data-feed-like]'))) {
       var id = b.getAttribute('data-feed-like');
       popLike = R.toggleLike(id) ? id : null;
@@ -1051,7 +1099,7 @@
       replaceHash(pending.hash);
       pending = null;
     } else if (q.intro || q.compose || q.text || q.c) {
-      replaceHash(listHash(kind, parseInt(q.page, 10) || 1, cohortOf(q, kind)));
+      replaceHash(listHash(kind, parseInt(q.page, 10) || 1, cohortOf(q, kind), goalOf(q, kind)));
     }
     if (focusComposer) {
       focusComposer = false;
@@ -1059,8 +1107,10 @@
       if (t) { caretToBlank(t); try { t.closest('form').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (x) {} }
     }
     // せまい画面では絞り込みが横に流れる。選んでいる札が見える位置まで送っておく
-    var strip = el.querySelector('.feed-chips'), onChip = strip && strip.querySelector('.is-on');
-    if (onChip && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = Math.max(0, onChip.offsetLeft - 16);
+    U.$$('.feed-chips, .feed-goals__chips', el).forEach(function (strip) {
+      var onChip = strip.querySelector('.is-on');
+      if (onChip && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = Math.max(0, onChip.offsetLeft - 16);
+    });
   }
 
   CLG.screens.feed = {

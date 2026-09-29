@@ -158,6 +158,36 @@
   .scr-start .st-line__app, .scr-start .st-line__done { min-height: 180px; }
 }
 
+/* ---------- 全部済んだとき：進みぐあいの文の横に「シェアする」 ---------- */
+.scr-start .st-lead { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
+.scr-start .st-lead .st-progress { margin: 0; }
+.scr-start .st-share { flex: none; }
+
+/* ---------- やりたいことを選ぶ（項目の中の選ぶ欄。U.goalPicker） ---------- */
+.scr-start .st-goals { margin-top: 12px; }
+/* 欄の名前は読み上げだけ（題と説明に「2つまで」があるので、見た目では3回言わない） */
+.scr-start .st-goals .goal-pick__lgd {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.scr-start .st-goals .goal-opt { background: var(--surface); }
+.scr-start .st-goals__err { margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--accent-ink, var(--accent)); }
+.scr-start .st-goals__err:empty { display: none; }
+.scr-start .st-goals__acts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 12px; }
+.scr-start .st-goals__acts [data-st-goals-save] { min-width: 112px; }
+.scr-start .st-step--goals.is-set .st-step__mark { color: var(--ok); }
+/* 済んだ行に添える、いまのやりたいこと */
+.scr-start .st-goals__now { margin-left: 10px; }
+.scr-start .st-goals__none { margin-left: 10px; font-size: 12.5px; color: var(--ink-2); }
+/* data.js に項目がないときの欄（一覧の上） */
+.scr-start .st-goalsbox { padding: 16px 18px; margin-bottom: 14px; }
+.scr-start .st-goalsbox__ttl { font-size: 15px; font-weight: 700; line-height: 1.5; }
+/* ?focus=goals で来たとき、短く目印 */
+.scr-start .st-flash { animation: st-flash 2.2s ease-out; }
+@keyframes st-flash { 0%, 30% { box-shadow: inset 0 0 0 2px var(--accent); } 100% { box-shadow: inset 0 0 0 2px transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  .scr-start .st-flash { animation: none; box-shadow: inset 0 0 0 2px var(--accent); }
+}
+
 /* ---------- 狭い幅 ---------- */
 @media (max-width: 860px) {
   /* 文中のリンクは、上下の余白を負の外余白で打ち消して行の高さを変えずに押せる範囲を広げる */
@@ -182,3 +212,5 @@
   .scr-start .st-goal { flex-wrap: wrap; }
   .scr-start .st-goal__body { flex-basis: 100%; }
 }
+/* 説明の2文は文ごとに折る */
+.scr-start .st-sent { display: inline-block; max-width: 100%; }

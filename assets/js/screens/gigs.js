@@ -17,6 +17,8 @@
      紹介の案件は面談・稼働がないので、札と文を「引き継ぎ済み・商談中・成約」に言い換える（REFER_LABEL。運営画面と同じ言葉）。
      流れの予定の「面談」も「担当者と紹介先の商談」に言い換える（fullHistory）。
    - 自分の募集の「直す」は #/gigs/new?from=<id>（差し戻し・確認中だけ）。R.editGig で同じ募集を直す（2件目は作らない）。
+   - ▲欲しい案件が無いときの入口：一覧の終わり（募集終了の下）に「案件をリクエストする」→ #/requests?new=1&kind=gig
+     （「あったらいい」リクエストのフォームを、種類を「案件」にして開く。リクエストの画面は screens/requests.js）。
    ============================================================ */
 (function () {
   'use strict';
@@ -361,6 +363,13 @@
     }).join('');
     return html || '<div class="card">' + U.empty('briefcase', 'いま募集中の案件はありません。') + '</div>';
   }
+  /** 欲しい案件が見つからないとき（絞り込んで空・一覧を見終えた）：「あったらいい」リクエストへ（種類を「案件」にしてフォームを開く）。
+      募集中の一覧と募集終了の下に1つだけ置く（空のときの文のすぐ下にも来るので、空の文にはボタンを足さない） */
+  var REQ_HREF = '#/requests?new=1&kind=gig';
+  function requestEntry() {
+    return '<div class="gg-req"><p class="gg-req__txt">欲しい案件が見つからないときは、運営にリクエストできます。</p>' +
+      '<a class="btn btn-ghost btn-s gg-req__btn" href="' + REQ_HREF + '">' + icon('chat', 'ico-s') + '<span>案件をリクエストする</span></a></div>';
+  }
   function closedBlock(type) {
     var list = recentClosed(type);
     if (!list.length) return '';
@@ -387,7 +396,7 @@
       mineBlock() +
       '<section class="sec gg-board" aria-labelledby="ggBoardTtl">' +
         '<h2 class="sec-ttl" id="ggBoardTtl">募集中の案件</h2>' +
-        filterBlock(type) + listBody(type) + closedBlock(type) +
+        filterBlock(type) + listBody(type) + closedBlock(type) + requestEntry() +
       '</section>' +
       '<p class="gg-safe">投資・FX・暗号資産・借入が必要な案件は載せていません。あやしい案件を見つけたら<a href="#/messages">運営に知らせてください</a>。</p>' +
     '</div>';

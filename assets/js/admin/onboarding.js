@@ -1,7 +1,7 @@
 /* ============================================================
    運営画面：新入生の30日（#/onboarding）
    ------------------------------------------------------------
-   入会30日以内の会員を、スタートガイドの10項目の表で並べる。止まっている項目・最後の活動（7日動きがなければ朱）・
+   入会30日以内の会員を、スタートガイドの項目（DATA.ONBOARDING の数と順）の表で並べる。止まっている項目・最後の活動（7日動きがなければ朱）・
    面談の予約・声かけの記録を1行に。「声をかける」はひな形を選んで送る（P.compose → 受信箱に「対応中」で入る）。
    ?filter=stalled|idle|nomeet|done   ?week=1〜4   ?view=interviews（面談。最初は確定待ちだけ）| contacts（声かけの記録）
    止まっているかどうかは AD.data.stalled()（ダッシュボードの数と同じ決め方）。
@@ -23,6 +23,7 @@
     if (r.idleDays >= 7) return 'idle';
     var next = r.steps.filter(function (s) { return !s.done; })[0];
     if (!next) return 'free';
+    if (next.id === 'goals') return 'goals';
     if (next.id === 'orient') return 'orient';
     if (next.id === 'line') return 'line';
     if (next.id === 'meet') return 'meet';

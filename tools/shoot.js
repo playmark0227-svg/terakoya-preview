@@ -13,10 +13,19 @@
      -suspended・-login-blocked（ログインまわり）/ member-<画面>（在籍24日。feed/<id>・members/<id>・ranking?month=last など）/
      member-modal-*（窓・スマホのメニュー・メニューの上の一言の知らせ）/ member-sidebar*（左の帯・試作版の札。641px 以上）/
      plan-<状態>-*（契約の状態ごとの home・courses・account・cancel・card・menu）/ veteran-* / fresh-* / admin-*
+   ▲ 2026-09-28 に足したもの（docs/仕様_やりたいこと・リクエスト・シェア.md）：
+     member-requests*（一覧・?focus=・?new=1&kind= の形と、空で送る → 同じ題 → 出せた → 一覧の流れ・＋1を押した行）・member-home-undecided・
+     member-(courses|members)?goal=・member-account?focus=goals・member-events/e4（一部を一般公開・友だちを誘う）・
+     member-modal-share-*（レベルアップの窓から → 紹介リンクを付ける → 金額を書いた注意 → 窓の下／修了証から／友だちを誘う／まだないとき）・
+     veteran-modal-share-*（修了・レベル・発表・最初の30日・名前を外す）・veteran-requests*・
+     fresh-start?focus=goals → fresh-start-goals-picked → -saved → fresh-home-path・fresh-lesson/ai/ai-1（お試しの回）・-ai-2（閉じている）・
+     site-showcase → -error → -done → -again・site-showcase-closed・site-curriculum?goal=・site-join-goals・
+     admin-requests*（絞り込み・返事を書く admin-requests/rq9 → -answer-error → -answer-done → -answered）・admin-members?goal=・admin-events/e4・admin-events?tab=signups
+     新しい画面の流れは、押す所を data-* ではなく文字で探す（clickText）・欄は name で埋める（setField・submitForm）
    - ?focus= ?c= ?post= と公開サイトの ?c= ?art= のような「途中の場所へ送る」URL と、窓・小さなメニューは、見えている範囲だけを
      撮る（viewport）。ページ全体を撮ると先頭から写って送った先に着いたかが分からず、画面に留まる窓はページの途中に写るため
    - 撮る前に待つもの：読み込み中の形（skeleton）が消えるまで。そのあと送りの動き（U.smoothScroll など）が止まるまで
-     （公開サイトはハッシュで移ったあと少なくとも1秒）。遅延読み込みの写真（読み込ませたら元の位置に戻す）
+     （公開サイトはハッシュで移ったあと少なくとも1秒）。遅延読み込みの写真（eager に替えて読み込みと decode まで。送りの位置は動かさない）
    - 動かせなかった・待てなかった・撮れなかったページは errors に残して、次のページへ進む（全体は止めない）。
      サーバーが CSS・JS の読み込みを落とした（net::ERR_CONNECTION_RESET など）ページは、読み込み直してもう一度だけ撮る
      （続きの動き chain の途中は読み込み直せないので、失敗に残る。撮り直すこと）
@@ -333,16 +342,20 @@ async function settleIn(page) {
     }
   }, site ? 1000 : 0).catch(() => {});
   await page.addStyleTag({ content: NO_MOTION }).catch(() => {});
-  // 遅延読み込み（loading=lazy）の写真は、一度スクロールしないと読み込まれず空白で写る。送ったら元の位置に戻す
-  await page.evaluate(async () => {
-    if ([...document.images].every(i => i.complete)) return;
-    const y0 = scrollY;
-    for (let y = 0; y < document.documentElement.scrollHeight; y += 600) { scrollTo(0, y); await new Promise(r => setTimeout(r, 30)); }
-    scrollTo(0, y0);
-    await Promise.all([...document.images].filter(i => !i.complete).map(i => new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 3000); })));
-    scrollTo(0, y0);
-  }).catch(() => {});
+  await loadImages(page);
   await sleep(200);
+}
+
+// 遅延読み込み（loading=lazy）の写真は、画面の近くに来るまで読み込まれず、縦に分けた画像の下のほうで空白に写る。
+// スクロールで送ると読み込みが間に合わないことがあるので、撮る前に eager に替えて、読み込みと絵にする（decode）まで待つ。
+// 送りの位置は動かさない（上の帯の写り方が変わらないように）
+async function loadImages(page) {
+  await page.evaluate(async () => {
+    const imgs = [...document.images].filter(i => i.getAttribute('src'));
+    imgs.forEach(i => { if (i.loading === 'lazy') i.loading = 'eager'; });
+    const loaded = i => i.complete ? Promise.resolve() : new Promise(r => { i.addEventListener('load', r, { once: true }); i.addEventListener('error', r, { once: true }); setTimeout(r, 4000); });
+    await Promise.all(imgs.map(i => loaded(i).then(() => i.naturalWidth && i.decode ? i.decode().catch(() => {}) : null)));
+  }).catch(() => {});
 }
 
 const report = { at: new Date().toISOString(), base: BASE, sizes: {}, pages: {} };
@@ -354,6 +367,7 @@ async function shot(page, name, kind, vp, opt) {
   if (TAKE) {
     await page.screenshot({ path: path.join(OUT, kind, file + '.png'), fullPage: !opt.viewport });
     if (process.env.TILES && !opt.viewport) {
+      await loadImages(page);
       const h = await page.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body.scrollHeight));
       const step = Math.round(vp.height * 1.25);
       fs.mkdirSync(path.join(OUT, kind + '-tiles'), { recursive: true });
@@ -390,11 +404,12 @@ async function goto(page, url) {
   await page.goto(BASE + url, { waitUntil: 'networkidle0' });
 }
 async function fill(page) {
-  // 入力欄を埋める（名前で中身を決める）。選ぶ欄は最初の中身、チェックは全部入れる
+  // 入力欄を埋める（名前で中身を決める）。選ぶ欄は最初の中身、チェックは全部入れる（やりたいことの選ぶ欄は除く）
   await page.evaluate(() => {
     const V = { name: '山田 はな', kana: 'ヤマダ ハナ', email: 'hana.yamada.2026@example.jp', ref: '', body: '入会前の質問です。講座は月に何本くらい増えますか。' };
     document.querySelectorAll('#site-main input, #site-main select, #site-main textarea').forEach(el => {
-      if (el.type === 'checkbox') { if (!el.checked) el.click(); return; }
+      // やりたいこと（任意・2つまで）は埋めない（site-join-goals で選ぶ）
+      if (el.type === 'checkbox') { if (!el.checked && !el.closest('.goal-pick')) el.click(); return; }
       if (el.tagName === 'SELECT') { const o = [...el.options].find(x => x.value); if (o) el.value = o.value; }
       else if (el.name in V) el.value = V[el.name];
       el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -411,6 +426,63 @@ async function click(page, sel) {
   }, sel);
   if (!ok) throw new Error(sel + ' が見つからない');
   await sleep(250);
+}
+/** 文字で押す（ボタン・リンク・札の文字がちょうど text のもの。scope の中の、見えている最後のもの＝いちばん上の窓の中を先に）。
+    新しい画面の押す所は、data-* の名前より文字のほうが変わりにくいので、流れの撮影はこれで押す。見つからなければ止める */
+async function clickText(page, text, scope) {
+  const ok = await page.evaluate((t, sc) => {
+    const want = Array.isArray(t) ? t : [t];
+    const root = (sc && [...document.querySelectorAll(sc)].pop()) || document;
+    const seen = el => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 && getComputedStyle(el).visibility !== 'hidden'; };
+    const cand = [...root.querySelectorAll('button, a, [role=button], label')].filter(el => !el.disabled && seen(el) &&
+      want.includes((el.innerText || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ')));
+    const el = cand.pop(); if (!el) return false;
+    el.scrollIntoView({ block: 'center' }); el.click(); return true;
+  }, text, scope || null);
+  if (!ok) throw new Error('「' + [].concat(text).join('／') + '」が見つからない');
+  await sleep(300);
+}
+/** 入力欄に値を入れる（name で選ぶ。scope の中の最後に見つかった欄）。input・change を起こす */
+async function setField(page, name, value, scope) {
+  const ok = await page.evaluate((n, v, sc) => {
+    const root = (sc && [...document.querySelectorAll(sc)].pop()) || document;
+    const el = [...root.querySelectorAll('[name="' + n + '"]')].pop(); if (!el) return false;
+    if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked !== !!v) el.click(); }
+    else { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }
+    return true;
+  }, name, value, scope || null);
+  if (!ok) throw new Error('入力欄 ' + name + ' が見つからない');
+}
+/** field（name）の欄がある、いちばん上の形（form）を送る。送るボタンが無ければ requestSubmit */
+async function submitForm(page, field) {
+  const ok = await page.evaluate(f => {
+    const el = [...document.querySelectorAll('[name="' + f + '"]')].pop(), form = el && el.closest('form');
+    if (!form) return false;
+    // 窓の下の帯に置いた送るボタン（<button form="…">）も探す
+    const b = form.querySelector('button[type=submit], button:not([type])') || (form.id && document.querySelector('button[type=submit][form="' + form.id + '"]'));
+    if (b) { b.scrollIntoView({ block: 'center' }); b.click(); } else form.requestSubmit();
+    return true;
+  }, field);
+  if (!ok) throw new Error(field + ' の欄のある形が見つからない');
+  await sleep(350);
+}
+/** シェアの窓の文面を直す（打ったときと同じく input を起こす） */
+async function shareText(page, text) {
+  await page.evaluate(v => {
+    const ta = [...document.querySelectorAll('.shs-modal [data-shs-text]')].pop(); if (!ta) return;
+    ta.value = v; ta.dispatchEvent(new Event('input', { bubbles: true }));
+  }, text);
+  await sleep(200);
+}
+/** 見えている範囲をそこへ送る（窓の中の選ぶ欄・申込みのやりたいこと など、長いページの途中を撮るとき） */
+const scrollToSel = sel => async page => {
+  await page.evaluate(s => { const el = document.querySelector(s); if (el) el.scrollIntoView({ block: 'start' }); }, sel);
+  await sleep(200);
+};
+/** 窓（いちばん上の .modal）の中を下まで送る */
+async function modalEnd(page) {
+  await page.evaluate(() => { const m = [...document.querySelectorAll('.modal')].pop(); if (m) m.scrollTop = m.scrollHeight; });
+  await sleep(200);
 }
 const setPlan = key => async page => {
   await page.evaluate(k => { CLG.rules.setPlanDemo(k === 'past_due_x' ? 'past_due' : k, { expired: k === 'past_due_x' }); }, key);
@@ -448,7 +520,11 @@ const MEMBER = [
   'ranking', 'ranking?month=last', 'gigs', 'gigs?type=peer', 'gigs/g4', 'gigs/g7', 'gigs/g10', 'gigs/gc4', 'gigs/new', 'referral', ['referral?focus=bank', VIEW],
   'events', 'events?mode=cal', 'events?tab=reserved', 'events/e1', 'messages', 'messages?kind=講座の質問&ref=lesson:sns-basic/sb-3', 'messages?kind=講座の質問&ref=archive:ar-2',
   'perks', ['perks?focus=pk3', VIEW], 'perks?tab=experts', 'card', 'card?show=1', 'account', ['account?focus=card', VIEW], 'account/cancel', 'notices',
-  'search', 'search?q=動画', 'search?q=zzzz', 'help', ['help?focus=h17', VIEW], 'nope'
+  'search', 'search?q=動画', 'search?q=zzzz', 'help', ['help?focus=h17', VIEW], 'nope',
+  // ▲ やりたいこと・お試しの回・リクエスト・シェア（2026-09-28）
+  'requests', 'requests?tab=new', 'requests?tab=done', 'requests?kind=event', ['requests?focus=rq1', VIEW], ['requests?focus=rq8', VIEW], ['requests?new=1&kind=gig', VIEW],
+  'courses?goal=sns', 'courses?goal=aivideo', 'courses/ai', 'courses/remote-work', 'courses/change-basic', 'lesson/remote-work/rw-1',
+  'members?goal=sns', 'members?goal=none', 'feed?kind=intro', 'events/e4', 'events?kind=showcase', ['account?focus=goals', VIEW]
 ].map(x => (Array.isArray(x) ? x : [x]));
 const enc = r => r.replace(/[^\x00-\x7f]+/g, encodeURIComponent);
 const GROUPS = [
@@ -464,7 +540,28 @@ const GROUPS = [
       ['site-join-pay-failed', async p => { await click(p, '[data-join="demo-fail"]'); }, { chain: 'join' }],
       ['site-join-done', async p => { await click(p, '[data-join="pay"]'); await p.waitForFunction(() => /step=done/.test(location.hash), { timeout: 5000 }); await sleep(200); }, { chain: 'join' }],
       ['site-contact-confirm', async p => { await goto(p, '/index.html#/contact'); await p.evaluate(() => { try { CLG.site.resetContact(); } catch (e) {} }); await goto(p, '/index.html#/contact'); await fill(p); await click(p, '#site-main button[type=submit]'); }, { chain: 'contact' }],
-      ['site-contact-sent', async p => { await click(p, '[data-contact="send"]'); await p.waitForFunction(() => /step=sent/.test(location.hash), { timeout: 5000 }).catch(() => {}); }, { chain: 'contact' }]
+      ['site-contact-sent', async p => { await click(p, '[data-contact="send"]'); await p.waitForFunction(() => /step=sent/.test(location.hash), { timeout: 5000 }).catch(() => {}); }, { chain: 'contact' }],
+      // ▲ 成果発表会の一般公開（#/showcase）：案内と申込み → 空で送る（誤り）→ 申し込んだ → 同じメールでもう一度（申込み済み）。
+      //   保存を消してから始める（前の撮影の申込みが残ると「申込み済み」から始まるため）
+      ['site-showcase', async p => {
+        await goto(p, '/index.html'); await p.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+        await goto(p, '/index.html#/showcase');
+      }, { chain: 'showcase' }],
+      ['site-showcase-error', async p => { await submitForm(p, 'email'); }, { viewport: true, chain: 'showcase' }],
+      ['site-showcase-done', async p => { await fill(p); await submitForm(p, 'email'); await sleep(400); }, { chain: 'showcase' }],
+      ['site-showcase-again', async p => { await goto(p, '/index.html#/showcase'); await fill(p); await submitForm(p, 'email'); await sleep(400); }, { chain: 'showcase' }],
+      // 一般公開の枠を運営が切ったとき（申し込める回がない）。撮ったら戻す
+      ['site-showcase-closed', async p => {
+        await goto(p, '/index.html'); await p.evaluate(() => CLG.rules.setShowcasePublic('e4', false)); await goto(p, '/index.html#/showcase');
+      }, { after: p => p.evaluate(() => { CLG.rules.setShowcasePublic('e4', true); }) }],
+      // ▲ 講座の一覧をやりたいことで絞る・入会の申込みでやりたいことを選ぶ（任意・2つまで）
+      ['site-curriculum?goal=sns', async p => goto(p, '/index.html#/curriculum?goal=sns')],
+      ['site-curriculum?goal=aivideo', async p => goto(p, '/index.html#/curriculum?goal=aivideo')],
+      ['site-join-goals', async p => {
+        await goto(p, '/index.html#/join'); await p.evaluate(() => { try { CLG.site.resetJoin(); } catch (e) {} }); await goto(p, '/index.html#/join');
+        for (const v of ['remote', 'sns']) await click(p, '.goal-opt input[value="' + v + '"]');
+        await scrollToSel('.goal-pick')(p);
+      }, VIEW]
     ]
   },
   { // 会員ページ：ログインまわり（ログインしていないとき。§5-8）
@@ -506,6 +603,40 @@ const GROUPS = [
       ['member-modal-menu', async p => { await closeModals(p); await p.evaluate(() => CLG.app.menu()); }, { viewport: true, maxWidth: 640 }],
       ['member-modal-menu-toast', async p => { await closeModals(p); await p.evaluate(() => { CLG.app.menu(); CLG.ui.toast('プロフィールを保存しました', 'ok'); }); }, { viewport: true, maxWidth: 640 }],
       ['member-modal-levelup', async p => { await closeModals(p); await p.evaluate(() => { CLG.store.resetDemo(true); CLG.rules.completeLesson('sns-basic', 'sb-3'); CLG.app.reward(CLG.rules.completeLesson('sns-basic', 'sb-4')); }); }, VIEW],
+      // ▲ シェアの窓：レベルアップの窓の「シェアする」→ 紹介リンクを付ける（#PR と紹介リンク）→ 金額を書いた注意 → 窓の下まで
+      ['member-modal-share-level', async p => {
+        await closeModals(p);
+        await p.evaluate(() => { CLG.store.resetDemo(true); CLG.rules.completeLesson('sns-basic', 'sb-3'); CLG.app.reward(CLG.rules.completeLesson('sns-basic', 'sb-4')); });
+        await sleep(300); await click(p, '[data-lvup-share]'); await sleep(300);
+      }, { viewport: true, chain: 'share' }],
+      ['member-modal-share-link', async p => { await click(p, '.shs-modal [data-shs-link]'); }, { viewport: true, chain: 'share' }],
+      ['member-modal-share-money', async p => { await shareText(p, 'Lv4 になりました。月5万円になりました。'); await clickText(p, '文面をコピー', '.shs-modal'); }, { viewport: true, chain: 'share' }],
+      ['member-modal-share-end', async p => modalEnd(p), { viewport: true, chain: 'share' }],
+      // 修了証・成果発表会（友だちを誘う）から開く。まだ満たしていない場面（在籍24日の最初の30日）は「いまシェアできるものはありません。」
+      ['member-modal-share-course', async p => { await closeModals(p); await p.evaluate(() => CLG.store.resetDemo(true)); await hashTo('#/courses/orientation/certificate')(p); await settle(p); await clickText(p, 'シェアする'); }, VIEW],
+      // 成果発表会の詳細（窓）の下のほう：「一部を一般公開」と「友だちを誘う」
+      ['member-modal-event-showcase', async p => { await closeModals(p); await hashTo('#/events/e4')(p); await settle(p); await modalEnd(p); }, VIEW],
+      ['member-modal-share-invite', async p => { await closeModals(p); await hashTo('#/events/e4')(p); await settle(p); await clickText(p, '友だちを誘う'); }, VIEW],
+      ['member-modal-share-none', async p => { await closeModals(p); await p.evaluate(() => CLG.ui.shareSheet('start30')); await sleep(300); }, VIEW],
+      // ▲ やりたいことを「まだ決めていない」にしたホーム（既定の道）
+      ['member-home-undecided', async p => { await closeModals(p); await p.evaluate(() => { CLG.store.resetDemo(true); CLG.rules.setGoals([]); }); await hashTo('#/home')(p); }, { after: p => p.evaluate(() => CLG.store.resetDemo(true)) }],
+      // ▲ リクエストを出す：空で送る（誤り）→ 同じ題（そのリクエストへのリンク）→ 出せた → 一覧（自分の・受付中は直せる）
+      ['member-requests-new-error', async p => {
+        await closeModals(p); await p.evaluate(() => CLG.store.resetDemo(true));
+        await hashTo('#/requests?new=1&kind=course')(p); await settle(p); await submitForm(p, 'title');
+      }, { viewport: true, chain: 'rq' }],
+      ['member-requests-new-dup', async p => { await setField(p, 'title', '在宅の仕事の探し方を最初に知りたい'); await setField(p, 'detail', '契約で見るところを知りたいです。'); await submitForm(p, 'title'); }, { viewport: true, chain: 'rq' }],
+      ['member-requests-new-done', async p => {
+        await setField(p, 'title', '商品写真の整え方の講座'); await setField(p, 'detail', 'スマホで撮った商品写真を明るく見せる方法を知りたいです。');
+        await submitForm(p, 'title');
+      }, { viewport: true, chain: 'rq' }],
+      ['member-requests-mine', async p => { await closeModals(p); await hashTo('#/requests?tab=new')(p); }, { chain: 'rq', after: p => p.evaluate(() => CLG.store.resetDemo(true)) }],
+      // ＋1を押した行（押した行だけがその場で変わる）
+      ['member-requests-voted', async p => {
+        await closeModals(p); await p.evaluate(() => CLG.store.resetDemo(true)); await hashTo('#/requests')(p); await settle(p);
+        await p.evaluate(() => { const b = document.querySelector('[data-rq-vote][aria-pressed="false"]'); if (b) { b.scrollIntoView({ block: 'center' }); b.click(); } });
+        await sleep(300);
+      }, { viewport: true, after: p => p.evaluate(() => CLG.store.resetDemo(true)) }],
       ['member-sidebar', async p => { await closeModals(p); await p.evaluate(() => CLG.store.resetDemo(true)); await hashTo('#/home')(p); }, { viewport: true, minWidth: 641, chain: 'side' }],
       ['member-sidebar-end', async p => { await p.evaluate(() => { const n = document.getElementById('sideNav'); if (n) n.scrollTop = n.scrollHeight; }); }, { viewport: true, minWidth: 641, chain: 'side' }],
       // 左の帯の小さなメニュー（自分・試作版の札）を開いたところ
@@ -526,13 +657,41 @@ const GROUPS = [
   },
   { // 在籍半年
     setup: persona('veteran'),
-    pages: ['home', 'start', 'card', 'gigs', 'gigs/mg1', 'referral', ['referral?focus=rows', VIEW], 'ranking', 'ranking?month=last', 'members/me', 'account', 'feed?kind=mine', 'events?tab=attended', 'notices']
-      .map(x => (Array.isArray(x) ? x : [x])).map(([r, o]) => ['veteran-' + r, hashTo('#/' + r), o])
+    pages: ['home', 'start', 'card', 'gigs', 'gigs/mg1', 'referral', ['referral?focus=rows', VIEW], 'ranking', 'ranking?month=last', 'members/me', 'account', 'feed?kind=mine', 'events?tab=attended', 'notices',
+      // ▲ 自分のリクエスト（検討中・運営の返事つき）・修了証の「シェアする」・やりたいこと（アカウント）
+      'requests', ['requests?focus=rqm-v1', VIEW], 'courses/sns-basic/certificate', ['account?focus=goals', VIEW]]
+      .map(x => (Array.isArray(x) ? x : [x])).map(([r, o]) => ['veteran-' + r, hashTo('#/' + r), o]).concat([
+      // ▲ シェアの窓（見えている範囲）：講座の修了・レベル・成果発表会で発表・最初の30日。ボタンから開いたときと同じ U.shareSheet
+      ...[['course', 'sns-basic'], ['level', null], ['showcase', null], ['start30', null]].map(([m, id]) => ['veteran-modal-share-' + m, async p => {
+        await closeModals(p); await p.evaluate((mm, ii) => CLG.ui.shareSheet(mm, ii ? { id: ii } : {}), m, id); await sleep(400);
+      }, VIEW]),
+      // 名前を外した画像・紹介リンクを付けた文面（講座の修了）
+      ['veteran-modal-share-noname', async p => {
+        await closeModals(p); await p.evaluate(() => CLG.ui.shareSheet('course', { id: 'sns-basic' })); await sleep(300);
+        await click(p, '.shs-modal [data-shs-name]'); await click(p, '.shs-modal [data-shs-link]');
+      }, VIEW]
+    ])
   },
   { // 入会したて
     setup: persona('fresh'),
-    pages: ['home', 'start', 'courses', 'feed', 'gigs', 'events', 'referral', 'card', 'account', 'messages', 'ranking', 'members/me', 'notices']
-      .map(r => ['fresh-' + r, hashTo('#/' + r)])
+    pages: ['home', 'start', 'courses', 'feed', 'gigs', 'events', 'referral', 'card', 'account', 'messages', 'ranking', 'members/me', 'notices',
+      // ▲ スタートガイド1日目の「やりたいことを選ぶ」・お試しの回（AI活用の1回目は見られる・2回目は閉じている）・リクエスト
+      ['start?focus=goals', VIEW], 'courses/ai', 'lesson/ai/ai-1', 'lesson/ai/ai-2', 'courses/video', ['account?focus=goals', VIEW], 'requests', 'members?goal=none']
+      .map(x => (Array.isArray(x) ? x : [x])).map(([r, o]) => ['fresh-' + r, hashTo('#/' + r), o]).concat([
+      // 選ぶ欄で2つ選ぶ（ほかは押せなくなる）→ 決めたあと → ホームの「あなたの道」（AI・動画はお試しの回から）
+      ['fresh-start-goals-picked', async p => {
+        await closeModals(p); await hashTo('#/start?focus=goals')(p); await settle(p);
+        for (const v of ['aivideo', 'sns']) await click(p, '.goal-opt input[value="' + v + '"]');
+      }, { viewport: true, chain: 'goals' }],
+      ['fresh-start-goals-saved', async p => {
+        // 選ぶ欄の形の「決める」ボタン（文字は画面に任せる：選ぶ欄の入った form の送るボタン）
+        const ok = await p.evaluate(() => { const f = (document.querySelector('.goal-pick') || {}).closest && document.querySelector('.goal-pick').closest('form'); if (!f) return false;
+          const b = f.querySelector('button[type=submit], button:not([type])'); if (!b) return false; b.click(); return true; });
+        if (!ok) await p.evaluate(() => { CLG.app.reward(CLG.rules.setGoals(['aivideo', 'sns'])); CLG.app.refresh(); });
+        await sleep(400);
+      }, { viewport: true, chain: 'goals' }],
+      ['fresh-home-path', async p => { await closeModals(p); await hashTo('#/home')(p); }, { chain: 'goals' }]
+    ])
   },
   { // 運営画面
     setup: async p => { await goto(p, '/member.html?demo=1#/home'); },
@@ -547,8 +706,21 @@ const GROUPS = [
         'feed?tab=reports', 'feed?tab=staff', 'feed?tab=notices', 'feed?tab=line', 'perks?tab=experts', 'perks?tab=pros',
         'payments?tab=failed', 'payments?tab=cancels', 'payments?tab=refunds',
         'referrals?tab=rows', 'referrals?tab=banks', 'referrals?tab=history', 'points?tab=close',
-        'settings?tab=referral', 'settings?tab=rules', 'settings?tab=staff', 'settings?tab=audit', 'settings?tab=templates', 'nope']
+        'settings?tab=referral', 'settings?tab=rules', 'settings?tab=staff', 'settings?tab=audit', 'settings?tab=templates', 'nope',
+        // ▲ リクエスト（＋1の多い順・種類と状態で絞る・1件）・会員のやりたいことで絞る・成果発表会の一般公開の枠と申込み
+        'requests', 'requests?kind=gig', 'requests?status=done', 'requests?focus=rq1', 'members?goal=sns', 'members?goal=none', 'events/e4', 'events?tab=signups']
         .map((r, i) => ['admin-' + r, i === 0 ? async p => goto(p, '/admin.html?demo=1#/dashboard') : adminGo(r)]),
+      // ▲ リクエストに返事を書く（#/requests/<id>）：受付中の rq9 を「今回は見送り」にして理由なしで保存（誤り）→「検討中」と返事で保存
+      ['admin-requests/rq9', adminGo('requests/rq9'), { chain: 'answer' }],
+      ['admin-requests-answer-error', async p => {
+        await p.evaluate(() => { const r = document.querySelector('#rqForm input[name="status"][value="declined"]'); if (r) r.click(); });
+        await setField(p, 'reply', ''); await submitForm(p, 'reply');
+      }, { viewport: true, chain: 'answer' }],
+      ['admin-requests-answer-done', async p => {
+        await p.evaluate(() => { const r = document.querySelector('#rqForm input[name="status"][value="considering"]'); if (r) r.click(); });
+        await setField(p, 'reply', '札幌のお店に声をかけています。決まったら案件に載せます。'); await submitForm(p, 'reply');
+      }, { viewport: true, chain: 'answer' }],
+      ['admin-requests-answered', adminGo('requests?status=active'), { chain: 'answer' }],
       ['admin-sidebar', async p => { await goto(p, '/admin.html?demo=1#/dashboard'); }, { viewport: true, minWidth: 641 }]
     ]
   }

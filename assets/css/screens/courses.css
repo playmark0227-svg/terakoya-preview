@@ -3,6 +3,8 @@
    .scr-courses … 一覧・講座の目次・確認テスト・修了証・勉強会の録画（一覧と1本）
    .scr-lesson  … 1回の再生画面
    共通部品（.card .list .li .btn .tag .chips .seg）で足りないところだけ書く。
+   一覧の上の「あなたの道」は .cr-path（狭いときは横に送る並び）、絞り込みの2段は .cr-filters ＞ .cr-frow、
+   お試しの回（freeFirst）の案内は藍の字（.cr-card__trial・.cr-trialnote・目次の .notice.cr-trial）。
    絞り込みの札の横流し・押しやすさ（40px）は app.css が持っている。
    ============================================================ */
 
@@ -203,6 +205,10 @@
 .scr-courses .cr-card__tag { grid-column: 2; grid-row: 1 / span 3; }
 .scr-courses .cr-card__ttl { font-size: 15.5px; font-weight: 700; line-height: 1.45; word-break: auto-phrase; overflow-wrap: anywhere; text-wrap: pretty; }
 .scr-courses .cr-card__lock { width: 15px; height: 15px; margin-right: 5px; vertical-align: -2px; color: var(--ink-3); }
+/* 鍵の印と題を横に並べる（題が折れても印は1行目の頭に。印だけの行を作らない） */
+.scr-courses .cr-card__ttl.has-lock { display: flex; align-items: flex-start; gap: 5px; }
+.scr-courses .cr-card__ttl.has-lock .cr-card__lock { flex: none; margin: 4px 0 0; }
+.scr-courses .cr-card__tx { min-width: 0; }
 .scr-courses .cr-card__meta { margin-top: 2px; font-size: 12.5px; line-height: 1.55; color: var(--ink-3); }
 .scr-courses .cr-card__tag { display: flex; }
 .scr-courses .cr-card.is-locked .cr-card__ttl { color: var(--ink-2); }
@@ -232,6 +238,79 @@
 @container main (max-width: 330px) {
   .scr-courses .cr-card__img { width: 72px; }
 }
+/* お試しの回（freeFirst）がある、Lv で閉じている講座：写真は薄くしない（1回目はすぐ見られるため）。案内は藍の1行 */
+.scr-courses .cr-card.is-trial .cr-card__img img { filter: none; opacity: 1; }
+.scr-courses .cr-card__trial { display: block; margin-top: 4px; font-size: 12.5px; font-weight: 600; line-height: 1.5; color: var(--indigo); word-break: auto-phrase; overflow-wrap: anywhere; }
+/* 続きからの行（お試しの回）：講座名・回の下に、藍で開き方 */
+.scr-courses .cr-trialnote { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.5; color: var(--indigo); word-break: auto-phrase; overflow-wrap: anywhere; }
+
+/* 絞り込み：学部／やりたいこと（どちらか一方）。広いときは名前を左に、スマホでは名前を上に */
+.scr-courses .cr-filters { display: grid; gap: 8px; }
+.scr-courses .cr-frow { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+/* 札が2行に折れたとき（タブレット）も、名前は1行目の札の高さの真ん中に（札の高さ 34px、860px 以下は 40px） */
+.scr-courses .cr-frow__lbl { flex: none; display: flex; align-items: center; min-width: 6.2em; min-height: 34px; font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+.scr-courses .cr-frow .chips { flex: 1; min-width: 0; }
+@media (max-width: 860px) { .scr-courses .cr-frow__lbl { min-height: 40px; } }
+@media (max-width: 640px) {
+  .scr-courses .cr-filters { gap: 4px; }
+  .scr-courses .cr-frow { display: block; }
+  .scr-courses .cr-frow__lbl { display: block; min-height: 0; margin: 4px 0 0 2px; }
+}
+.scr-courses .cr-none { margin-top: 16px; }
+
+/* 「あなたの道」：道の講座を順に（番号・題・状態）。広いときは横に並べ、狭いときは横に送る（次に見る講座まで送ってある） */
+.scr-courses .cr-path__card { padding: 14px 16px 16px; }
+.scr-courses .cr-path__what { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 12px; font-size: 13.5px; line-height: 1.5; }
+.scr-courses .cr-path__goal { font-weight: 700; color: var(--ink); }
+.scr-courses .cr-path__sum { font-size: 12.5px; color: var(--ink-3); }
+.scr-courses .cr-path__steps {
+  list-style: none; margin: 10px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 8px;
+}
+.scr-courses .cr-path__step { display: flex; min-width: 0; }
+.scr-courses .cr-path__link {
+  flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; min-height: 44px;
+  padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2);
+  color: inherit; text-decoration: none;
+}
+.scr-courses .cr-path__link:hover { border-color: var(--line-2); background: var(--surface); }
+.scr-courses .cr-path__no {
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg); color: var(--ink-2); font-size: 12px; font-weight: 700;
+}
+.scr-courses .cr-path__no .ico { width: 13px; height: 13px; }
+.scr-courses .cr-path__ttl { font-size: 13.5px; font-weight: 700; line-height: 1.45; word-break: auto-phrase; overflow-wrap: anywhere; text-wrap: pretty; }
+.scr-courses .cr-path__st { font-size: 12px; line-height: 1.5; color: var(--ink-3); }
+.scr-courses .cr-path__st b { font-weight: 700; color: var(--ink); }   /* 次に見る：赤い札にしない。太字だけ（脱AIの約束 §2） */
+.scr-courses .cr-path__trial { font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--indigo); word-break: auto-phrase; overflow-wrap: anywhere; }
+.scr-courses .cr-path__step.is-done .cr-path__no { background: var(--ok-weak); color: var(--ok); }
+.scr-courses .cr-path__step.is-locked .cr-path__ttl { color: var(--ink-2); }
+.scr-courses .cr-path__step.is-next .cr-path__link { border-color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--ink); }
+.scr-courses .cr-path__step.is-next .cr-path__no { background: var(--ink); color: #fff; }
+.scr-courses .cr-path__ask {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2);
+}
+@container main (max-width: 720px) {
+  .scr-courses .cr-path__steps {
+    display: flex; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-snap-type: x proximity;
+    margin: 10px -16px 0; padding: 0 16px 2px; scroll-padding-inline: 16px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent);
+  }
+  .scr-courses .cr-path__steps::-webkit-scrollbar { display: none; }
+  .scr-courses .cr-path__steps::after { content: ""; flex: 0 0 8px; }
+  .scr-courses .cr-path__step { flex: 0 0 150px; scroll-snap-align: start; }
+}
+
+/* 一覧の下：欲しい講座がないとき（リクエスト）。案件・イベントの入口（.gg-req・.ev-req）と同じ灰の面 */
+.scr-courses .cr-req {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+  margin-top: 28px; padding: 14px 16px 14px 20px; border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--line);
+}
+.scr-courses .cr-req__txt { flex: 1 1 16em; min-width: 0; margin: 0; font-size: 14px; line-height: 1.65; color: var(--ink-2); }
+.scr-courses .cr-req__btn { flex: none; }
+@media (max-width: 860px) { .scr-courses .cr-req__btn { min-height: 40px; } }
 
 /* ============================================================
    講座の目次
@@ -257,8 +336,9 @@
 .scr-courses .cr-start__done + .cr-start { margin-top: 10px; }
 .scr-courses .cr-start__nextc { margin-top: 6px; }
 .scr-courses .cr-nextcourse { margin-left: -6px; white-space: normal; text-align: left; line-height: 1.5; gap: 4px; }
-.scr-courses .cr-dhead .cr-lock { margin-top: 16px; }
-.scr-courses .cr-lock + .cr-start { margin-top: 12px; }
+.scr-courses .cr-dhead :is(.cr-lock, .cr-trial) { margin-top: 16px; }
+.scr-courses :is(.cr-lock, .cr-trial) + .cr-start { margin-top: 12px; }
+.scr-courses .cr-trial > div { flex: 1; min-width: 0; }
 .scr-courses .page-head + .cr-lock, .scr-courses .page-head + .cr-start { margin-top: 0; }
 @container main (max-width: 480px) {
   .scr-courses .cr-start .btn:not(.btn-text) { flex: 1 1 100%; }
@@ -270,7 +350,7 @@
 .scr-courses .cr-info > .sec:only-child { grid-column: 1 / -1; }
 @container main (max-width: 720px) { .scr-courses .cr-info { grid-template-columns: minmax(0, 1fr); } }
 .scr-courses .cr-learn__list { margin: 0; padding: 14px 22px 14px 40px; list-style: disc; }
-.scr-courses .cr-learn__list li { padding: 3px 0; font-size: 14.5px; line-height: 1.65; }
+.scr-courses .cr-learn__list li { padding: 3px 0; font-size: 14.5px; line-height: 1.65; text-wrap: pretty; }
 .scr-courses .cr-learn__list li::marker { color: var(--ink-3); }
 @media (max-width: 640px) { .scr-courses .cr-learn__list { padding: 12px 16px 12px 34px; } }
 .scr-courses .cr-teacher { align-items: flex-start; }
@@ -458,7 +538,7 @@
 :is(.scr-courses, .scr-lesson) .cr-about { margin: 22px 2px 0; }
 :is(.scr-courses, .scr-lesson) .cr-about__desc { max-width: 40em; font-size: 15px; line-height: 1.8; }
 :is(.scr-courses, .scr-lesson) .cr-points { margin: 10px 0 0; padding-left: 1.3em; list-style: disc; }
-:is(.scr-courses, .scr-lesson) .cr-points li { padding: 2px 0; font-size: 14.5px; line-height: 1.7; color: var(--ink-2); }
+:is(.scr-courses, .scr-lesson) .cr-points li { padding: 2px 0; font-size: 14.5px; line-height: 1.7; color: var(--ink-2); text-wrap: pretty; }
 :is(.scr-courses, .scr-lesson) .cr-points li::marker { color: var(--ink-3); }
 :is(.scr-courses, .scr-lesson) .cr-files { margin-top: 26px; }
 

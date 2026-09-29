@@ -14,7 +14,7 @@
                                    会員の「相談・メッセージ」に運営から送る。デモ会員は R.staffReply（会員ページのタブに届く）
      P.compose(会員の行の配列, { template, status, contact, audit, title }) → Promise({ sent, threadId } | null)
                                    送る文を書く引き出し（1人でも、まとめてでも）
-     P.steps(m)                    スタートガイドの10項目 [{ id, title, short, done, doneAt, due（予定より遅れ） }]
+     P.steps(m)                    スタートガイドの項目（DATA.ONBOARDING の順） [{ id, title, short, done, doneAt, due（予定より遅れ） }]
      P.interviewOf(会員番号)       いちばん新しい面談（取消を除く）か null
      P.confirmInterview(面談) / P.setInterview(面談, 'done'|'canceled', 理由)
      P.slotCfg() / P.slotList(日数) / P.nextSlots(数)   面談の枠（運営画面だけの保存：db.meetSlots）。枠の booked は最初の予約、all は同じ時刻の予約すべて
@@ -28,6 +28,7 @@
   var cur = null;
 
   function nowIso() { return CLG.now().toISOString(); }
+  function goalLabel(id) { var g = (DATA.GOALS || []).filter(function (x) { return x.id === id; })[0]; return g ? g.label : id; }
   function byId(list, id) { for (var i = 0; list && i < list.length; i++) if (list[i] && list[i].id === id) return list[i]; return null; }
   function staffId() { var s = AD.db.staff(); return s ? s.id : AD.db.DEMO_STAFF; }
   function whenText(at) { return DATA.mdw(at) + ' ' + DATA.hm(at); }
@@ -66,6 +67,7 @@
     { id: 'stalled', name: 'スタートガイドが止まっている', text: '{name}さん、運営の{staff}です。スタートガイドは「{step}」まで来ています。分からないところや、つまずいているところがあれば、ここに送ってください。' },
     { id: 'orient', name: 'オリエンテーションの案内', text: '{name}さん、運営の{staff}です。まずはオリエンテーション（全4回・30分）を見てください。講座の一覧のいちばん上にあります。\n次のライブのオリエンテーションは{orient}からです。' },
     { id: 'meet', name: '面談の案内', text: '{name}さん、運営の{staff}です。15分の面談で、これからの進め方を一緒に決めませんか。\n{slots}\n都合のいい日時を返信してください。ほかの日時でも合わせます。' },
+    { id: 'goals', name: 'やりたいことの案内', text: '{name}さん、運営の{staff}です。スタートガイドの「やりたいことを選ぶ」で、やりたいことを2つまで選べます。選ぶとホームに「あなたの道」が出て、次に見る講座が分かります。まだ決めていなければ「まだ決めていない」でも進められます。' },
     { id: 'line', name: 'LINE連携の案内', text: '{name}さん、運営の{staff}です。LINEをつなぐと、返信や新しい案件がLINEに届きます。「アカウント」の「LINEで通知を受け取る」から1分でできます。' },
     { id: 'idle', name: 'しばらくログインがない', text: '{name}さん、運営の{staff}です。しばらくログインがなかったので連絡しました。忙しい時期なら、講座は1日1回（10分）からでも進みます。困っていることがあれば返信してください。' },
     { id: 'payment', name: '支払いエラーの連絡', text: '{name}さん、運営の{staff}です。{date}の月額（{amount}）のお支払いができませんでした。{until}までに、会員ページの「アカウント」→「お支払い」からカードを更新してください。更新すると自動で請求をやり直します。' }
@@ -221,10 +223,11 @@
   };
 
   /* ---------- スタートガイド ---------- */
-  var SHORT = { profile: 'プロフィール', orient: 'オリエンテーション', line: 'LINE', intro: '自己紹介', goal: '目標', meet: '面談', lesson3: '講座3回',
+  var SHORT = { goals: 'やりたいこと', profile: 'プロフィール', orient: 'オリエンテーション', line: 'LINE', intro: '自己紹介', goal: '目標', meet: '面談', lesson3: '講座3回',
     gig: '案件', event: 'イベント', showcase: '成果発表会' };
   P.SHORT = SHORT;
-  /** 10項目の済・まだ。デモ会員は本当の記録（R.steps）。名簿の人は済んだ数だけ上から順に済（ダッシュボードの「止まっている項目」と合わせる） */
+  /** 項目ごとの済・まだ。デモ会員は本当の記録（R.steps）。名簿の人は DATA.rosterSteps（「やりたいことを選ぶ」は goals を選んでいれば済・
+      ほかは済んだ数だけ上から順に済。ダッシュボードの「止まっている項目」と合わせる） */
   P.steps = function (m) {
     // 「遅れ」は入会5〜30日目だけ（始めたばかりの人と、30日を過ぎた人には付けない。スタートガイドは最初の30日のもの）
     var exp = (m.day || 1) >= 5 && (m.day || 1) <= 30 && m.status !== 'left' ? AD.data.expectedSteps(m.day) : 0;
@@ -236,9 +239,9 @@
     // 済んだ日は入会から40日のあいだに置く（スタートガイドは最初の30日でやるもののため）
     var join = new Date(m.joinedAt).getTime(), end = Math.max(join + 3600000, Math.min(CLG.now().getTime(), new Date(m.lastActive || m.joinedAt).getTime(), join + 40 * DAY));
     // 時刻は朝・昼休み・夜のどれか（夜中の3時に済ませたことにしない）。順番は項目の順のまま
-    var HRS = [21, 12, 20, 22, 8, 21, 13, 22, 19, 21], prev = join;
+    var HRS = [21, 12, 20, 22, 8, 21, 13, 22, 19, 21], prev = join, flags = DATA.rosterSteps(m);
     return DATA.ONBOARDING.map(function (s, i) {
-      var done = i < m.stepsDone, at = null;
+      var done = !!flags[i], at = null;
       if (done) {
         var d = new Date(join + (end - join) * (i + 1) / (m.stepsDone + 1));
         d.setHours(HRS[i % HRS.length], (i * 17 + 5) % 60, 0, 0);
@@ -400,14 +403,23 @@
       var tagOpts = Object.keys(used).sort().map(function (t) { return [t, t + '（' + used[t] + '）']; });
       var statusOpts = [['', 'すべて'], ['active', '有効'], ['canceling', '解約予定'], ['past_due', '支払いエラー'], ['left', '終了']];
       if (rows.some(function (r) { return r.status === 'paused'; })) statusOpts.splice(4, 0, ['paused', '休会中']);
+      // ?status=enrolled（在籍中＝終了のほか。ダッシュボードの「やりたいこと」から）は、そのときだけ札を足す
+      if (ctx.query.status === 'enrolled') statusOpts.push(['enrolled', '在籍中']);
       var filters = [
-        { key: 'status', label: '状態', chips: true, options: statusOpts },
+        { key: 'status', label: '状態', chips: true, options: statusOpts,
+          match: function (r, v) { return v === 'enrolled' ? r.status !== 'left' : r.status === v; } },
         { key: 'cohort', label: '入会月', options: [['', 'すべて']].concat(cohortOpts), match: function (r, v) { return r.cohortKey === v; } },
         { key: 'lv', label: 'Lv', options: [['', 'すべて']].concat(DATA.LEVELS.map(function (l) { return [String(l.lv), 'Lv' + l.lv + ' ' + l.name]; })),
           match: function (r, v) { return String(r.level) === v; } },
         { key: 'seen', label: 'ログイン', options: [['', 'すべて'], ['7', '7日以上ない'], ['30', '30日以上ない']],
           match: function (r, v) { return r.status !== 'left' && P.idleDays(r) >= +v; } }
       ];
+      // やりたいこと（R.goalsOf。本人が名簿に出していなくても運営には出す）。none は未選択（まだ決めていない）
+      var gc = { none: 0 };
+      rows.forEach(function (r) { var g = r.goals || []; if (!g.length) gc.none++; g.forEach(function (id) { gc[id] = (gc[id] || 0) + 1; }); });
+      filters.push({ key: 'goal', label: 'やりたいこと', options: [['', 'すべて']].concat((DATA.GOALS || []).map(function (g) { return [g.id, g.short + '（' + (gc[g.id] || 0) + '）']; }))
+        .concat([['none', '未選択（' + gc.none + '）']]),
+        match: function (r, v) { var g = r.goals || []; return v === 'none' ? !g.length : g.indexOf(v) >= 0; } });
       if (tagOpts.length) filters.push({ key: 'tag', label: 'タグ', options: [['', 'すべて']].concat(tagOpts), match: function (r, v) { return (r.tags || []).indexOf(v) >= 0; } });
       return '<div class="a-members">' +
         AU.head({ title: '会員', sub: '在籍 ' + U.num(enrolled) + '人・これまでの会員 ' + U.num(rows.length) + '人' }) +
@@ -429,11 +441,15 @@
             AU.col.status('status', '状態', 'member', { value: function (r) { return { past_due: 0, canceling: 1, paused: 2, active: 3, left: 4 }[r.status]; } }),
             { key: 'stepsDone', label: 'スタートガイド', dir: 'desc', html: function (r) { return AU.steps(r.stepsDone); }, csv: function (r) { return r.stepsDone + '/' + DATA.ONBOARDING.length; } },
             AU.col.rel('lastActive', '最後のログイン'),
+            { key: 'goals', label: 'やりたいこと', hide: 'sm', sort: false, cls: 'a-mb__goals',
+              html: function (r) { return (r.goals || []).length ? U.goalTags(r.goals) : '<span class="muted">―</span>'; },
+              csv: function (r) { return (r.goals || []).map(goalLabel).join('・'); } },
             { key: 'area', label: '地域', hide: 'sm', cls: 'a-mb__area', html: function (r) {
               // 都道府県と市区町村のあいだで折り返せるように（狭いときは2行になる）
               return esc(r.pref || '') + (r.city ? ' <span class="nw">' + esc(r.city) + '</span>' : '');
             } },
-            { key: 'refCode', label: '紹介コード', hide: 'sm', cls: 'mono a-mb__ref' },
+            // 紹介コードは広い幅だけ（やりたいことの列を先に出す。探す欄では紹介コードでも探せる）
+            { key: 'refCode', label: '紹介コード', hide: 'md', cls: 'mono a-mb__ref' },
             { key: 'job', label: 'いまのお仕事', csvOnly: true },
             { key: 'email', label: 'メール', csvOnly: true },
             { key: 'referredBy', label: '紹介した人', csvOnly: true, csv: function (r) { return r.referredBy || ''; } },

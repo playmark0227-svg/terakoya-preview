@@ -16,6 +16,7 @@
 
    ■ 関数の一覧（R = CLG.rules）。★ は 2026-09-25 に足したもの・形を広げたもの。☆ は 2回目（運営画面と会員ページをつなぐもの・CMS）。
      ◆ は 3回目（固定・運営の投稿の直し・報酬の取消・振込先のない支払い・支払いエラー中の解約・修了証・学部の CMS など）
+     ▲ は 2026-09-28（やりたいこと・お試しの回 freeFirst・リクエスト・シェア・成果発表会の一般公開。docs/仕様_やりたいこと・リクエスト・シェア.md）
    ―― 会員・共通
      me()                               state.me
      day()                              入会から何日目か（入会日＝1日目）
@@ -30,8 +31,14 @@
                                         email は直接は変えず requestEmailChange に回す。戻り値はスタートガイドの result か null
    ―― 学び
      xp() / level(xp?) / levelName(lv) / coursesAtLevel(lv) / course(id) / courseState(c) / lessonState(c, lessonId)
-     completeLesson(courseId, lessonId) result（★講座を修了したら certificate:{no,at} も入る）
-     continueList() / seeArchive(id)
+                                        ▲お試しの回：講座に freeFirst（data.js。ai・video は 1）があると、講座が Lv で閉じていても最初の freeFirst 回は
+                                        lessonState が 'open'（見終えれば 'done'）。2回目からは今まで通り Lv で開く（'locked'）。講座の中は今まで通り1本ずつ順に。
+                                        courseState(c) に { freeFirst（数）, trial（Lv で閉じていてお試しの回がある）, trialNote（「1回目は入会直後から見られます」。
+                                        freeFirst のある講座はいつも入る）, nextOpen（次の回が見られるならその回、なければ null） } を足した。
+                                        locked・lockReason は今まで通り講座の Lv で決まる（確認テスト quiz().locked・submitQuiz・修了証は変わらない）
+     completeLesson(courseId, lessonId) result（★講座を修了したら certificate:{no,at} も入る。▲お試しの回も lessonState が open なら見終えられる・XP も付く）
+     continueList()                     ▲Lv で閉じている講座は、お試しの回がまだ見られるときだけ入る（st.trial・st.next がその回）。並びは今まで通り
+     seeArchive(id)
      lessonPos(lessonId)                ★前回の位置（秒）。lessonPos(lessonId, 秒) で保存（画面は描き直さない）
      resumeText(lessonId)               ★「前回の続き 4:12 から」か ''
      lessonNote(lessonId[, text])       ★講座のメモ（会員ごと。デモを戻すと消える）。text を渡すと保存。note(…) は同じもの
@@ -46,6 +53,8 @@
      steps()                            ★成果発表会の項目は title「次の成果発表会（M/D）」・outside:true・event・eventAt・baseTitle が付く
      onboarding()                       ★{ steps, weeks:[{n,steps}]（成果発表会を除く）, showcase, done, total, pct, day, current, finished, missing }
      syncSteps() / completeStep(id) / setGoal(what, by)
+                                        ▲項目の auto に 'goals'（やりたいことを選んだ・「まだ決めていない」を選んだら済）。XP が 0 の項目は XP の記録を書かない
+                                        （result は { xp:0, steps:[項目] }）。setGoal は30日後の目標（1行）、setGoals はやりたいこと（下の「やりたいこと」）
      lineLink()                         ★{ status: none/pending/linked/failed, label, at, code? }
      startLineLink()                    ★連携を始める（pending・連携コード）→ lineLink()
      finishLineLink(ok)                 ★ok なら linked（スタートガイドの result）、false なら failed（{status:'failed'}）
@@ -76,15 +85,21 @@
      thankComment(commentId)            ★「ありがとう」。1つのコメントに1回、自分のコメントには押せない。
                                         書いた人に +2pt（ランキングに入る）。{ ok, to, toPt（相手に入った pt） } か null
    ―― 会員名簿
-     members({ pref, cohort, faculty, lv, q, sort })  ★名簿の行 [{ id, no, name, me, color, photo, lv, area, pref, cohort, cohortKey, joinedAt, job, faculty, href }]
+     members({ pref, cohort, faculty, lv, q, sort, goal▲ })  ★名簿の行 [{ id, no, name, me, color, photo, lv, area, pref, cohort, cohortKey, joinedAt, job, faculty,
+                                           goals▲[GOALS の id], href }]
                                         地域は本人の公開範囲で切る。都道府県を出していない人は pref の絞り込みに出ない
-     membersFacets()                    ★{ prefs[{value,count}], cohorts[{value,label,count}], faculties[{value,label,count}], lvs[{value,label,count}] }
+                                        ▲goal：その やりたいこと を選んだ人だけ（'none' は未選択の人）。goals は本人が隠していれば []（自分の行も）
+     membersFacets()                    ★{ prefs[{value,count}], cohorts[{value,label,count}], faculties[{value,label,count}], lvs[{value,label,count}],
+                                           goals▲[{value,label,short,count}] }
      memberProfile(id)                  ★{ id, no, name, me, staff, role, color, photo, cohort, joinedAt, lv, lvName, area, job, goal, bio,
+                                           goals▲[{id,label,short,main}], goalsHidden▲（自分のページで、ほかの会員に隠しているとき true）,
                                            intro, posts[], hostedEvents[], gigs[], completed, href } か null（退会・見つからない）
+                                        ▲goal（1行のやりたいこと・自己紹介から）と goals（選んだ項目）は別のもの
    ―― 検索
      search(q)                          ★{ q, total, groups:[{ key, label, total, items:[{ type, id, title, titleMark, sub, href, snippet, mark, locked?, at? }] }] }
                                         群：courses 講座 / lessons 講座の回 / archive 勉強会の録画 / gigs 案件 / events イベント / posts 投稿 / help ヘルプ
                                         mark・titleMark は [始まり, 終わり]（文字の位置。強調は画面で esc したうえで付ける）
+                                        ▲講座の項目に trial・trialNote（Lv で閉じていてお試しの回がある）。回の locked は lessonState のとおり（お試しの回は開いている）
    ―― 案件
      gig(id)                            GIGS・GIGS_CLOSED・自分の募集から探す
      gigLock(g) / withdrawGig(id)
@@ -211,6 +226,7 @@
      setPlanDemo(status, opt?)          ★試作版バーの「契約の状態」。active/canceling/ended/past_due/paused（opt.expired で猶予切れ）
      rejoinLink()                       ★{ href:'index.html#/join?rejoin=1', label, keepUntil }
      unusedSummary()                    ★{ courses, minutes, events（★いま解約したら終わる時刻＝plan().cancelEnd まで）, eventsUntil, eventList[], referralMonthly, perks }
+                                        ▲courses・minutes には、まだ見られるお試しの回のある講座（その回の分数だけ）も入る
    ―― 紹介・ポイント・ランキング
      referral() / rewardRows()          ★明細の行に id（'r1-1' など）が付いた。運営が付けた確定・支払予定・支払いも反映する
                                         （rewardStatus[行id].status が 'scheduled' なら、確定の行を支払予定にし、payAt があればその日を支払日にする）
@@ -266,6 +282,71 @@
      voidReward(rowIdOr{no,at}, reason?)◆紹介報酬の明細を取り消す（紹介した方の決済を返金したとき）。保留・確定・支払予定だけ（支払済は断る）。
                                         { no（紹介した方の会員番号）, at（返金した決済の日時） } で行を探せる。その人がこの会員の紹介でなければ
                                         何もせず { ok:true, other:true }。会員にお知らせ（額・どの決済の分か）→ { ok, row } / { ok:false, error }
+   ―― ▲やりたいこと（DATA.GOALS。state.goals / goalsAt / hideGoals）
+     goals()                            { ids[], list[{id,label,short,main}], main（1つ目の id か null）, at, chosen（答えたか。「まだ決めていない」も）,
+                                          undecided（[] のとき）, hidden（名簿に出していない）, max:2 }
+     validateGoals(ids)                 { ok, ids（重なりを除いた並び） } / { ok:false, error }（知らない id・3つ以上）
+     setGoals(ids)                      やりたいことを決める（[] は「まだ決めていない」）。スタートガイドの「やりたいことを選ぶ」（id 'goals'。
+                                        data.js にあれば）を済にする → スタートガイドの result ＋ { ok, goals:goals() } / { ok:false, error }
+     setHideGoals(on)                   名簿・会員のページに出さない（true）/ 出す → { ok, hidden }。運営画面の一覧・詳細・内訳には出る
+     goalsOf(who, { public? })          その人のやりたいことの id の配列（who：'me'・PEOPLE の id・会員番号）。public なら本人が隠しているとき []
+     pathFor(goalId?)                   ホームの「あなたの道」。goalId を省くと主のやりたいこと、決めていない・知らない id は既定の道
+                                        （オリエンテーション＋Lv1 の講座を data.js の順に、合わせて5本）→
+                                        { goal:{id,label,short}|null, courses:[{ course, id, title, lv, st（courseState）, state:'done'|'open'|'locked',
+                                            lockReason（「Lv3「稽古」で開きます」）, trial, trialNote, href }],
+                                          next:{ courseId, course, lesson, trial, href（#/lesson/…） }|null（道の順で次に見られる回。Lv で閉じた講座はお試しの回だけ）,
+                                          gigs:[{ gig, lock（gigLock）, state（gigState か null）, href }]（2件まで。GOALS.gigs の順・募集中・応募できるものが先）,
+                                          people:[名簿の行]（3人まで。同じやりたいことの仲間。既定の道は同じ入会の月の人）,
+                                          event（GOALS.events のうち一番近い会。なければこれからの会の一番近いもの）|null, done, total }
+     peopleByGoal(goalId, { limit? })   同じやりたいことの仲間（名簿の行。自分は入れない。PEOPLE の人が先・最近動いた順）
+     goalStats()                        運営画面のダッシュボード：{ total, rows:[{ id, label, short, count, pct（%・小数1桁） }]＋{ id:'none', label:'未選択' } }
+                                        （在籍中の会員。本人が隠していても数える）
+   ―― ▲「あったらいい」リクエスト（DATA.REQUESTS ＋ state.requests。＋1・投稿ではポイントは付かない）
+     requests({ kind, status, sort, mine, voted, q, admin })  一覧の行の配列。status：open 受付中 / considering 検討中 / added 追加しました /
+                                        declined 今回は見送り / active（受付中と検討中）/ done（対応済み＝追加・見送り）/ all（既定）。
+                                        sort：popular（＋1の多い順・既定）/ new（新着）/ answered（返事の新しい順）。
+                                        行 { id, kind, kindLabel, title, detail, by（'me' か PEOPLE の id）, who（出した人の名前。匿名なら「匿名」）, anonymous, mine,
+                                             at, editedAt, votes（＋1の数。自分の分も入る）, voted, votedAt, status, statusLabel, tag（U.statusTag のキー）,
+                                             reply:{ by, who, role, at, text }|null, link:{ type, id, title, href, found, typeLabel }|null（追加しました のときだけ）,
+                                             answeredAt, canVote, canEdit（自分の・受付中）, updated（自分の・＋1したものに、まだ見ていない返事がある）,
+                                             href（'#/requests?focus=<id>'） }。admin:true なら byName（匿名でも本名）・byNo・pointed も付く
+     request(id, { admin? })            1件（上の行）か null
+     requestCounts()                    { all, open, considering, added, declined, active, done, mine, voted, pending（受付中で返事がまだ＝運営のメニューの数）,
+                                          updates（まだ見ていない返事の数） }
+     validateRequest(form)              { ok, value } / { ok:false, errors:{ kind, title（40文字まで・同じ題があれば duplicate:id も返す。
+                                          文はそのリクエストに合わせる：自分の／もう＋1した／＋1できる／対応が済んだ（状態の名前））, detail（400文字まで） } }
+     addRequest({ kind, title, detail, anonymous })  → { ok, request（行） } / { ok:false, errors, duplicate? }（投資・勧誘などの言葉は断る）
+     editRequest(id, form)              自分の・受付中だけ → { ok, request } / { ok:false, error|errors }
+     removeRequest(id)                  自分の・受付中だけ → { ok } / { ok:false, error }
+     toggleVote(id)                     ＋1（1人1回。押し直すと外れる。自分のものと、対応が済んだものには押せない）→ { ok, voted, votes } / { ok:false, error }
+     markRequestsSeen(ids?)             返事を見た印（省くと全部）→ 付けた数（一覧を開いたときに呼ぶ）
+     answerRequest(id, { status, reply, link, by })  運営画面から：状態・返事・リンク。見送りは理由（reply）、追加しました は link（{type,id} か
+                                        'course:<id>'・'gig:<id>'・'event:<id>'）が要る。検討中は返事が1つは要る。by は運営の PEOPLE id（既定 staff2）。
+                                        状態が変わる・返事がはじめて付くと、出した人と＋1した人にお知らせ（type 'request'・#/requests?focus=<id>。
+                                        この試作では会員ページの会員に届く）。追加しました になったら出した人に +20pt（1回だけ。POINT_RULES 'request'。
+                                        会員ページの会員は pointsLog、ほかの会員は pointGrants＝ランキングに入る）
+                                        → { ok, request（admin の行）, notified, pt } / { ok:false, errors:{ status, reply, link, by } | error }
+   ―― ▲シェア（DATA.SHARE。文面と画像の中身を作るだけ。シェアしても XP・貢献ポイントは付けない・記録もしない）
+     shareMoments()                     いまシェアできる場面 [{ key（'course:sns-basic' など）, moment, id, name（場面の名前）, title（画像の一行）, at }]。
+                                        course（修了した講座）・level（いまのLv。Lv2から）・showcase（成果発表会で発表した回）・start30（スタートガイドを
+                                        全部済ませた）を新しい順に、最後に invite（公開している次の成果発表会に誘う。無ければ出ない）
+     shareText(moment, id?, { withLink })  シェアの窓の中身。id を省くとその場面の最新。まだ満たしていない場面なら null →
+                                        { key, moment, id, name, card:{ brand, headline, name（表示名。画面で外せる）, date, dateText（2026年9月28日）, hashtag },
+                                          text（そのまま使える文面）, body, hashtag, withLink, link, pr, prLine, guide[], fileName, urls:{ x, line } }
+                                        文面：body ＋「 #TAISEI」。withLink なら先頭に prLine（#PR）、最後に本人の紹介リンク（referral().url と同じ）。
+                                        invite は公開の頁（SITE.siteUrl#/showcase）がいつも入り、withLink のときだけ ?ref=<紹介コード> と #PR
+     shareCompose(text, { withLink, moment, id })  直した文面を整える。withLink なら先頭の #PR と紹介リンクを入れ直す（消せない）
+                                        → { ok, text, warnings[]（収入・金額を書いていれば「収入や金額は書かないでください。」）, fixed, urls }
+     shareUrls(text)                    { x:'https://x.com/intent/post?text=…', line:'https://line.me/R/share?text=…' }
+   ―― ▲成果発表会の一般公開（DATA.PUBLIC_SHOWCASE。はじめの30分を会員でない方も見られる。state.settings.showcasePublic・state.showcaseSignups）
+     publicShowcase(eventId?)           公開の案内。省くと、公開している一番近い成果発表会（無ければ null）。eventId を渡すと、その回（切っていても on:false で）→
+                                        { eventId, event:{id,title,at,min}, on, at, endAt（at＋minutes）, minutes, when, place, fee, note, after,
+                                          url（SITE.siteUrl#/showcase）, page:'index.html#/showcase', signups（その回の申込みの数） }。showcasePublic は同じもの
+     setShowcasePublic(eventId, on)     運営画面から：その成果発表会の「一般公開の枠」を切り替える（既定は公開）→ { ok, eventId, on } / { ok:false, error }
+     showcaseSignup({ name, email })    公開サイトの申込み（試作版は送らない）→ { ok, signup, showcase } / 同じ回に同じメールなら { ok, existing:true, signup } /
+                                        { ok:false, errors:{ name（30文字まで）, email } } / { ok:false, error（申し込める回がない） }
+     showcaseSignups(eventId?)          運営画面の申込みの一覧（新しい順）[{ id, name, email, event, eventTitle, eventAt, at, demo（最初からの見本） }]
+     ※ リクエストへの運営の返事（state.requests.answers）・一般公開の切り替え（settings）・申込み（showcaseSignups）は、人を切り替えても残る
    ―― ☆運営が直す中身（CMS。記録は state.cms。store.js が data.js の配列に重ねる。重ね方と記録の形は store.js の先頭）
      CMS_KINDS                          ['faculty'◆,'course','lesson','archive','gig','perk','event','notice']
                                         ◆学部（faculty：name・desc・img・alt。足すときは name）。下書き・削除の学部の講座は会員に出ない。cmsReorder('faculty', ids)
@@ -290,6 +371,7 @@
      #/feed/<投稿id>（コメントは ?c=<コメントid>）、#/members/<id>、#/events/<id>、#/gigs/<id>、#/lesson/<講座>/<回>、
      #/courses/<講座>、#/courses/archive/<録画>、#/courses/<講座>/certificate、#/help?focus=<id>、
      #/messages?kind=講座の質問&ref=lesson:<講座>/<回>（録画なら ref=archive:<録画>）
+     ▲#/requests?focus=<リクエストid>（お知らせ・ポイントの理由のリンク）、#/members?goal=<GOALS の id>、公開サイトの index.html#/showcase
    ============================================================ */
 (function (global) {
   'use strict';
@@ -518,23 +600,32 @@
     var done = c.lessons.filter(function (l) { return s.done[l.id]; }).length;
     var next = null;
     for (var i = 0; i < c.lessons.length; i++) { if (!s.done[c.lessons[i].id]) { next = c.lessons[i]; break; } }
-    var locked = c.level > lv;
+    var locked = c.level > lv, free = freeCount(c);
+    var nextOpen = next && lessonState(c, next.id) === 'open' ? next : null;
     return {
       locked: locked,
       lockReason: locked ? 'Lv' + c.level + '「' + levelName(c.level) + '」で開きます' : '',
+      // お試しの回（freeFirst）：講座は Lv で閉じていても、最初の free 回だけは開く
+      freeFirst: free, trial: locked && free > 0, trialNote: free ? freeNote(free) : '', nextOpen: nextOpen,
       done: done, total: c.lessons.length, pct: done / c.lessons.length * 100,
       completed: done === c.lessons.length, started: done > 0, next: next,
       minutes: c.lessons.reduce(function (a, l) { return a + l.min; }, 0),
       left: c.lessons.filter(function (l) { return !s.done[l.id]; }).reduce(function (a, l) { return a + l.min; }, 0)
     };
   }
-  /** 'done' / 'open' / 'locked'。講座の中は1本ずつ順に開く */
+  /** お試しで開く回の数（data.js の freeFirst。ai・video は 1）。回の数より多くはしない */
+  function freeCount(c) { return c ? Math.max(0, Math.min(c.lessons.length, parseInt(c.freeFirst, 10) || 0)) : 0; }
+  function freeNote(n) { return (n > 1 ? '1〜' + n + '回目' : '1回目') + 'は入会直後から見られます'; }
+  /** 'done' / 'open' / 'locked'。講座の中は1本ずつ順に開く。
+      講座が Lv で閉じていても、最初の freeFirst 回だけは開く（お試し。2回目からは今まで通り Lv で開く） */
   function lessonState(c, lessonId) {
     if (typeof c === 'string') c = course(c);
     var s = S();
-    if (!c || c.level > level().lv) return 'locked';
+    if (!c) return 'locked';
+    var closed = c.level > level().lv, free = freeCount(c);
     for (var i = 0; i < c.lessons.length; i++) {
       if (c.lessons[i].id !== lessonId) continue;
+      if (closed && i >= free) return 'locked';
       if (s.done[lessonId]) return 'done';
       if (i === 0 || s.done[c.lessons[i - 1].id]) return 'open';
       return 'locked';
@@ -566,10 +657,11 @@
     });
     return merge(r, syncSteps());
   }
-  /** 続きから見る講座（始めていて終わっていないもの → なければ開いていて未着手のもの） */
+  /** 続きから見る講座（始めていて終わっていないもの → なければ開いていて未着手のもの）。
+      Lv で閉じている講座は、お試しの回（freeFirst）がまだ見られるときだけ入る（st.trial。st.next はその回）。同じ Lv の中では開いている講座が先 */
   function continueList() {
     var list = DATA.COURSES.map(function (c) { return { c: c, st: courseState(c) }; })
-      .filter(function (x) { return !x.st.locked && !x.st.completed; });
+      .filter(function (x) { return !x.st.completed && (!x.st.locked || (x.st.trial && x.st.nextOpen)); });
     list.sort(function (a, b) { return (b.st.started - a.st.started) || (a.c.level - b.c.level); });
     return list;
   }
@@ -678,6 +770,7 @@
     if (!step.auto) return false;
     var p = step.auto.split(':');
     if (p[0] === 'course') return certified(p[1]);
+    if (p[0] === 'goals') return !!s.goalsAt || (s.goals || []).length > 0;   // やりたいことを選んだ（「まだ決めていない」を選んだときも）
     if (p[0] === 'lessons') return keys(s.done).length >= +p[1];
     if (p[0] === 'post') return s.posts.some(function (x) { return x.kind === p[1]; });
     if (p[0] === 'gig') return keys(s.gigs).length > 0;
@@ -719,20 +812,24 @@
       var r = null;
       newly.forEach(function (st) {
         s.steps[st.id] = nowIso();
-        var x = addXp(s, st.xp, 'スタートガイド「' + st.title + '」', '#/start');
+        var x = stepXp(s, st);
         x.steps = [st];
         r = merge(r, x);
       });
       return r;
     });
   }
-  /** 手で済にする項目（プロフィール・LINE・目標・面談） */
+  /** 項目の XP を付ける。XP が 0 の項目（「やりたいことを選ぶ」など）は XP の記録を書かない */
+  function stepXp(s, st) {
+    return st.xp ? addXp(s, st.xp, 'スタートガイド「' + st.title + '」', '#/start') : { xp: 0, why: '', levelUp: null };
+  }
+  /** 手で済にする項目（プロフィール・LINE・目標・面談・やりたいこと） */
   function completeStep(id) {
     var st = byId(DATA.ONBOARDING, id);
     if (!st || S().steps[id]) return null;
     return update(function (s) {
       s.steps[id] = nowIso();
-      var x = addXp(s, st.xp, 'スタートガイド「' + st.title + '」', '#/start');
+      var x = stepXp(s, st);
       x.steps = [st];
       return x;
     });
@@ -1112,6 +1209,7 @@
       lv: meRow ? level().lv : (p.lv || (r && r.level) || 1), area: areaFor(full, vis), pref: vis === 'none' ? '' : prefOf(full),
       cohort: cohort(joined), cohortKey: cohortKey(joined), joinedAt: joined, job: job,
       faculty: meRow ? myFaculty() : facultyOf(job + ' ' + ((P && P.bio) || ''), r ? r.no : p.id),
+      goals: goalsOf(meRow ? 'me' : (r ? r.no : p.id), { public: true }),
       href: '#/members/' + encodeURIComponent(meRow ? 'me' : p.id), lastActive: r ? r.lastActive : nowIso() };
   }
   function directory() {
@@ -1134,6 +1232,7 @@
       if (ck && m.cohortKey !== ck && m.cohort !== ck) return false;
       if (opt.faculty && m.faculty !== opt.faculty) return false;
       if (lv && m.lv !== lv) return false;
+      if (opt.goal && (opt.goal === 'none' ? m.goals.length > 0 : m.goals.indexOf(opt.goal) < 0)) return false;
       if (q && normText(m.name + ' ' + m.job + ' ' + m.area).indexOf(q) < 0) return false;
       return true;
     });
@@ -1146,19 +1245,21 @@
     return list;
   }
   function membersFacets() {
-    var d = directory(), pc = {}, cc = {}, fc = {}, lc = {};
+    var d = directory(), pc = {}, cc = {}, fc = {}, lc = {}, gc = {};
     d.forEach(function (m) {
       if (m.pref) pc[m.pref] = (pc[m.pref] || 0) + 1;
       if (!cc[m.cohortKey]) cc[m.cohortKey] = { value: m.cohortKey, label: m.cohort, count: 0 };
       cc[m.cohortKey].count++;
       fc[m.faculty] = (fc[m.faculty] || 0) + 1;
       lc[m.lv] = (lc[m.lv] || 0) + 1;
+      m.goals.forEach(function (id) { gc[id] = (gc[id] || 0) + 1; });
     });
     return {
       prefs: keys(pc).map(function (k) { return { value: k, count: pc[k] }; }).sort(function (a, b) { return b.count - a.count; }),
       cohorts: keys(cc).sort().reverse().map(function (k) { return cc[k]; }),
       faculties: DATA.FACULTIES.map(function (f) { return { value: f.id, label: f.name, count: fc[f.id] || 0 }; }),
-      lvs: DATA.LEVELS.map(function (l) { return { value: l.lv, label: 'Lv' + l.lv + '「' + l.name + '」', count: lc[l.lv] || 0 }; })
+      lvs: DATA.LEVELS.map(function (l) { return { value: l.lv, label: 'Lv' + l.lv + '「' + l.name + '」', count: lc[l.lv] || 0 }; }),
+      goals: (DATA.GOALS || []).map(function (g) { return { value: g.id, label: g.label, short: g.short, count: gc[g.id] || 0 }; })
     };
   }
   function memberProfile(id) {
@@ -1183,7 +1284,7 @@
     var rr = r || (P && P.no && DATA.ROSTER_INDEX[P.no]) || null;
     var joined = pid === 'me' ? s.me.joinedAt : rr ? rr.joinedAt : P && P.joinedDaysAgo != null ? DATA.D(-P.joinedDaysAgo) : null;
     var goal = pid === 'me' ? (s.me.goal || '') : '';
-    if (!goal && intro) { var g = /やりたいこと[：:]\s*(.+)/.exec(intro.text); if (g) goal = g[1].trim(); }
+    if (!goal && intro) { var g = /(?:やりたいこと|目標)[：:]\s*(.+)/.exec(intro.text); if (g) goal = g[1].trim(); }
     var lv = pid === 'me' ? level().lv : p.lv || (rr && rr.level) || 1;
     var gigsOpen = DATA.GIGS.filter(function (g) { return g.by === key && g.type === 'peer' && g.status === 'open'; });
     if (pid === 'me') gigsOpen = myGigs().filter(function (g) { return g.status === 'open'; });
@@ -1191,6 +1292,9 @@
       id: pid === 'me' ? 'me' : key, no: p.no || (rr && rr.no) || '', name: p.name, me: pid === 'me', staff: !!p.staff, role: p.role || '',
       color: p.color, photo: p.photo || '', cohort: joined ? cohort(joined) : '', joinedAt: joined, lv: p.staff ? null : lv, lvName: p.staff ? '' : levelName(lv),
       area: p.area || '', job: p.job || (rr && rr.job) || '', goal: goal, bio: (P && P.bio) || '',
+      // やりたいこと（GOALS）。ほかの人は本人が隠していれば []。自分のページは隠していても出し、goalsHidden で知らせる
+      goals: p.staff ? [] : goalItems(goalsOf(pid === 'me' ? 'me' : (rr ? rr.no : key), { public: pid !== 'me' })),
+      goalsHidden: pid === 'me' ? !!s.hideGoals : false,
       intro: intro, posts: posts.filter(function (x) { return x !== intro; }).slice(0, 5),
       hostedEvents: upcoming().filter(function (e) { return e.host === key; }), gigs: gigsOpen,
       completed: p.staff ? 0 : completedCount(pid === 'me' ? 'me' : (P ? key : (rr && rr.no))),
@@ -1229,7 +1333,7 @@
     function hit(group, o, fields) { var m = matchItem(fields, terms); if (m) G[group].push(Object.assign(o, m)); }
     DATA.COURSES.forEach(function (c) {
       var st = courseState(c);
-      hit('courses', { type: 'course', id: c.id, title: c.title, sub: 'Lv' + c.level + '・全' + c.lessons.length + '回', href: '#/courses/' + c.id, locked: st.locked },
+      hit('courses', { type: 'course', id: c.id, title: c.title, sub: 'Lv' + c.level + '・全' + c.lessons.length + '回', href: '#/courses/' + c.id, locked: st.locked, trial: st.trial, trialNote: st.trial ? st.trialNote : '' },
         [c.title, c.summary || '', (c.learn || []).join(' ')]);
       c.lessons.forEach(function (l, i) {
         hit('lessons', { type: 'lesson', id: l.id, title: l.title, sub: c.title + '・第' + (i + 1) + '回・' + l.min + '分',
@@ -2346,7 +2450,7 @@
 
   /* ---------- お知らせ（右上の鈴）と通知の設定 ---------- */
   var NOTICE_ICON = { reply: 'message', event_before: 'calendar', event_30min: 'clock', new_course: 'play', new_gig: 'briefcase', comment: 'comment', thanks: 'heart',
-    reward_confirmed: 'gift', billing: 'receipt', referral: 'gift', gig: 'briefcase', system: 'bell', points: 'trophy' };
+    reward_confirmed: 'gift', billing: 'receipt', referral: 'gift', gig: 'briefcase', system: 'bell', points: 'trophy', request: 'chat' };
   /** ルールが出すお知らせ（運営の返信・回答に選ばれた・掲載の確認など）。state.extraNotices に入れる */
   function addNotice(s, type, text, link) {
     slot(s, 'extraNotices', []).push({ id: uid('xn'), type: type, icon: NOTICE_ICON[type] || 'bell', at: nowIso(), text: text, link: link || '', go: link || '' });
@@ -2816,17 +2920,501 @@
   function unusedSummary() {
     // 数えるのは「いま解約したら終わる日」まで（cancelPlan と同じ日。支払いエラー中も猶予ではなく次の請求日）
     var p = plan(), end = new Date(p.cancelEnd || (p.status === 'active' ? p.nextBill : p.periodEnd));
-    var open = DATA.COURSES.filter(function (c) { var st = courseState(c); return !st.locked && !st.completed; });
+    // Lv で閉じている講座も、お試しの回（freeFirst）がまだ見られるなら入れる（分数はその回だけ）
+    var open = DATA.COURSES.filter(function (c) { var st = courseState(c); return !st.completed && (!st.locked || (st.trial && st.nextOpen)); });
     var ev = upcoming().filter(function (e) { return new Date(e.at) < end; });
+    function left(c) {
+      var st = courseState(c);
+      if (!st.locked) return st.left;
+      return c.lessons.filter(function (l) { return lessonState(c, l.id) === 'open'; }).reduce(function (a, l) { return a + l.min; }, 0);
+    }
     return {
       courses: open.length,
       // まだ見ていない回だけの分数
-      minutes: open.reduce(function (a, c) { return a + courseState(c).left; }, 0),
+      minutes: open.reduce(function (a, c) { return a + left(c); }, 0),
       events: ev.length, eventsUntil: prevDay(end).toISOString(),
       eventList: ev.slice(0, 5).map(function (e) { return { id: e.id, title: e.title, at: e.at }; }),
       referralMonthly: referral().monthly,
       perks: DATA.PERKS.length
     };
+  }
+
+  /* ---------- やりたいこと（GOALS）と「あなたの道」 ----------
+     選べるのは2つまで（1つ目が主）。[] は「まだ決めていない」（そのときの道はオリエンテーションからの既定の道）。
+     state.goals / goalsAt / hideGoals（store.js）。名簿・会員のページには、本人が隠していなければ出す（運営画面には出す）。 */
+  var GOAL_MAX = 2;
+  function goalDef(id) { return byId(DATA.GOALS || [], id); }
+  function goalItem(id, i) { var g = goalDef(id); return g ? { id: g.id, label: g.label, short: g.short, main: i === 0 } : null; }
+  function goalItems(ids) { return (ids || []).map(goalItem).filter(Boolean); }
+  function myGoalIds() { return (S().goals || []).filter(function (id) { return !!goalDef(id); }).slice(0, GOAL_MAX); }
+  /** いまのやりたいこと */
+  function goals() {
+    var s = S(), ids = myGoalIds();
+    return { ids: ids, list: goalItems(ids), main: ids[0] || null, at: s.goalsAt || null,
+      chosen: !!s.goalsAt || ids.length > 0, undecided: ids.length === 0, hidden: !!s.hideGoals, max: GOAL_MAX };
+  }
+  /** やりたいことの id を確かめる（知らない id・重なり・3つ以上は断る） */
+  function validateGoals(ids) {
+    if (ids == null) ids = [];
+    if (!Array.isArray(ids)) ids = [ids];
+    var out = [];
+    for (var i = 0; i < ids.length; i++) {
+      var id = str(ids[i]);
+      if (!id) continue;
+      if (!goalDef(id)) return { ok: false, error: '選べない項目があります' };
+      if (out.indexOf(id) < 0) out.push(id);
+    }
+    if (out.length > GOAL_MAX) return { ok: false, error: '選べるのは' + GOAL_MAX + 'つまでです' };
+    return { ok: true, ids: out };
+  }
+  /** やりたいことを決める（[] は「まだ決めていない」）。スタートガイドの「やりたいことを選ぶ」を済にする（data.js にあれば）
+      → { ok, goals:goals(), xp, steps?[], … }（スタートガイドの result の形。CLG.app.reward に渡せる）／ { ok:false, error } */
+  function setGoals(ids) {
+    var v = validateGoals(ids);
+    if (!v.ok) return v;
+    update(function (s) { s.goals = v.ids; s.goalsAt = nowIso(); });
+    var r = completeStep('goals') || syncSteps() || { xp: 0 };
+    return Object.assign(r, { ok: true, goals: goals() });
+  }
+  /** 名簿・会員のページに出すか（on=true で隠す）→ { ok, hidden } */
+  function setHideGoals(on) {
+    update(function (s) { s.hideGoals = !!on; });
+    return { ok: true, hidden: !!on };
+  }
+  /** その人のやりたいこと（id の配列）。who: 'me' / PEOPLE の id / 会員番号。
+      opt.public（名簿・会員のページ）なら、本人が隠しているとき [] */
+  function goalsOf(who, opt) {
+    opt = opt || {};
+    var s = S(), r = DATA.ROSTER_INDEX && DATA.ROSTER_INDEX[who];
+    var mine = isMe(who) || (r && ((r.person === 'demo' && s.kind === 'demo') || isMe(r.person)));
+    if (mine) return opt.public && s.hideGoals ? [] : myGoalIds();
+    var p = DATA.PEOPLE[who] || (r && r.person && r.person !== 'demo' && DATA.PEOPLE[r.person]);
+    if (p) return p.staff ? [] : (p.goals || []).filter(goalDef);
+    if (r && r.person === 'demo') return (DATA.MEMBER.goals || []).filter(goalDef);
+    return r ? (r.goals || []).filter(goalDef) : [];
+  }
+  /** 同じやりたいことの仲間（自分は入れない）。名簿の行（members() と同じ形）。名前のある人（紹介文のある人）を先に、最近動いた順 */
+  function peopleByGoal(goalId, opt) {
+    opt = opt || {};
+    if (!goalDef(goalId)) return [];
+    var list = directory().filter(function (m) { return !m.me && m.goals.indexOf(goalId) >= 0; });
+    list.sort(function (a, b) {
+      var pa = DATA.PEOPLE[a.id] ? 0 : 1, pb = DATA.PEOPLE[b.id] ? 0 : 1;
+      return pa - pb || new Date(b.lastActive) - new Date(a.lastActive);
+    });
+    return opt.limit ? list.slice(0, opt.limit) : list;
+  }
+  /** 既定の道（やりたいことを決めていないとき）：オリエンテーションから、Lv1 の講座を data.js の順に5本 */
+  function defaultPathCourses() {
+    var ids = ['orientation'];
+    DATA.COURSES.forEach(function (c) { if (c.level === 1 && ids.indexOf(c.id) < 0 && ids.length < 5) ids.push(c.id); });
+    return ids;
+  }
+  /** 道の講座1本の状態：done（修了）/ open（開いている）/ locked（Lv で閉じている。trial ならお試しの回は見られる） */
+  function pathCourse(c) {
+    var st = courseState(c);
+    return { course: c, id: c.id, title: c.title, lv: c.level, st: st,
+      state: certified(c) ? 'done' : st.locked ? 'locked' : 'open',
+      lockReason: st.lockReason, trial: st.trial, trialNote: st.trial ? st.trialNote : '', href: '#/courses/' + c.id };
+  }
+  /** 「あなたの道」。goalId を省くと主のやりたいこと（決めていなければ既定の道）。知らない goalId も既定の道。
+      → { goal:{id,label,short}|null, courses:[pathCourse], next:{courseId, lesson, course, href, trial}|null,
+          gigs:[{gig, lock, state, href}]（2件まで）, people:[名簿の行]（3人まで）, event|null, done, total }
+      next は道の順で、次に見られる回（Lv で閉じている講座はお試しの回だけ）。全部見終えたか、見られる回がなければ null。
+      gigs は GOALS.gigs の順で募集中のもの（応募できるものを先に）。people は同じやりたいことの仲間（既定の道は同じ入会の月の人）。
+      event は GOALS.events のうち一番近い会（なければ、これからの会の一番近いもの） */
+  function pathFor(goalId) {
+    var g = goalDef(goalId === undefined || goalId === null || goalId === '' ? myGoalIds()[0] : goalId);
+    var ids = g ? g.courses : defaultPathCourses();
+    var courses = ids.map(function (id) { return course(id); }).filter(Boolean).map(pathCourse);
+    var next = null;
+    courses.some(function (x) {
+      if (x.state === 'done' || !x.st.nextOpen) return false;
+      var l = x.st.nextOpen;
+      next = { courseId: x.id, course: x.course, lesson: l, trial: x.trial, href: '#/lesson/' + x.id + '/' + l.id };
+      return true;
+    });
+    var gigIds = g ? g.gigs : DATA.GIGS.filter(function (x) { return x.level === 1 && x.type === 'small'; }).map(function (x) { return x.id; });
+    var gigs = gigIds.map(function (id) { return byId(DATA.GIGS, id); })
+      .filter(function (x) { return x && !gigClosed(x) && x.by !== 'me'; })
+      .map(function (x, i) { var st = gigState(x.id); return { gig: x, lock: gigLock(x), state: st, href: '#/gigs/' + x.id, _o: (st ? 2 : gigLock(x).locked ? 1 : 0) * 100 + i }; })
+      .sort(function (a, b) { return a._o - b._o; }).slice(0, 2);
+    gigs.forEach(function (x) { delete x._o; });
+    var people = g ? peopleByGoal(g.id, { limit: 3 })
+      : directory().filter(function (m) { return !m.me && m.cohortKey === cohortKey(me().joinedAt); })
+        .sort(function (a, b) { return new Date(b.lastActive) - new Date(a.lastActive); }).slice(0, 3);
+    var up = upcoming(), ev = null;
+    if (g) ev = up.filter(function (e) { return g.events.indexOf(e.id) >= 0; })[0] || null;
+    if (!ev) ev = up.filter(function (e) { return eventOpen(e) || isReserved(e.id); })[0] || up[0] || null;
+    return { goal: g ? { id: g.id, label: g.label, short: g.short } : null, courses: courses, next: next, gigs: gigs, people: people, event: ev,
+      done: courses.filter(function (x) { return x.state === 'done'; }).length, total: courses.length };
+  }
+  /** 運営画面：やりたいことの内訳（在籍中の会員。本人が隠していても数える）→ [{ id, label, short, count, pct }]＋未選択 { id:'none' } */
+  function goalStats() {
+    var list = directory(), total = list.length || 1, c = { none: 0 };
+    list.forEach(function (m) {
+      var ids = m.me ? myGoalIds() : goalsOf(m.no || m.id);
+      if (!ids.length) c.none++;
+      ids.forEach(function (id) { c[id] = (c[id] || 0) + 1; });
+    });
+    var rows = (DATA.GOALS || []).map(function (g) { return { id: g.id, label: g.label, short: g.short, count: c[g.id] || 0 }; });
+    rows.push({ id: 'none', label: '未選択', short: '未選択', count: c.none });
+    rows.forEach(function (r) { r.pct = Math.round(r.count / total * 1000) / 10; });
+    return { total: list.length, rows: rows };
+  }
+
+  /* ---------- 「あったらいい」リクエスト（REQUESTS） ----------
+     見本（DATA.REQUESTS）と自分のリクエスト（state.requests.mine）を1つに並べる。運営の返事（state.requests.answers）が
+     data.js の状態・返事より優先。＋1の数＝見本の数（自分の分は入っていない）＋自分が押した1。
+     ＋1にも投稿にもポイントは付けない（出した人に +20pt は「追加しました」になったときだけ・1回）。 */
+  var REQ_TITLE_MAX = 40, REQ_DETAIL_MAX = 400;
+  var REQ_TAG = { open: 'pending', considering: 'review', added: 'done', declined: 'closed' };
+  var REQ_ACTIVE = { open: 1, considering: 1 }, REQ_DONE = { added: 1, declined: 1 };
+  function reqState() { var r = S().requests; return r && typeof r === 'object' ? r : { mine: [], votes: {}, answers: {}, seen: {} }; }
+  function reqName(list, id) { var x = byId(list || [], id); return x ? x.name : ''; }
+  /** 見本と自分のリクエストの元の記録（by は自分なら 'me'） */
+  function reqRaw() {
+    var mine = (reqState().mine || []).map(function (q) { return Object.assign({ status: 'open', votes: 0 }, q, { by: 'me' }); });
+    return (DATA.REQUESTS || []).concat(mine);
+  }
+  /** 追加したもの（講座・案件・イベント）へのリンク。{ type, id } か 'course:remote-work' */
+  function reqLink(l) {
+    if (typeof l === 'string') { var m = /^(course|gig|event):(.+)$/.exec(l); l = m ? { type: m[1], id: m[2] } : null; }
+    if (!l || !l.type || !l.id) return null;
+    var o = l.type === 'course' ? course(l.id) : l.type === 'gig' ? gig(l.id) : l.type === 'event' ? event(l.id) : null;
+    if (!o && l.type === 'course') o = byId(CLG.store.cmsBase ? CLG.store.cmsBase('course') : [], l.id);
+    var href = l.type === 'course' ? '#/courses/' + l.id : l.type === 'gig' ? '#/gigs/' + l.id : '#/events/' + l.id;
+    return { type: l.type, id: l.id, title: o ? o.title : '', href: href, found: !!o, typeLabel: reqName(DATA.REQUEST_KINDS, l.type) };
+  }
+  function reqRow(q, admin) {
+    var R0 = reqState(), a = (R0.answers || {})[q.id] || null, mine = q.by === 'me' || isMe(q.by);
+    var status = a ? a.status : (q.status || 'open');
+    var reply = a ? a.reply : (q.reply || null), link = a ? a.link : (q.link || null);
+    var answeredAt = a ? a.at : (reply ? reply.at : null);
+    var votedAt = (R0.votes || {})[q.id] || null, voted = !!votedAt && !mine;
+    var since = mine ? q.at : votedAt, seen = (R0.seen || {})[q.id];
+    var who = q.anonymous ? '匿名' : person(mine ? 'me' : q.by).name;
+    var o = {
+      id: q.id, kind: q.kind, kindLabel: reqName(DATA.REQUEST_KINDS, q.kind), title: q.title, detail: q.detail || '',
+      by: mine ? 'me' : q.by, who: who, anonymous: !!q.anonymous, mine: mine, at: q.at, editedAt: q.editedAt || null,
+      votes: (q.votes || 0) + (voted ? 1 : 0), voted: voted, votedAt: voted ? votedAt : null,
+      status: status, statusLabel: reqName(DATA.REQUEST_STATUS, status), tag: REQ_TAG[status] || 'pending',
+      reply: reply ? { by: reply.by, who: person(reply.by).name, role: (DATA.PEOPLE[reply.by] || {}).role || '', at: reply.at, text: reply.text } : null,
+      link: status === 'added' ? reqLink(link) : null, answeredAt: answeredAt,
+      canVote: !mine && !!REQ_ACTIVE[status], canEdit: mine && status === 'open',
+      // 返事（状態の変化）を、出した・＋1したあとに受けて、まだ見ていない
+      updated: (mine || voted) && !!answeredAt && new Date(answeredAt) >= new Date(since || 0) && new Date(answeredAt) > new Date(seen || 0),
+      href: '#/requests?focus=' + encodeURIComponent(q.id)
+    };
+    if (admin) { o.byName = mine ? me().name : person(q.by).name; o.byNo = mine ? me().id : (DATA.PEOPLE[q.by] || {}).no || q.by; o.pointed = !!(a && a.pointed); }
+    return o;
+  }
+  /** 一覧。opt: { kind, status（open/considering/added/declined・active＝受付中と検討中・done＝対応済み・all）, sort（popular＝＋1の多い順・
+      new＝新着・answered＝返事の新しい順）, mine（自分のものだけ）, voted（＋1したものだけ）, q（言葉）, admin（出した人の名前 byName・byNo を付ける） } */
+  function requests(opt) {
+    opt = opt || {};
+    var st = opt.status || 'all', q = normText(str(opt.q));
+    var list = reqRaw().map(function (x) { return reqRow(x, !!opt.admin); }).filter(function (r) {
+      if (opt.kind && opt.kind !== 'all' && r.kind !== opt.kind) return false;
+      if (st === 'active' ? !REQ_ACTIVE[r.status] : st === 'done' ? !REQ_DONE[r.status] : st !== 'all' && r.status !== st) return false;
+      if (opt.mine && !r.mine) return false;
+      if (opt.voted && !r.voted) return false;
+      if (q && normText(r.title + ' ' + r.detail).indexOf(q) < 0) return false;
+      return true;
+    });
+    var sort = opt.sort || 'popular';
+    list.sort(function (a, b) {
+      if (sort === 'new') return new Date(b.at) - new Date(a.at);
+      if (sort === 'answered') return new Date(b.answeredAt || 0) - new Date(a.answeredAt || 0) || new Date(b.at) - new Date(a.at);
+      return b.votes - a.votes || new Date(b.at) - new Date(a.at);
+    });
+    return list;
+  }
+  function request(id, opt) { var x = byId(reqRaw(), id); return x ? reqRow(x, !!(opt && opt.admin)) : null; }
+  /** 数：{ all, open, considering, added, declined, active, done, mine, voted, pending（受付中で運営の返事がまだ）, updates（自分の・＋1したものの、まだ見ていない返事） } */
+  function requestCounts() {
+    var c = { all: 0, open: 0, considering: 0, added: 0, declined: 0, active: 0, done: 0, mine: 0, voted: 0, pending: 0, updates: 0 };
+    requests().forEach(function (r) {
+      c.all++; c[r.status] = (c[r.status] || 0) + 1;
+      if (REQ_ACTIVE[r.status]) c.active++; else c.done++;
+      if (r.mine) c.mine++;
+      if (r.voted) c.voted++;
+      if (r.status === 'open' && !r.reply) c.pending++;
+      if (r.updated) c.updates++;
+    });
+    return c;
+  }
+  /** 入力を確かめる（addRequest・editRequest と同じ）。form: { kind, title, detail, anonymous } → { ok, value } / { ok:false, errors, duplicate? } */
+  function validateRequest(form, selfId) {
+    form = form || {};
+    var e = {}, kind = str(form.kind), title = str(form.title).replace(/\s+/g, ' '), detail = str(form.detail), dup = null;
+    if (!byId(DATA.REQUEST_KINDS, kind)) e.kind = '種類を選んでください';
+    if (!title) e.title = '題を入れてください';
+    else if (title.length > REQ_TITLE_MAX) e.title = REQ_TITLE_MAX + '文字までにしてください（いま' + title.length + '文字）';
+    if (!detail) e.detail = '中身を入れてください';
+    else if (detail.length > REQ_DETAIL_MAX) e.detail = REQ_DETAIL_MAX + '文字までにしてください（いま' + detail.length + '文字）';
+    var hit = checkBanned(title + '\n' + detail);
+    if (hit.length && !e.detail) e.detail = 'この内容はリクエストに出せません（' + hit.join('・') + '）';
+    if (title && !e.title) {
+      var nt = normText(title);
+      reqRaw().forEach(function (q) { if (!dup && q.id !== selfId && normText(q.title) === nt) dup = q.id; });
+      // ＋1できるときだけ「＋1できます」と言う（自分の・もう＋1した・対応が済んだものには言わない）
+      var d = dup ? request(dup) : null;
+      if (d) e.title = d.mine ? '同じ題のリクエストを、もう出しています' : d.voted ? '同じ題のリクエストがあります。もう＋1しています'
+        : d.canVote ? '同じ題のリクエストがあります。そちらに＋1できます' : '同じ題のリクエストがあります（' + d.statusLabel + '）';
+    }
+    if (keys(e).length) return dup ? { ok: false, errors: e, duplicate: dup } : { ok: false, errors: e };
+    return { ok: true, value: { kind: kind, title: title, detail: detail, anonymous: !!form.anonymous } };
+  }
+  function myRequest(id) { return byId(reqState().mine || [], id); }
+  /** 自分のリクエストを出す → { ok, request（一覧の行の形） } / { ok:false, errors } */
+  function addRequest(form) {
+    var v = validateRequest(form);
+    if (!v.ok) return v;
+    var id = uid('rqm');
+    update(function (s) {
+      var r = slot(s, 'requests', { mine: [], votes: {}, answers: {}, seen: {} });
+      slot(r, 'mine', []).push(Object.assign({ id: id, at: nowIso(), votes: 0 }, v.value));
+    });
+    return { ok: true, request: request(id) };
+  }
+  /** 受付中の自分のリクエストだけ直せる → { ok, request } / { ok:false, error|errors } */
+  function editRequest(id, form) {
+    var q = myRequest(id), row = q && request(id);
+    if (!row) return { ok: false, error: 'リクエストが見つかりません' };
+    if (row.status !== 'open') return { ok: false, error: row.statusLabel + 'のリクエストは直せません' };
+    var v = validateRequest(Object.assign({ kind: q.kind, title: q.title, detail: q.detail, anonymous: q.anonymous }, form || {}), id);
+    if (!v.ok) return v;
+    update(function (s) { var x = byId(s.requests.mine, id); Object.assign(x, v.value, { editedAt: nowIso() }); });
+    return { ok: true, request: request(id) };
+  }
+  /** 受付中の自分のリクエストだけ消せる → { ok } / { ok:false, error } */
+  function removeRequest(id) {
+    var row = myRequest(id) && request(id);
+    if (!row) return { ok: false, error: 'リクエストが見つかりません' };
+    if (row.status !== 'open') return { ok: false, error: row.statusLabel + 'のリクエストは消せません' };
+    update(function (s) {
+      s.requests.mine = s.requests.mine.filter(function (x) { return x.id !== id; });
+      delete s.requests.answers[id]; delete s.requests.seen[id];
+    });
+    return { ok: true };
+  }
+  /** ＋1（1人1回。押し直すと外れる。自分のリクエストと、対応が済んだものには押せない）→ { ok, voted, votes } / { ok:false, error } */
+  function toggleVote(id) {
+    var row = request(id);
+    if (!row) return { ok: false, error: 'リクエストが見つかりません' };
+    if (row.mine) return { ok: false, error: '自分のリクエストには＋1できません' };
+    if (!row.voted && !row.canVote) return { ok: false, error: '対応が済んだリクエストには＋1できません' };
+    update(function (s) {
+      var r = slot(s, 'requests', { mine: [], votes: {}, answers: {}, seen: {} }), v = slot(r, 'votes', {});
+      if (v[id]) delete v[id]; else v[id] = nowIso();
+    });
+    var after = request(id);
+    return { ok: true, voted: after.voted, votes: after.votes };
+  }
+  /** 自分の・＋1したリクエストの返事を見た印を付ける（ids を省くと全部）→ 付けた数 */
+  function markRequestsSeen(ids) {
+    var list = requests().filter(function (r) { return r.updated && (!ids || ids.indexOf(r.id) >= 0); });
+    if (!list.length) return 0;
+    update(function (s) { var seen = slot(slot(s, 'requests', {}), 'seen', {}); list.forEach(function (r) { seen[r.id] = nowIso(); }); });
+    return list.length;
+  }
+  /** 運営画面から：状態・返事・リンクを付ける。o: { status, reply（文。見送りは理由が要る。400文字まで）, link（追加しました は要る：
+      { type: course|gig|event, id } か 'course:remote-work'）, by（返事を書いた運営の PEOPLE id。既定 staff2） }
+      状態が変わったら（または返事がはじめて付いたら）、出した人と＋1した人にお知らせ（この試作では会員ページの会員だけに届く）。
+      「追加しました」になったら、出した人に +20pt（リクエストが採用された・1回だけ。会員ページの会員なら pointsLog、ほかの会員は pointGrants）
+      → { ok, request（admin の行）, notified（会員ページの会員に届いたか）, pt（付けたpt。0 は付けていない） } / { ok:false, errors|error } */
+  function answerRequest(id, o) {
+    o = o || {};
+    var before = request(id, { admin: true });
+    if (!before) return { ok: false, error: 'リクエストが見つかりません' };
+    var e = {}, status = str(o.status) || before.status, text = str(o.reply), by = str(o.by) || 'staff2';
+    if (!byId(DATA.REQUEST_STATUS, status)) e.status = '状態を選んでください';
+    if (text.length > REQ_DETAIL_MAX) e.reply = REQ_DETAIL_MAX + '文字までにしてください';
+    if (status === 'declined' && !text) e.reply = '見送りの理由を書いてください';
+    if (status === 'considering' && !text && !before.reply) e.reply = 'どう検討しているかを一言書いてください';
+    var link = null;
+    if (status === 'added') {
+      link = reqLink(o.link || (before.link ? { type: before.link.type, id: before.link.id } : null));
+      if (!link || !link.found) e.link = '追加した講座・案件・イベントを選んでください';
+    }
+    var pp = DATA.PEOPLE[by];
+    if (!pp || !pp.staff) e.by = '返事を書く運営を選んでください';
+    if (keys(e).length) return { ok: false, errors: e };
+    var at = nowIso(), changed = status !== before.status, firstReply = !before.reply && !!text;
+    var reply = text ? { by: by, at: at, text: text } : (before.reply ? { by: before.reply.by, at: before.reply.at, text: before.reply.text } : null);
+    var R0 = reqState(), prevA = (R0.answers || {})[id] || null;
+    var givePt = status === 'added' && !(prevA && prevA.pointed) && before.status !== 'added';
+    var ru = rule('request'), pt = givePt ? ru.pt : 0, notified = false;
+    update(function (s) {
+      var r = slot(s, 'requests', { mine: [], votes: {}, answers: {}, seen: {} }), A = slot(r, 'answers', {});
+      A[id] = { status: status, reply: reply, link: link ? { type: link.type, id: link.id } : null, at: changed || text ? at : (prevA ? prevA.at : at),
+        pointed: !!(prevA && prevA.pointed) || givePt };
+      if (givePt) {
+        var why = 'リクエストが採用された（「' + head(before.title, 24) + '」）', href = '#/requests?focus=' + encodeURIComponent(id);
+        if (before.mine) s.pointsLog.push({ id: uid('pr'), at: at, pt: pt, rule: 'request', why: why, link: href });
+        else slot(s, 'pointGrants', []).push({ id: uid('pg'), person: before.by, at: at, pt: pt, rule: 'request', why: why, link: href, by: 'staff' });
+      }
+      if ((changed || firstReply) && (before.mine || before.voted)) {
+        addNotice(s, 'request', reqNoticeText(before, status, before.mine && givePt ? pt : 0), '#/requests?focus=' + encodeURIComponent(id));
+        notified = true;
+      }
+    });
+    return { ok: true, request: request(id, { admin: true }), notified: notified, pt: pt };
+  }
+  /** お知らせの文（出した人と、＋1した人で書き分ける） */
+  function reqNoticeText(q, status, pt) {
+    var t = '「' + head(q.title, 24) + '」', who = q.mine ? 'あなたのリクエスト' : '＋1したリクエスト';
+    if (status === 'added') return who + t + 'を追加しました。' + (pt ? '貢献ポイント +' + pt + 'pt' : '');
+    if (status === 'declined') return who + t + 'は、今回は見送りになりました。理由は運営の返事にあります。';
+    if (status === 'considering') return who + t + 'は検討中になりました。運営の返事があります。';
+    return who + t + 'に運営から返事がありました。';
+  }
+
+  /* ---------- シェア（修了・レベルアップ・成果発表・最初の30日・成果発表会に誘う） ----------
+     文面と画像の中身を作るだけ。シェアしても貢献ポイントや XP は付けない（記録もしない）。
+     紹介リンクを付けたときだけ、先頭に DATA.SHARE.prLine（#PR）と、本人の紹介リンク（referral().url と同じ決まり）が入る。
+     成果発表会に誘う（invite）は、公開の頁へのリンク（siteUrl#/showcase）がいつも入り、紹介リンクを付けたときだけ ?ref= と #PR。 */
+  var SHARE_MONEY_RE = /[0-9０-９][0-9０-９,，.]*\s*(円|万|千円)|[¥￥]|収入|月収|年収|売上|売り上げ|稼|儲/;
+  function shareFill(t, v) { return String(t || '').replace(/\{(\w+)\}/g, function (m, k) { return v[k] != null ? v[k] : m; }); }
+  function ymdJp(x) { var d = new Date(x); return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
+  /** そのレベルになった時刻（XP の記録を古い順に足して、はじめて届いた時刻） */
+  function levelReachedAt(lv) {
+    var L = byId(DATA.LEVELS.map(function (x) { return Object.assign({ id: x.lv }, x); }), lv);
+    if (!L) return null;
+    var sum = 0, at = null;
+    S().xpLog.slice().sort(function (a, b) { return new Date(a.at) - new Date(b.at); }).some(function (l) {
+      sum += l.xp || 0; if (sum >= L.min) { at = l.at; return true; } return false;
+    });
+    return at;
+  }
+  /** 公開の頁のアドレス。withRef なら本人の紹介コード付き（公開サイトは ? のあとの ref を読む） */
+  function showcaseUrl(withRef) {
+    return DATA.SITE.siteUrl + (withRef ? '?ref=' + encodeURIComponent(me().refCode) : '') + '#/showcase';
+  }
+  /** いまシェアできる場面（新しい順。誘う invite は最後）→ [{ key, moment, id, name, title, at }] */
+  function shareMoments() {
+    var M = (DATA.SHARE || {}).moments || {}, out = [], s = S();
+    function add(moment, id, vars, at) {
+      var m = M[moment]; if (!m) return;
+      out.push({ key: moment + (id != null ? ':' + id : ''), moment: moment, id: id, name: m.name, title: shareFill(m.img, vars), at: at });
+    }
+    DATA.COURSES.forEach(function (c) {
+      if (!certified(c)) return;
+      var cert = (s.certificates || {})[c.id];
+      add('course', c.id, { course: c.title }, cert ? cert.at : c.lessons.map(function (l) { return s.done[l.id]; }).sort().pop());
+    });
+    var lv = level();
+    if (lv.lv >= 2) add('level', lv.lv, { lv: lv.lv, levelName: lv.name }, levelReachedAt(lv.lv));
+    s.attended.forEach(function (a) {
+      var e = byId(DATA.EVENTS, a.id);
+      if (a.speaker && (a.kind === 'showcase' || (e && e.kind === 'showcase'))) add('showcase', a.id, {}, a.at);
+    });
+    var ob = onboarding();
+    if (ob.finished) add('start30', null, {}, ob.steps.map(function (x) { return x.doneAt; }).sort().pop());
+    out.sort(function (a, b) { return new Date(b.at || 0) - new Date(a.at || 0); });
+    var ps = publicShowcase();
+    if (ps) add('invite', ps.eventId, {}, ps.at);
+    return out;
+  }
+  /** シェアの窓の中身。moment: course / level / showcase / start30 / invite、id: 講座の id・Lv・参加の記録の id・イベントの id（省くと最新）。
+      opt.withLink（紹介リンクを付ける。初めは外す）→ null（その場面をまだ満たしていない）か
+      { key, moment, id, name, card:{ brand, headline, name（表示名。画面で外せる）, date, dateText, hashtag },
+        text（そのまま使える文面）, body, hashtag, withLink, link（付けたアドレスか null）, pr（#PR が入っているか）, prLine, guide[], fileName, urls:{x, line} } */
+  function shareText(moment, id, opt) {
+    opt = opt || {};
+    var list = shareMoments().filter(function (m) { return m.moment === moment; });
+    var m = id == null || id === '' ? list[0] : list.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!m) return null;
+    var SH = DATA.SHARE, def = SH.moments[moment], vars = {};
+    if (moment === 'course') vars.course = course(m.id).title;
+    if (moment === 'level') { vars.lv = m.id; vars.levelName = levelName(+m.id); }
+    var withLink = !!opt.withLink, body = shareFill(def.text, vars);
+    var link = moment === 'invite' ? showcaseUrl(withLink) : withLink ? referral().url : null;
+    var text = (withLink ? SH.prLine + '\n' : '') + body + ' ' + SH.hashtag + (link ? '\n' + link : '');
+    var date = moment === 'invite' ? m.at : (m.at || nowIso());
+    return {
+      key: m.key, moment: moment, id: m.id, name: m.name,
+      card: { brand: DATA.SITE.name, headline: m.title, name: person('me').name, date: date, dateText: ymdJp(date), hashtag: SH.hashtag },
+      text: text, body: body, hashtag: SH.hashtag, withLink: withLink, link: link, pr: withLink, prLine: SH.prLine,
+      guide: (SH.guide || []).slice(), fileName: 'taisei-' + m.key.replace(/[^A-Za-z0-9-]+/g, '-') + '.png', urls: shareUrls(text)
+    };
+  }
+  /** 直した文面を整える。紹介リンクを付けているときは、先頭の #PR（prLine）と紹介リンクを必ず入れ直す（消せない）。
+      opt: { withLink, moment, id } → { ok, text, warnings[]（収入や金額を書いていないか）, fixed（入れ直したか）, urls } */
+  function shareCompose(text, opt) {
+    opt = opt || {};
+    var t = String(text == null ? '' : text).replace(/\r\n?/g, '\n').trim(), fixed = false, SH = DATA.SHARE;
+    if (opt.withLink) {
+      var base = shareText(opt.moment || 'course', opt.id, { withLink: true });
+      var link = base ? base.link : referral().url;
+      if (!/^#PR(\s|$)/.test(t)) { t = SH.prLine + '\n' + t.replace(/^#PR\s*/, ''); fixed = true; }
+      if (link && t.indexOf(link) < 0) { t += '\n' + link; fixed = true; }
+    }
+    var warnings = SHARE_MONEY_RE.test(t) ? ['収入や金額は書かないでください。'] : [];
+    return { ok: !!t, text: t, warnings: warnings, fixed: fixed, urls: shareUrls(t) };
+  }
+  /** X（x.com の投稿画面）と LINE で送るアドレス */
+  function shareUrls(text) {
+    var t = encodeURIComponent(String(text || ''));
+    return { x: 'https://x.com/intent/post?text=' + t, line: 'https://line.me/R/share?text=' + t };
+  }
+
+  /* ---------- 成果発表会の一般公開（はじめの30分を会員でない方も見られる） ----------
+     成果発表会（kind 'showcase'）は、運営が切っていなければ公開（state.settings.showcasePublic[イベントid].on）。
+     公開サイトの #/showcase から名前とメールだけで申し込む（state.showcaseSignups。試作版はメールを送らない）。 */
+  function showcaseEvent(id) { var e = byId(DATA.EVENTS, id); return e && e.kind === 'showcase' ? e : null; }
+  function showcaseOn(id) {
+    var m = ((S().settings || {}).showcasePublic || {})[id];
+    return !!showcaseEvent(id) && (m ? !!m.on : true);
+  }
+  /** 公開の案内。eventId を省くと、これからの成果発表会のうち公開している一番近い回（なければ null）。
+      eventId を渡すと、その回の案内（公開を切っていても on:false で返す。成果発表会でなければ null）
+      → { eventId, event:{id,title,at,min}, on, at, endAt, minutes, when, place, fee, note, after, url, page, signups（その回の申込みの数） } */
+  function publicShowcase(eventId) {
+    var P = DATA.PUBLIC_SHOWCASE || {}, e = null;
+    if (eventId) e = showcaseEvent(eventId);
+    else {
+      e = DATA.EVENTS.filter(function (x) { return x.kind === 'showcase' && new Date(x.at) > now() && showcaseOn(x.id); })
+        .sort(function (a, b) { return new Date(a.at) - new Date(b.at); })[0] || null;
+    }
+    if (!e) return null;
+    var mins = P.minutes || 30;
+    return { eventId: e.id, event: { id: e.id, title: e.title, at: e.at, min: e.min }, on: showcaseOn(e.id),
+      at: e.at, endAt: plus(e.at, mins), minutes: mins, when: P.when || '', place: P.place || '', fee: P.fee || '', note: P.note || '', after: P.after || '',
+      url: showcaseUrl(false), page: 'index.html#/showcase', signups: (S().showcaseSignups || []).filter(function (x) { return x.event === e.id; }).length };
+  }
+  /** 運営画面から：その成果発表会の「一般公開の枠」を切り替える → { ok, eventId, on } / { ok:false, error } */
+  function setShowcasePublic(eventId, on) {
+    if (!showcaseEvent(eventId)) return { ok: false, error: '成果発表会が見つかりません' };
+    update(function (s) {
+      var st = slot(s, 'settings', {});
+      var m = st.showcasePublic && typeof st.showcasePublic === 'object' ? st.showcasePublic : (st.showcasePublic = {});
+      m[eventId] = { on: !!on, at: nowIso() };
+    });
+    return { ok: true, eventId: eventId, on: !!on };
+  }
+  /** 公開サイトの申込み（名前とメールだけ）→ { ok, signup, showcase, existing? } / { ok:false, errors } / { ok:false, error（申し込める回がない） } */
+  function showcaseSignup(form) {
+    form = form || {};
+    var e = {}, name = str(form.name).replace(/\s+/g, ' '), email = halfWidth(str(form.email)).replace(/\s+/g, '').toLowerCase();
+    if (!name) e.name = 'お名前を入れてください'; else if (name.length > 30) e.name = '30文字までにしてください';
+    if (!email) e.email = 'メールアドレスを入れてください'; else if (!EMAIL_RE.test(email)) e.email = 'メールアドレスの形を確かめてください';
+    if (keys(e).length) return { ok: false, errors: e };
+    var ps = publicShowcase();
+    if (!ps) return { ok: false, error: 'いま申し込める回がありません。次の回が決まったら、このページでお知らせします。' };
+    var had = (S().showcaseSignups || []).filter(function (x) { return x.event === ps.eventId && x.email === email; })[0];
+    if (had) return { ok: true, existing: true, signup: Object.assign({}, had), showcase: ps };
+    var sg = { id: uid('ss'), name: name, email: email, event: ps.eventId, at: nowIso() };
+    update(function (s) { slot(s, 'showcaseSignups', []).push(sg); });
+    return { ok: true, signup: Object.assign({}, sg), showcase: publicShowcase() };
+  }
+  /** 申込みの一覧（運営画面）。新しい順。eventId でしぼれる → [{ id, name, email, event, eventTitle, eventAt, at, demo }] */
+  function showcaseSignups(eventId) {
+    return (S().showcaseSignups || []).filter(function (x) { return !eventId || x.event === eventId; }).map(function (x) {
+      var ev = byId(DATA.EVENTS, x.event);
+      return { id: x.id, name: x.name, email: x.email, event: x.event, eventTitle: ev ? ev.title : '', eventAt: ev ? ev.at : null, at: x.at, demo: !!x.demo };
+    }).sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
   }
 
   /* ---------- 運営画面から書くもの ----------
@@ -3457,6 +4045,15 @@
     addStaffPost: addStaffPost, updateStaffPost: updateStaffPost, removeStaffPost: removeStaffPost, pinPost: pinPost, unpinPost: unpinPost, pinnedPosts: pinnedPosts,
     resetStaffFeed: resetStaffFeed, hidePost: hidePost, unhidePost: unhidePost, hideComment: hideComment, unhideComment: unhideComment,
     resolveReport: resolveReport, REPORT_ACTIONS: REPORT_ACTIONS,
+    // やりたいこと・リクエスト・シェア・成果発表会の一般公開（2026-09-28）
+    goals: goals, validateGoals: validateGoals, setGoals: setGoals, setHideGoals: setHideGoals, goalsOf: goalsOf,
+    pathFor: pathFor, peopleByGoal: peopleByGoal, goalStats: goalStats,
+    requests: requests, request: request, requestCounts: requestCounts, validateRequest: validateRequest,
+    addRequest: addRequest, editRequest: editRequest, removeRequest: removeRequest, toggleVote: toggleVote,
+    markRequestsSeen: markRequestsSeen, answerRequest: answerRequest,
+    shareMoments: shareMoments, shareText: shareText, shareCompose: shareCompose, shareUrls: shareUrls,
+    publicShowcase: publicShowcase, showcasePublic: publicShowcase, setShowcasePublic: setShowcasePublic,
+    showcaseSignup: showcaseSignup, showcaseSignups: showcaseSignups,
     // 運営が直す中身（CMS）
     CMS_KINDS: CMS_KINDS, cmsUpsert: cmsUpsert, cmsRemove: cmsRemove, cmsReorder: cmsReorder, cmsList: cmsList, cmsItem: cmsItem, cmsReset: cmsReset
   };

@@ -1,7 +1,10 @@
 /* ============================================================
    ホーム（#/home）
    上から：見出し → 今日の会（あるときだけ）→ 続きから（講座かスタートガイドの次の1つ）→
-   未読など → 2段組み（左：新着・イベント／右：案件と紹介・学びのレベル）。
+   未読など → あなたの道（R.pathFor。講座の順・合う案件2件・同じやりたいことの仲間3人・近いイベント1件・リクエストへの小さなリンク）→
+   2段組み（左：新着・イベント／右：案件と紹介・学びのレベル）。
+   あなたの道のイベントは、下の「イベント」には出さない（今日の会に出ているものは、あなたの道にも出さず、同じ決め方で次の会を出す）。
+   やりたいことをまだ選んでいない人には、#/start?focus=goals への案内だけを出す（上がその項目なら出さない）。
    1段になる幅では、新着 → イベント → 案件と紹介 → 学びのレベルの順に並ぶ。
    数字は本人の記録だけ。行はそれぞれの行き先（投稿1件・イベント1件）へ直接つなぐ。
    スタートガイドの項目のボタンは、スタートガイドと同じもの（CLG.screens.start.stepAction）。
@@ -231,7 +234,9 @@
           (c.img ? '<img src="' + esc(c.img) + '" alt="" loading="lazy" decoding="async">' : '') +
           '<span class="home-lvc__lock">' + icon('lock', 'ico-s') + '</span></span>' +
         '<span class="li__body"><span class="li__ttl">' + U.jp(c.title) + '</span>' +
-          '<span class="li__sub">' + U.jp('全' + c.lessons.length + '回' + (t ? '・講師 ' + t.name : '')) + '</span></span>' +
+          '<span class="li__sub">' + U.jp('全' + c.lessons.length + '回' + (t ? '・講師 ' + t.name : '')) + '</span>' +
+          // お試しの回がある講座（freeFirst）は、Lv で閉じていても1回目が見られることを書く
+          (R.courseState(c).trial ? '<span class="li__sub home-lvc__trial">' + U.jp(R.courseState(c).trialNote) + '</span>' : '') + '</span>' +
         U.chevron() + '</a>';
     }).join('');
     return '<section class="home-sec home-sec--lv" aria-labelledby="homeLvTtl">' +
@@ -285,6 +290,118 @@
       secHead('homeMoneyTtl', hasRef ? '案件・紹介' : '案件', null) +
       '<div class="list">' + rows + '</div>' +
     '</section>';
+  }
+
+  /* ---------- あなたの道（R.pathFor。やりたいことに合わせた講座の順・合う案件2件・仲間3人・近いイベント1件） ----------
+     やりたいことを2つ選んでいる人は、上のセグメントで道を切り替える（pathGoal。描き直しても保つ）。
+     まだ答えていない人には選ぶ場所への案内だけ（スタートガイドの「やりたいことを選ぶ」がいちばん上に出ているときは出さない）。
+     「まだ決めていない」を選んだ人は、オリエンテーションからの既定の道（goal が null）。 */
+  var pathGoal = null;
+  function lessonNo(c, l) { return c.lessons.indexOf(l) + 1; }
+  /** 講座の順の1行。次に見る回のある講座はその回へ直接、ほかは講座の目次へ */
+  function pathCourseRow(x, i, next) {
+    var c = x.course, st = x.st, isNext = !!next && next.courseId === x.id;
+    var href = isNext ? next.href : x.href, sub = '', end = U.chevron(), cls = 'hp-c';
+    if (x.state === 'done') { sub = '全' + st.total + '回'; end = U.statusTag('done', '修了'); cls += ' is-done'; }
+    else if (isNext) {
+      sub = '次に見る：第' + lessonNo(c, next.lesson) + '回 ' + next.lesson.title + (x.trial ? '（' + x.trialNote + '）' : '');
+      cls += ' is-next';
+    } else if (x.state === 'locked') { sub = x.lockReason + (x.trial ? '。' + x.trialNote : ''); cls += ' is-locked'; }
+    else sub = st.started ? st.done + '/' + st.total + '回 見ました' : 'Lv' + x.lv + '・全' + st.total + '回';
+    return '<li class="' + cls + '"><a class="hp-c__a" href="' + esc(href) + '"' + (isNext ? ' data-home-pathnext' : '') + '>' +
+      '<span class="hp-c__no num" aria-hidden="true">' + (i + 1) + '</span>' +
+      '<span class="hp-c__body"><span class="hp-c__ttl">' + U.jp(x.title) + '</span><span class="hp-c__sub">' + U.jp(sub) + '</span></span>' +
+      '<span class="hp-c__end">' + end + '</span></a></li>';
+  }
+  function pathGigRow(x) {
+    var g = x.gig, t = (DATA.GIG_TYPES || []).filter(function (y) { return y.id === g.type; })[0];
+    var sub = x.lock.locked ? x.lock.reason : [t ? t.name : '', g.time || '', g.remote ? '在宅' : ''].filter(Boolean).join('・');
+    var tag = x.state ? U.statusTag(x.state.tag, x.state.label) : '';
+    return '<a class="li hp-gig' + (x.lock.locked ? ' is-locked' : '') + '" href="' + esc(x.href) + '">' +
+      '<span class="li__body"><span class="li__ttl">' + U.jp(g.title) + '</span>' + (sub ? '<span class="li__sub">' + U.jp(sub) + '</span>' : '') + '</span>' +
+      '<span class="li__end">' + tag + U.chevron() + '</span></a>';
+  }
+  function pathPerson(m) {
+    var sub = [m.pref || '', 'Lv' + m.lv].filter(Boolean).join('・');
+    return '<li><a class="hp-person" href="' + esc(m.href || '#/members/' + encodeURIComponent(m.id)) + '">' + U.avatar(m, 's') +
+      '<span class="hp-person__txt"><span class="hp-person__name">' + esc(m.name) + '</span><span class="hp-person__sub">' + esc(sub) + '</span></span></a></li>';
+  }
+  function pathEvent(e) {
+    var d = new Date(e.at);
+    return '<a class="li hp-ev" href="#/events/' + encodeURIComponent(e.id) + '">' +
+      '<span class="hp-ev__when"><b class="num">' + (d.getMonth() + 1) + '/' + d.getDate() + '</b>(' + WD[d.getDay()] + ') <span class="num">' + esc(hhmm(e.at)) + '〜</span></span>' +
+      '<span class="li__body"><span class="li__ttl">' + U.jp(e.title) + '</span><span class="li__sub">' + U.jp(e.place) + '</span></span>' +
+      '<span class="li__end">' + (R.isReserved(e.id) ? U.statusTag('reserved') : '') + U.chevron() + '</span></a>';
+  }
+  /** 小さな見出し（右にリンクを置けるもの） */
+  function pathHead(id, title, link) {
+    return '<div class="hp__h-row"><h3 class="hp__h" id="' + id + '">' + esc(title) + '</h3>' +
+      (link ? '<a class="hp__more" href="' + esc(link[0]) + '">' + esc(link[1]) + '</a>' : '') + '</div>';
+  }
+  /** まだ答えていない人：選ぶ場所への案内だけ */
+  function pathAsk() {
+    return '<section class="home-sec home-path" aria-labelledby="homePathTtl">' + secHead('homePathTtl', 'あなたの道', null) +
+      '<div class="card hp-ask">' +
+        '<p class="hp-ask__txt"><span class="hp-sent">やりたいことを2つまで選べます。</span><span class="hp-sent">選んだものに合う講座・案件・仲間をここに出します。</span></p>' +
+        '<a class="btn btn-ink hp-ask__btn" href="#/start?focus=goals">選ぶ</a>' +
+      '</div>' +
+      '<p class="hp-ask__req"><a href="#/requests">あったらいい講座・案件をリクエストする</a></p>' +
+    '</section>';
+  }
+
+  /** R.pathFor の会が今日の会に出ているときの代わり（同じ決め方で、今日の会を除いて選び直す）：
+      やりたいことの会（GOALS.events）→ 予約できる・予約済みの会 → これからの会の一番近いもの。なければ null */
+  function pathEventBesides(goal, hideEv) {
+    var up = R.upcoming().filter(function (e) { return hideEv.indexOf(e.id) < 0; });
+    var g = goal ? (DATA.GOALS || []).filter(function (x) { return x.id === goal.id; })[0] : null;
+    return (g && up.filter(function (e) { return (g.events || []).indexOf(e.id) >= 0; })[0]) ||
+      up.filter(function (e) { return R.eventOpen(e.id) || R.isReserved(e.id); })[0] || up[0] || null;
+  }
+  /** 「あなたの道」の区切り。hideEv：今日の会に出ているイベント（同じものを2回出さない）。
+      → { html, eventId }（eventId は下の「イベント」から外す） */
+  function pathSection(ask, hideEv) {
+    var gs = R.goals();
+    if (!gs.chosen) return { html: ask ? pathAsk() : '', eventId: null };
+    if (gs.ids.indexOf(pathGoal) < 0) pathGoal = gs.main;
+    var p = R.pathFor(pathGoal || undefined), goal = p.goal;
+    var ev = p.event && hideEv.indexOf(p.event.id) < 0 ? p.event : pathEventBesides(goal, hideEv);
+    var top;
+    if (gs.ids.length > 1) {
+      top = '<div class="seg hp-seg" role="group" aria-label="どのやりたいことの道を見るか">' + gs.list.map(function (g) {
+        return '<button type="button" aria-pressed="' + (g.id === pathGoal) + '" data-home-goal="' + esc(g.id) + '">' + esc(g.short) + '</button>';
+      }).join('') + '</div>';
+    } else {
+      top = '<p class="hp__goal">' + (goal ? U.jp(goal.label) : 'やりたいことは、まだ決めていません。') + '</p>';
+    }
+    var courses = p.courses.map(function (x, i) { return pathCourseRow(x, i, p.next); }).join('');
+    var gigs = p.gigs.length ? '<div class="list hp-list">' + p.gigs.map(pathGigRow).join('') + '</div>'
+      : '<p class="hp-none">いま募集している案件はありません。</p>';
+    var cohortKey = (R.members({}).filter(function (m) { return m.me; })[0] || {}).cohortKey || '';
+    var peopleLink = goal ? ['#/members?goal=' + encodeURIComponent(goal.id), '名簿で見る']
+      : cohortKey ? ['#/members?cohort=' + encodeURIComponent(cohortKey), '名簿で見る'] : null;
+    var people = p.people.length ? '<ul class="hp-people">' + p.people.map(pathPerson).join('') + '</ul>'
+      : '<p class="hp-none">' + (goal ? '同じやりたいことの会員は、まだいません。' : '同じ月に入った会員は、まだいません。') + '</p>';
+    var html = '<section class="home-sec home-path" aria-labelledby="homePathTtl">' +
+      secHead('homePathTtl', 'あなたの道', ['#/account?focus=goals', goal ? 'やりたいことを変える' : 'やりたいことを選ぶ']) +
+      '<div class="card hp">' +
+        '<div class="hp__top">' + top + '</div>' +
+        '<div class="hp__cols">' +
+          '<div class="hp__main">' +
+            '<div class="hp__h-row"><h3 class="hp__h" id="homePathC">' + (goal ? '講座の順' : 'オリエンテーションから') + '</h3>' +
+              '<span class="hp__done"><b class="num">' + p.done + '</b>/' + p.total + '本 修了</span></div>' +
+            '<ol class="hp-courses" aria-labelledby="homePathC">' + courses + '</ol>' +
+          '</div>' +
+          '<div class="hp__side">' +
+            '<div class="hp__blk" role="group" aria-labelledby="homePathG">' + pathHead('homePathG', goal ? '合う案件' : 'はじめやすい案件', ['#/gigs', '案件を見る']) + gigs + '</div>' +
+            '<div class="hp__blk" role="group" aria-labelledby="homePathP">' + pathHead('homePathP', goal ? '同じやりたいことの仲間' : '同じ月に入った人', peopleLink) + people + '</div>' +
+            (ev ? '<div class="hp__blk" role="group" aria-labelledby="homePathE">' + pathHead('homePathE', '近いイベント', null) +
+              '<div class="list hp-list">' + pathEvent(ev) + '</div></div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<p class="hp__req"><a href="#/requests">あったらいい講座・案件をリクエストする</a></p>' +
+      '</div>' +
+    '</section>';
+    return { html: html, eventId: ev ? ev.id : null };
   }
 
   /* ---------- 支払いの猶予切れ・休会のとき ----------
@@ -341,8 +458,11 @@
       var focus = pickFocus(ctx, ob);
       var todays = R.todayEvents().slice(0, 2);
       var todayIds = todays.map(function (e) { return e.id; });
-      var evList = R.upcoming().filter(function (e) { return todayIds.indexOf(e.id) < 0; }).slice(0, 2);
-      var shownEv = todayIds.concat(evList.map(function (e) { return e.id; }));
+      // やりたいことを選ぶ項目がいちばん上に出ているときは、「あなたの道」で同じことを頼まない
+      var path = pathSection(!(focus.kind === 'step' && focus.step.id === 'goals'), todayIds);
+      var skip = todayIds.concat(path.eventId ? [path.eventId] : []);
+      var evList = R.upcoming().filter(function (e) { return skip.indexOf(e.id) < 0; }).slice(0, 2);
+      var shownEv = skip.concat(evList.map(function (e) { return e.id; }));
       var t = today(todays);
       var focusHtml = focus.kind === 'lesson' ? focusLesson(focus, t.live)
         : focus.kind === 'step' ? focusStep(focus, ob, t.live) : focusRest(ctx);
@@ -351,6 +471,7 @@
         t.html +
         focusHtml +
         quick(ob, focus, shownEv) +
+        path.html +
         '<div class="home-cols">' +
           // 案件と紹介は右の上に置く（左に3つ積むと、右の学びのレベルとの高さの差が大きいため）
           '<div class="home-col">' + latest() + events(evList) + '</div>' +
@@ -364,9 +485,18 @@
       if (root.__boundHome) return;
       root.__boundHome = true;
       root.addEventListener('click', function (e) {
-        var b = e.target.closest('.scr-home [data-home-level], .scr-home [data-home-step], .scr-home [data-home-reserve], .scr-home [data-home-join]');
+        var b = e.target.closest('.scr-home [data-home-level], .scr-home [data-home-step], .scr-home [data-home-reserve], .scr-home [data-home-join], .scr-home [data-home-goal]');
         if (!b) return;
         if (b.hasAttribute('data-home-level')) { CLG.app.levelInfo(); return; }
+        if (b.hasAttribute('data-home-goal')) {
+          var gid = b.getAttribute('data-home-goal');
+          if (gid === pathGoal) return;
+          pathGoal = gid;
+          cur.refresh();
+          var g = (DATA.GOALS || []).filter(function (x) { return x.id === gid; })[0];
+          if (g) cur.announce('「' + g.label + '」の道を表示しています');
+          return;
+        }
         if (b.hasAttribute('data-home-reserve')) { reserveToday(b.getAttribute('data-home-reserve')); return; }
         if (b.hasAttribute('data-home-join')) { joinToday(b.getAttribute('data-home-join')); return; }
         var S = start();

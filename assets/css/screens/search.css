@@ -27,7 +27,7 @@
 .scr-search .sr-item .li__end .tag { margin-left: 2px; }
 .scr-search .sr-snip {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
-  margin-top: 3px; font-size: 13px; line-height: 1.65; color: var(--ink-2);
+  margin-top: 3px; font-size: 13px; line-height: 1.65; color: var(--ink-2); text-wrap: pretty; word-break: auto-phrase;
 }
 .scr-search .sr-item--post > .avatar { align-self: flex-start; margin-top: 2px; }
 .scr-search .sr-item--post + .li::before { left: calc(var(--inset) + 44px); }

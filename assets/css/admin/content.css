@@ -134,6 +134,9 @@
 .a-courses .a-cs__choices li.is-ans { padding-left: 0; color: var(--ok); font-weight: 700; }
 .a-courses .a-cs__choices .ico { flex: none; margin-top: 3px; }
 .a-courses .a-cs__note { margin-top: 12px; font-size: 12.5px; color: var(--ink-3); }
+/* 最近足した講座：視聴の数の上に、足した日と何日分の数かを添える */
+.a-courses .a-cs__since { margin: 0 0 12px; font-size: 12.5px; line-height: 1.6; color: var(--ink-2); }
+.a-courses .a-cs__since > span { display: inline-block; }   /* 文の途中で折り返さない（2つめの文ごと次の行へ） */
 .a-courses .a-cs__nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 14px; }
 .a-courses .a-cs__nums div { min-width: 0; }
 .a-courses .a-cs__nums dt { font-size: 11.5px; color: var(--ink-3); font-weight: 700; }
@@ -206,6 +209,17 @@
 .a-events .a-ev__wln { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--warn-weak); color: var(--warn-ink); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
 .a-events .a-ev__wlat { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
 .a-events .a-ev__none { font-size: 13px; color: var(--ink-3); }
+/* 成果発表会の一般公開（詳細の「一般公開の枠」と ?tab=public の申込みの一覧） */
+.a-events .a-ev__pubnext { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); overflow-wrap: anywhere; }
+.a-events .a-ev__pubnext a { font-weight: 700; }
+.a-events .a-ev__pubst { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.a-events .a-ev__pub { margin-top: 10px; border-top: 1px solid var(--line); }
+.a-events .a-ev__pub li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.a-events .a-ev__pubname { font-weight: 700; overflow-wrap: anywhere; }
+.a-events .a-ev__pubmail { grid-column: 1; font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
+.a-events .a-ev__pubat { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.a-events .a-ev__pubacts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.a-events .ad-tbl td.a-ev__mail { font-size: 12.5px; overflow-wrap: anywhere; }
 .a-events .a-ev__venue { margin-top: 8px; padding-top: 4px; border-top: 1px dashed var(--line-2); }
 .a-events .a-ev__venue:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .a-events .a-ev__send { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
@@ -317,3 +331,5 @@
   .a-feed .ad-tbl .a-fd__text { max-width: none; }
   .a-perks .a-pk__text { max-width: none; }
 }
+.a-events .a-ev__pubst a { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
+@media (max-width: 860px) { .a-events .a-ev__pubst a { min-height: 40px; } }

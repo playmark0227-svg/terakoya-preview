@@ -19,6 +19,12 @@
    - 成果発表会の発表が決まったら、札は「決定」（R.proposals の statusLabel。企画は「掲載中」）。
    - 予約していて終わった会で、運営がまだ出欠を付けていないもの（R.pastReserved）は「参加した」の中に「出欠の確認待ち」の札で出す
      （これから・予約済みからは外れ、出欠が付くと参加済みの行に変わる）。
+   - ▲成果発表会の一般公開（R.publicShowcase(e.id).on・これからの回）：一覧の行に「一部を一般公開」、詳細に「一部を一般公開」の区切りと
+     「友だちを誘う」（U.shareSheet('invite', { id })。公開の頁へのリンクがいつも入り、紹介リンクを付けたときだけ ref と #PR）。
+     発表した回（参加の記録の speaker）は「参加した」の行に「シェアする」（U.shareSheet('showcase', { id: 参加の記録の id })）。
+     どちらも R.shareText が null ならボタンを出さない。シェアしても XP・貢献ポイントは付かない。
+     #/events/<参加の記録の id>（va5 など、DATA.EVENTS に無い回）は「参加した」の一覧のその行へ送る（見つからない扱いにしない）。
+   - ▲「会員の企画」の下に「イベントをリクエストする」→ #/requests?new=1&kind=event（運営に開いてほしい会。screens/requests.js）。
    ============================================================ */
 (function () {
   'use strict';
@@ -86,7 +92,29 @@
   }
   function fee(e) { return typeof e.fee === 'number' ? (e.fee ? U.yen(e.fee) : '無料') : String(e.fee || '無料'); }
   function safeUrl(u) { return /^https:\/\//.test(String(u || '')) ? String(u) : ''; }
+  /** ▲成果発表会の一般公開（はじめの30分を会員でない方も見られる）。これからの回で、運営が切っていないときだけ */
+  function pubOf(e) {
+    if (!e || e.kind !== 'showcase' || e.own || !R.publicShowcase || new Date(e.at) <= now()) return null;
+    var p = R.publicShowcase(e.id);
+    return p && p.on ? p : null;
+  }
+  function pubOn(e) { return !!pubOf(e); }
+  /** シェアの窓を開けるか（R.shareText が null ならボタンを出さない。画面づくりの約束 §6-17） */
+  function canShare(moment, id) { return !!(R.shareText && R.shareText(moment, id)); }
   function attendedList() { return CLG.store.state.attended || []; }
+  /** 参加の記録（在籍半年の va1〜va14 など。DATA.EVENTS に無い回もある）。無ければ null */
+  function pastRec(id) { return attendedList().filter(function (a) { return a.id === id; })[0] || null; }
+  /** #/events/<参加の記録の id> で来たとき：その行へ送って、短く色を付ける */
+  function focusPast(id) {
+    var q = String(id).replace(/["\\]/g, '');
+    setTimeout(function () {
+      var el = document.querySelector('.scr-events [data-ev-past="' + q + '"]');
+      if (!el) return;
+      el.classList.remove('is-target'); void el.offsetWidth; el.classList.add('is-target');
+      setTimeout(function () { el.classList.remove('is-target'); }, 2400);
+      U.smoothScroll(el, { block: 'center', focus: true });
+    }, 0);
+  }
   function attendedMap() { var m = {}; attendedList().forEach(function (a) { m[a.id] = true; }); return m; }
   /** 残りの席。自分が予約していれば、その1席も埋まっているものとして数える */
   function seats(e) {
@@ -263,7 +291,9 @@
     if (e.min) a.push(e.min + '分');
     a.push(e.place);
     if (e.recording) b.push('録画あり');
-    return '<span class="ev__m1">' + U.jp(a.join('・')) + '</span><span class="ev__m2">' + U.jp(b.join('・')) + '</span>';
+    // 「一部を一般公開」は途中で割らない（「一部を／一般公開」と折れると意味が取りにくいため）
+    return '<span class="ev__m1">' + U.jp(a.join('・')) + '</span><span class="ev__m2">' + U.jp(b.join('・')) +
+      (pubOn(e) ? '・<span class="nw">一部を一般公開</span>' : '') + '</span>';
   }
   function zoomLink(a, cls, label) {
     var url = safeUrl(a && a.zoomUrl);
@@ -345,6 +375,8 @@
       '<div class="ev__act">' +
         (arc ? '<a class="btn btn-text btn-s" href="#/courses/archive/' + encodeURIComponent(arc) + '">' + icon('play', 'ico-s') + '録画を見る</a>' : '') +
         (recent ? '<a class="btn btn-text btn-s" href="#/feed?compose=post&amp;text=' + encodeURIComponent(text) + '">' + icon('pen', 'ico-s') + '感想を書く</a>' : '') +
+        // ▲成果発表会で発表した回：「シェアする」（moment 'showcase'。id は参加の記録の id）
+        (a.speaker && canShare('showcase', a.id) ? '<button type="button" class="btn btn-text btn-s" data-ev-share="' + id + '">' + icon('share', 'ico-s') + 'シェアする</button>' : '') +
       '</div>' +
     '</div>';
   }
@@ -511,7 +543,13 @@
       (list.length
         ? '<div class="list">' + list.map(propRow).join('') + '</div><div class="ev-prop__foot">' + btn + '</div>'
         : '<div class="card card-pad ev-prop__empty"><p>オフ会や勉強会は、会員も企画できます。運営が確認してから、この画面に載せます。</p>' + btn + '</div>') +
+      requestEntry() +
     '</section>';
+  }
+  /** ▲運営に開いてほしい会：「あったらいい」リクエストへ（種類を「イベント・勉強会」にしてフォームを開く） */
+  function requestEntry() {
+    return '<div class="ev-req"><p class="ev-req__txt">運営に開いてほしい会は、リクエストで出せます。</p>' +
+      '<a class="btn btn-ghost btn-s ev-req__btn" href="#/requests?new=1&amp;kind=event">' + icon('chat', 'ico-s') + '<span>イベントをリクエストする</span></a></div>';
   }
   function subSec() {
     return '<section class="sec ev-sub" aria-labelledby="evSubTtl"><h2 class="sec-ttl" id="evSubTtl">カレンダーアプリに入れる</h2>' +
@@ -609,6 +647,18 @@
         return '<li>' + U.personLink(R.person(sp.person), { size: 'xs' }) + '<span class="evd__talk">' + U.jp(sp.title) + '</span></li>';
       }).join('') + '</ul>' : '') + mine + '</section>';
   }
+  /** ▲一部を一般公開：はじめの30分は会員でない方も見られる（公開サイトの index.html#/showcase から申し込む）。
+      「友だちを誘う」はシェアの窓（moment 'invite'。公開の頁へのリンクがいつも入り、紹介リンクを付けたときだけ ref と #PR） */
+  function pubSec(e) {
+    var p = pubOf(e);
+    if (!p) return '';
+    return '<section class="evd__sec evd__pub"><h3 class="evd__h">一部を一般公開</h3>' +
+      // 時刻の括弧と「は、」を離さない（せまい幅で「は、」が行の頭に来ないように）
+      '<p class="evd__pubtxt">' + U.jp('はじめの' + p.minutes + '分') + '<span class="nw">（' + esc(hm(p.at) + '–' + hm(p.endAt)) + '）は、</span>' +
+        U.jp('会員でない方も見られます。' + [p.place, p.fee, '申込みは名前とメールだけ'].filter(Boolean).join('・') + '。') + '</p>' +
+      (canShare('invite', e.id) ? '<button type="button" class="btn btn-ghost btn-s evd__invite" data-evd="invite">' + icon('share', 'ico-s') + '友だちを誘う</button>' : '') +
+    '</section>';
+  }
   /** 参加予定：5人の顔と名前。主催者には全員の一覧 */
   function peopleSec(e, s) {
     var at = e.own ? { count: 0, list: [] } : R.attendees(e.id);
@@ -653,6 +703,7 @@
       '<div class="evd__desc">' + U.jp(e.desc || '', { br: true }) + '</div>' +
       agendaSec(e) +
       speakersSec(e, s, st) +
+      pubSec(e) +
       peopleSec(e, s) +
       kvSec(e, s) +
     '</div>';
@@ -803,6 +854,8 @@
     var act = b.getAttribute('data-evd');
     // 窓の中では一言の知らせを出さない（窓の下のボタンに重なるため）。上の「予約済みです」などを変えて、読み上げで伝える
     if (act === 'ics') saveIcs(e);
+    // 友だちを誘う：シェアの窓を上に重ねる（閉じたらこのボタンへ焦点が戻る。窓からは XP・ポイントの関数を呼ばない）
+    else if (act === 'invite') U.shareSheet('invite', { id: e.id });
     else if (act === 'reserve') {
       if (!R.reserve(e.id)) { U.toast('予約できませんでした（満席か、対象外の会です）', 'error'); redraw(d); return; }
       CLG.app.announce('予約しました');
@@ -959,6 +1012,7 @@
       return;
     }
     if ((b = t.closest('[data-ev-zoom]'))) { zoomClick(ev, b); return; }
+    if ((b = t.closest('[data-ev-share]'))) { U.shareSheet('showcase', { id: b.getAttribute('data-ev-share') }); return; }
     var e;
     if ((b = t.closest('[data-ev-reserve]'))) { if ((e = R.event(b.getAttribute('data-ev-reserve')))) doReserve(e); return; }
     if ((b = t.closest('[data-ev-cancel]'))) { if ((e = R.event(b.getAttribute('data-ev-cancel')))) askUnreserve(e, b); return; }
@@ -978,13 +1032,13 @@
   CLG.screens.events = {
     title: function (ctx) {
       var id = ctx.params && ctx.params[0];
-      return id && !findEvent(id) ? 'ページが見つかりません' : 'イベント';
+      return id && !findEvent(id) && !pastRec(id) ? 'ページが見つかりません' : 'イベント';
     },
     back: function (ctx) { return ctx.params && ctx.params[0] ? { href: '#/events', label: 'イベント' } : null; },
     render: function (ctx) {
       var q = ctx.query || {};
       var pid = ctx.params && ctx.params[0];
-      if (pid && !findEvent(pid)) return U.notFound({ lead: 'このイベントは見つかりませんでした。日にちが変わったか、取りやめになりました。' });
+      if (pid && !findEvent(pid) && !pastRec(pid)) return U.notFound({ lead: 'このイベントは見つかりませんでした。日にちが変わったか、取りやめになりました。' });
       // 「入会したての状態で見る」などで会員が替わったら、前の人の切り替えを持ち越さない
       var owner = R.me().id;
       if (view.owner !== owner) { view.owner = owner; view.tab = 'upcoming'; view.kind = 'all'; view.mode = 'list'; view.month = null; view.day = null; view.qk = null; }
@@ -995,6 +1049,9 @@
         if (has(KINDS, q.kind)) view.kind = q.kind;
         if (has(MODES, q.mode)) view.mode = q.mode;
       }
+      // ▲#/events/<参加の記録の id>（在籍半年の va5 など。発表した回の「シェアする」）：「参加した」の一覧のその行へ（mount で送る）
+      // 来たときの1回だけ（mount が view.opened に入れる）。そのあとタブ・表示の形を押したら、そちらを使う
+      if (pid && view.opened !== pid && !findEvent(pid) && pastRec(pid)) { view.tab = 'attended'; view.mode = 'list'; }
       var up = upcomingAll(), mine = reservedAll(), past = attendedAll();
       waitSeen = waitIds();
       var counts = { upcoming: up.length, reserved: mine.length, attended: past.length };
@@ -1050,6 +1107,7 @@
       } else if (view.opened !== pid && (!detail || detail.id !== pid)) {
         view.opened = pid;
         if (findEvent(pid)) openFromRoute(pid);
+        else if (pastRec(pid)) focusPast(pid);
       }
       // 「参加したことにする」のあと：一覧を描き直してから XP を知らせる（窓を閉じる移動で知らせが消えないように）
       if (view.reward) { var r = view.reward; view.reward = null; CLG.app.reward(r); }

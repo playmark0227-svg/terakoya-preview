@@ -6,8 +6,16 @@
      規約）は BRAND（SITE.name。SITE.note があるときだけ「（注記）」を付ける）。合言葉 SITE.tagline はフッターのロゴの下に1回だけ、
      名前の由来の1文は #/about の「運営会社」の下に1回だけ。どちらも収入・紹介の話の隣には置かない。
    - URL：#/（紹介）、#/join（申込み）、#/contact（お問い合わせ）、#/about（運営と講師）、#/company（運営会社）、
-          #/curriculum（講座の一覧。?c=<講座id> でその講座へ）、#/news（お知らせ）、#/tokushoho、#/terms（?art=<条の番号> でその条へ）、#/privacy。
-          #/faq・#/price など区切りの名前だけのものは、紹介ページのその場所へ。知らない名前は「ページが見つかりません」。
+          #/curriculum（講座の一覧。?c=<講座id> でその講座へ。?goal=<やりたいことのid> で、その道の講座を見る順に）、#/news（お知らせ）、
+          #/showcase（成果発表会の一般公開の案内と申込み。?step=done が受付の段）、#/tokushoho、#/terms（?art=<条の番号> でその条へ）、#/privacy。
+          #/faq・#/price・#/goals など区切りの名前だけのものは、紹介ページのその場所へ。知らない名前は「ページが見つかりません」。
+   - やりたいこと（DATA.GOALS）：紹介ページの「やりたいこと別の講座」（それぞれの道の最初の講座。#/curriculum?goal= へ）、
+     講座の一覧の絞り込み、申込みの入力の段の任意の欄（2つまで・先に選んだものが1つ目。確認画面に出し、store.startFresh の goals へ）。
+     ラベルに「稼ぐ」「収入」は使わない（data.js の GOALS のまま出す）。
+   - AI・動画の1回目（COURSES の freeFirst）は、講座の一覧と「講座とレベル」に「1回目は入会直後から見られます」と書く。数は DATA.COUNTS から。
+   - 成果発表会の一般公開（#/showcase）：R.publicShowcase()（無ければ「いま申し込める回がありません…」）、名前とメールだけで R.showcaseSignup。
+     同じ回に同じメールなら「すでに申し込まれています」の受付の段。試作版はメールを送らない（フッターの断りのとおり）。
+     紹介ページの「できること」のイベントの行とフッターから小さく案内する。?ref= で来たら、ほかのページと同じく紹介コードを覚える。
    - 申込みの段は URL に持つ：#/join → ?step=confirm → ?step=pay → ?step=done。ブラウザの戻る・進むで段を行き来できる。
      決済が済んだら完了の段で履歴を置き換え、戻るで決済の段が開き直らないようにする。完了のあとの戻るは、
      使えなくなった前の段を飛ばして、申込みより前のページまで戻す（skipBack）。
@@ -30,7 +38,7 @@
       狭い画面の長い文は文節で折らずに行を埋める（site.css）ので、U.jp の上でここでも守る */
   var NUM_RE = /((?:毎月|毎週|[全第月週毎約])?\d[\d,]*(?:\.\d+)?(?:〜\d[\d,]*)?(?:分|円|本|回|人|名|件|日|か月|時間|秒|XP|pt|%)|\d{1,2}:\d{2}(?:〜\d{1,2}:\d{2})?)/g;
   // カタカナの長い言葉も途中で割らない（「Webデザイ／ン」のような折れ方を防ぐ）
-  var NW_WORDS = ['Webデザイン', 'オリエンテーション', 'タイムライン', 'フリーランス', 'プライバシーポリシー', 'スタートガイド', 'アカウント', 'オンライン', 'イベント', 'サービス', 'スタッフ'];
+  var NW_WORDS = ['Webデザイン', 'リモートワーク', 'オリエンテーション', 'タイムライン', 'フリーランス', 'プライバシーポリシー', 'スタートガイド', 'アカウント', 'オンライン', 'イベント', 'サービス', 'スタッフ'];
   function jp(s) {
     var h = U.jp(s).replace(NUM_RE, '<span class="site-nw">$1</span>');
     NW_WORDS.forEach(function (w) { h = h.split(w).join('<span class="site-nw">' + w + '</span>'); });
@@ -48,6 +56,23 @@
   /* ---------- 小さな道具 ---------- */
   function yen(n) { return U.yen(n); }
   function courseAt(lv) { return DATA.COURSES.filter(function (c) { return c.level === lv; }); }
+  function courseById(id) { for (var i = 0; i < DATA.COURSES.length; i++) if (DATA.COURSES[i].id === id) return DATA.COURSES[i]; return null; }
+  /* やりたいこと（data.js の GOALS。この順）。道の講座は COURSES にあるものだけ（運営が隠した講座は飛ばす） */
+  var GOALS = DATA.GOALS || [];
+  function goalOf(id) { for (var i = 0; i < GOALS.length; i++) if (GOALS[i].id === id) return GOALS[i]; return null; }
+  function goalCourses(g) { return ((g && g.courses) || []).map(courseById).filter(Boolean); }
+  /** 選んだやりたいことの id を、知らないものと重なりを除いて2つまでに */
+  function cleanGoals(ids) {
+    var out = [];
+    (Array.isArray(ids) ? ids : []).forEach(function (id) { if (goalOf(id) && out.indexOf(id) < 0 && out.length < 2) out.push(id); });
+    return out;
+  }
+  /** お試しで開く回の数（AI・動画の freeFirst）と、その文 */
+  var FREE_NOTE = '1回目は入会直後から見られます';
+  function freeFirstCourses() {
+    var ids = (DATA.COUNTS && DATA.COUNTS.freeFirst) || DATA.COURSES.filter(function (c) { return c.freeFirst; }).map(function (c) { return c.id; });
+    return ids.map(courseById).filter(Boolean);
+  }
   function person(id) { return DATA.PEOPLE[id] || null; }
   /** 公開サイトの人の名前は架空なので「（仮）」を付ける（決定事項） */
   function kari(p) { return p ? p.name + '（仮）' : ''; }
@@ -169,7 +194,7 @@
 
   /* ---------- ヘッダーとフッター ---------- */
   var NAV = [['can', 'できること'], ['portal', '会員ページの中身'], ['levels', '講座'], ['price', '料金'], ['faq', 'よくある質問']];
-  var SECTIONS = ['can', 'portal', 'levels', 'team', 'days', 'fit', 'price', 'faq'];
+  var SECTIONS = ['can', 'portal', 'goals', 'levels', 'team', 'days', 'fit', 'price', 'faq'];
 
   function headerHtml() {
     var navBtns = NAV.map(function (n) {
@@ -203,7 +228,7 @@
   }
 
   function footerHtml() {
-    var A = [['#/curriculum', '講座の一覧'], ['#/about', '運営と講師'], ['#/news', 'お知らせ'], ['#/faq', 'よくある質問'], ['member.html', '会員ログイン']];
+    var A = [['#/curriculum', '講座の一覧'], ['#/showcase', '成果発表会の一般公開'], ['#/about', '運営と講師'], ['#/news', 'お知らせ'], ['#/faq', 'よくある質問'], ['member.html', '会員ログイン']];
     var B = [['#/company', '運営会社'], ['#/contact', 'お問い合わせ'], ['#/tokushoho', '特定商取引法に基づく表記'], ['#/terms', '利用規約'], ['#/privacy', 'プライバシーポリシー']];
     function list(l, label) {
       return '<ul class="site-foot__links" aria-label="' + esc(label) + '">' + l.map(function (x) {
@@ -260,9 +285,11 @@
   /* ---------- できること（名前と中身の2列）＋写真の並び ---------- */
   function can() {
     var rows = [
-      ['講座', 'ビジネスの基礎、SNS、AI、動画編集、Webデザイン、営業など。' + SITE.lessonLength + 'です。ライブ勉強会の録画も、あとから見られます。'],
+      ['講座', 'ビジネスの基礎、SNS、AI、動画編集、Webデザイン、リモートワーク、営業など。' + SITE.lessonLength + 'です。ライブ勉強会の録画も、あとから見られます。'],
       ['案件', 'アンケートやモニターなどのお小遣い案件、業務委託、紹介できるサービス。会員ページから応募できます。報酬はどれも目安です。'],
-      ['イベント', 'オンラインの勉強会・作業会と、土日に各地で開くオフ会。毎月最終' + SHOWCASE_AT + 'から成果発表会があります。参加は任意です。'],
+      // 成果発表会の一般公開（#/showcase）は、ここから小さく案内する
+      ['イベント', 'オンラインの勉強会・作業会と、土日に各地で開くオフ会。毎月最終' + SHOWCASE_AT + 'から成果発表会があります。参加は任意です。',
+        '<a class="site-link site-can__more" href="#/showcase">成果発表会は会員でない方も見られます</a>'],
       ['タイムライン', '運営からのお知らせ、新しい講座や案件、会員の投稿が流れてきます。'],
       ['相談', '運営への相談は回数の制限なし。' + SITE.replySla + '。税理士・司法書士などの専門家も紹介します（' + EXPERT_NOTE + '）。'],
       ['福利厚生', '日用品の会員価格、映画館やレジャー施設の優待など。割引の内容は商品・店舗により異なります。会員証はスマホの画面を見せて使います。']
@@ -271,7 +298,7 @@
       '<div class="site-wrap">' +
         h2('できること', 'h-can') +
         '<dl class="site-can">' + rows.map(function (r) {
-          return '<div><dt>' + esc(r[0]) + '</dt><dd>' + jp(r[1]) + '</dd></div>';
+          return '<div><dt>' + esc(r[0]) + '</dt><dd>' + jp(r[1]) + (r[2] ? ' ' + r[2] : '') + '</dd></div>';
         }).join('') + '</dl>' +
         photoRow() +
       '</div>' +
@@ -296,11 +323,11 @@
   // h はカードとカードのすき間（講座・スタートガイド）か、投稿・案件の行と行の境目の少し上（タイムライン・案件）で切れる高さ。
   // カードや行の途中で切れると、撮りそこねに見えるため。tools/lp-images.js が撮るたびに出す値に合わせる
   var SHOTS = [
-    { name: 'courses', route: 'courses', title: '講座の一覧', top: 56, h: 685 },
+    { name: 'courses', route: 'courses', title: '講座の一覧', top: 56, h: 667 },
     { name: 'feed', route: 'feed', title: 'タイムライン', top: 56, h: 648 },
     { name: 'gigs', route: 'gigs', title: '案件', top: 56, h: 629 }
   ];
-  var START_SHOT = { name: 'start', top: 56, h: 547 };
+  var START_SHOT = { name: 'start', top: 56, h: 542 };
 
   function portal() {
     return '<section class="site-sec site-sec--band" id="sec-portal" aria-labelledby="h-portal">' +
@@ -316,6 +343,43 @@
         '</div>' +
       '</div>' +
     '</section>';
+  }
+
+  /* ---------- やりたいこと別の講座（4つの道。最初の講座と、そのあとの講座。押すと講座の一覧をその道で絞る） ----------
+     ほかの区切り（2列の表・写真・表・人の一覧）と組み方を変え、押せる4つの面にする。ラベルは data.js の GOALS のまま */
+  /** 「最初は「SNS発信入門」（Lv1）」。講座名は途中で割らない（入らない幅では折れる）。HTML を返す */
+  function goalFirstLine(c) {
+    if (!c) return '';
+    var nb = function (t) { return '<span class="site-nb">' + esc(t) + '</span>'; };
+    // Lv で閉じている講座でも、1回目がお試しで開くもの（AI・動画）は、そう書く
+    return '最初は' + nb('「' + c.title + '」') + (c.level > 1 && c.freeFirst ?
+      nb('（Lv' + c.level + '。') + nb('1回目は入会直後から') + nb('見られます）') : nb('（Lv' + c.level + '）'));
+  }
+  function goalsSec() {
+    if (!GOALS.length) return '';
+    return '<section class="site-sec" id="sec-goals" aria-labelledby="h-goals">' +
+      '<div class="site-wrap">' +
+        h2('やりたいこと別の講座', 'h-goals') +
+        '<p class="site-sec__lead">' + jp('入会の申込みで2つまで選べます（あとから変えられます）。会員ページのホームに、講座を見る順、合う案件、同じやりたいことの仲間が出ます。') + '</p>' +
+        '<ul class="site-goals">' + GOALS.map(function (g) {
+          var cs = goalCourses(g), first = cs[0], rest = cs.slice(1);
+          return '<li><a class="site-goal" href="#/curriculum?goal=' + encodeURIComponent(g.id) + '">' +
+            '<span class="site-goal__body">' +
+              '<b class="site-goal__name">' + jp(g.label) + '</b>' +
+              (first ? '<span class="site-goal__first">' + goalFirstLine(first) + '</span>' : '') +
+              (rest.length ? '<span class="site-goal__rest">そのあと：' + phrases(rest.map(function (c) { return c.title; }).join('、'), '、') + '</span>' : '') +
+            '</span>' + U.chevron() +
+          '</a></li>';
+        }).join('') + '</ul>' +
+      '</div>' +
+    '</section>';
+  }
+
+  /** 「AI活用・動画編集の1回目は、入会直後から見られます。」（Lv2 より上の freeFirst の講座。無ければ空） */
+  function freeFirstLine() {
+    var cs = freeFirstCourses().filter(function (c) { return c.level > 1; });
+    if (!cs.length) return '';
+    return jp(cs.map(function (c) { return c.title; }).join('・') + 'の1回目は、入会直後から見られます。');
   }
 
   /* ---------- 講座とレベル（表） ---------- */
@@ -339,7 +403,7 @@
           }).join('') + '</tbody>' +
         '</table>' +
         '<p class="site-sec__after">XPは講座の動画1本で+' + esc(X.lesson) + '、録画1本で+' + esc(X.archive) + '、イベント参加で+' + esc(X.event) +
-          '、案件の完了で+' + esc(X.gigDone) + '。目安は講座の動画だけで上げた場合です。<a class="site-link site-nw" href="#/curriculum">講座と回の一覧</a></p>' +
+          '、案件の完了で+' + esc(X.gigDone) + '。目安は講座の動画だけで上げた場合です。' + freeFirstLine() + '<a class="site-link site-nw" href="#/curriculum">講座と回の一覧</a></p>' +
       '</div>' +
     '</section>';
   }
@@ -518,7 +582,7 @@
   }
 
   function lp() {
-    return refBar() + hero() + can() + portal() + levels() + team() + days() + fit() + price() + faq() + ending();
+    return refBar() + hero() + can() + portal() + goalsSec() + levels() + team() + days() + fit() + price() + faq() + ending();
   }
 
   /* ============================================================
@@ -616,7 +680,7 @@
 
   var J = null;
   function blankJoin() {
-    return { step: 'input', f: { name: '', kana: '', email: '', pref: '', job: '', ref: getRef(), agree: false, adult: false },
+    return { step: 'input', f: { name: '', kana: '', email: '', pref: '', job: '', ref: getRef(), agree: false, adult: false, goals: [] },
       err: {}, ok: {}, busy: false, confirmed: false, paid: false, id: '', rejoin: false, dup: false, payState: '', card: '' };
   }
   function resetJoin() { J = blankJoin(); ss(JOIN_KEY, null); }
@@ -630,6 +694,7 @@
     var d = ss(JOIN_KEY);
     if (!d || !d.f) return;
     FIELDS.concat('adult').forEach(function (k) { if (d.f[k] != null) J.f[k] = d.f[k]; });
+    J.f.goals = cleanGoals(d.f.goals);
     ['confirmed', 'paid', 'id', 'rejoin', 'dup', 'doneSeen', 'refTouched', 'card', 'paidAt'].forEach(function (k) { if (d[k] != null) J[k] = d[k]; });
     if (J.paid && !J.id) J.paid = false;
   })();
@@ -717,6 +782,50 @@
     return '<div class="site-join__plan"><b>' + esc(COND.service) + '</b>' + condSpans() + '</div>';
   }
 
+  /* やりたいこと（任意・2つまで）。先に選んだものが1つ目（会員ページの「あなたの道」の主）。
+     2つ選ぶとほかは押せなくし、外し方を1行で出す（会員ページの U.goalPicker と同じ文） */
+  var GOAL_FULL = '2つ選びました。ほかを選ぶときは、どちらかを外してください。';
+  function joinGoalsHtml() {
+    if (!GOALS.length) return '';
+    var sel = cleanGoals(J.f.goals), full = sel.length >= 2;
+    // goal-pick / goal-opt は会員ページの U.goalPicker と同じ名前（tools/shoot.js が選ぶときの目印）。app.css は読まないので見た目は site.css。
+    // data-goal-pick は付けない（ui.js の見張りが動かないように。2つまでの扱いは onGoalChange）
+    return '<fieldset class="site-field site-goalpick goal-pick" data-field="f-goals">' +
+      '<legend class="site-field__label"><span>やりたいこと（2つまで）</span><span class="site-opt">任意</span></legend>' +
+      '<div class="site-goalpick__opts">' + GOALS.map(function (g) {
+        var i = sel.indexOf(g.id), on = i >= 0;
+        return '<label class="site-goalopt goal-opt"><input type="checkbox" name="goal" value="' + esc(g.id) + '" data-goal aria-describedby="f-goals-help f-goals-note"' +
+          (on ? ' checked' : '') + (full && !on ? ' disabled' : '') + '>' +
+          '<span class="site-goalopt__txt">' + jp(g.label) + '</span>' +
+          '<span class="site-goalopt__n num" aria-hidden="true">' + (on ? i + 1 : '') + '</span>' +
+          // 読み上げでは「（1つ目）」と順を言う（見た目の数は読まない）
+          '<span class="sr-only" data-goal-sr>' + (on ? '（' + (i + 1) + 'つ目）' : '') + '</span></label>';
+      }).join('') + '</div>' +
+      '<p class="site-field__help" id="f-goals-help">あとから会員ページで変えられます。</p>' +
+      '<p class="site-goalpick__note" id="f-goals-note" aria-live="polite">' + (full ? esc(GOAL_FULL) : '') + '</p>' +
+    '</fieldset>';
+  }
+  /** 押したものを選んだ順に足す・外す（input と change の両方で来るので、何度来ても同じになるように） */
+  function onGoalChange(el) {
+    var id = el.value, list = cleanGoals(J.f.goals), i = list.indexOf(id);
+    if (el.checked && i < 0) { if (list.length < 2) list.push(id); else el.checked = false; }
+    if (!el.checked && i >= 0) list.splice(i, 1);
+    J.f.goals = list; J.confirmed = false;
+    var box = main && main.querySelector('[data-field="f-goals"]');
+    if (box) {
+      U.$$('input[data-goal]', box).forEach(function (b) {
+        var k = list.indexOf(b.value), n = b.parentNode.querySelector('.site-goalopt__n'), sr = b.parentNode.querySelector('[data-goal-sr]');
+        b.disabled = list.length >= 2 && k < 0;
+        if (n) n.textContent = k >= 0 ? String(k + 1) : '';
+        if (sr) sr.textContent = k >= 0 ? '（' + (k + 1) + 'つ目）' : '';
+      });
+      var note = doc.getElementById('f-goals-note');
+      if (note) note.textContent = list.length >= 2 ? GOAL_FULL : '';
+    }
+    saveJoin();
+  }
+  function goalLabels(ids) { return cleanGoals(ids).map(function (id) { return goalOf(id).label; }); }
+
   function stepInput() {
     var F = J, p = 'f-';
     if (J.rejoin && !rejoinable()) return rejoinGate();
@@ -738,6 +847,8 @@
           fieldBox(F, p, 'pref', '住んでいる地域', { optional: true, control: selectHtml(F, p, 'pref', PREFS, '選んでください') }) +
           fieldBox(F, p, 'job', 'いまのお仕事', { optional: true, control: selectHtml(F, p, 'job', JOBS, '選んでください') }) +
         '</div>' +
+        // 再入会は、これまでの記録（やりたいことも）をそのまま使うので出さない
+        (J.rejoin ? '' : joinGoalsHtml()) +
         (J.rejoin ? '' : fieldBox(F, p, 'ref', '紹介コード', { optional: true, cls: 'site-field--ref', help: '会員から紹介された方だけ。英字と数字です。',
           control: inputHtml(F, p, 'ref', 'text', ' autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="32" placeholder="例：HANA123"', { help: true }) })) +
         consentHtml(F, p, 'agree', newTabLink('index.html#/terms', '利用規約') + 'と' + newTabLink('index.html#/privacy', 'プライバシーポリシー'), 'に同意します') +
@@ -771,6 +882,10 @@
       ['メールアドレス', '<span class="site-email">' + esc(half(f.email).trim()) + '</span>', true],
       f.pref ? ['住んでいる地域', f.pref] : null,
       f.job ? ['いまのお仕事', f.job] : null,
+      // 「、」は前の名前の塊に入れる（塊のあいだで折れたとき、行の頭に「、」が来ないように）
+      !J.rejoin && goalLabels(f.goals).length ? ['やりたいこと', goalLabels(f.goals).map(function (t, i, a) {
+        return '<span class="site-nb">' + jp(t) + (i < a.length - 1 ? '<span class="site-kv__sep">、</span>' : '') + '</span>';
+      }).join(''), true] : null,
       f.ref ? ['紹介コード', f.ref] : null
     ];
   }
@@ -901,7 +1016,11 @@
       (J.rejoin ? '' :
         '<div class="site-done__next">' +
           '<h2 class="site-panel__ttl">最初の1週間にやること</h2>' +
-          '<ol>' + week1.map(function (s) { return '<li>' + jp(s.title) + '</li>'; }).join('') + '</ol>' +
+          // 「やりたいことを選ぶ」は、申込みで選んでいれば済み（スタートガイドでも済みになっている）
+          '<ol>' + week1.map(function (s) {
+            var done = (s.id === 'goals' || s.auto === 'goals') && cleanGoals(f.goals).length;
+            return '<li' + (done ? ' class="is-done"' : '') + '>' + jp(s.title) + (done ? '<span class="site-done__ok">（申込みで選びました）</span>' : '') + '</li>';
+          }).join('') + '</ol>' +
           '<p><a class="site-link site-more" href="member.html#/start">スタートガイドで進める</a></p>' +
         '</div>') +
     '</div>';
@@ -958,7 +1077,7 @@
         CLG.store.login();
       } else {
         CLG.store.startFresh({ name: f.name.trim(), kana: f.kana.trim(), email: half(f.email).trim(), area: f.pref, job: f.job,
-          ref: f.ref ? refCheck(f.ref).code || f.ref : '', card: J.card === 'other' ? 'Mastercard •••• 5454' : '' });
+          ref: f.ref ? refCheck(f.ref).code || f.ref : '', card: J.card === 'other' ? 'Mastercard •••• 5454' : '', goals: cleanGoals(f.goals) });
       }
       J.id = CLG.store.state.me.id;
       J.busy = false; J.paid = true; J.paidAt = CLG.now().toISOString();
@@ -1150,13 +1269,198 @@
     else if (name === 'send') sendContact(el);
   }
 
-  /* ---------- フォームの動き（申込み・お問い合わせで共通） ---------- */
+  /* ============================================================
+     成果発表会の一般公開（#/showcase）
+     案内と申込み（名前とメールだけ）→ 受付（?step=done）。R.publicShowcase / R.showcaseSignup（domain.js）。
+     試作版はメールを送らない（フッターの断りのとおり）。同じ回に同じメールなら「すでに申し込まれています」
+     ============================================================ */
+  var SHOW_KEY = 'terakoya-showcase';
+  var SFIELDS = ['name', 'email'];
+  var SH = null;
+  function blankShow() { return { step: 'input', f: { name: '', email: '' }, err: {}, ok: {}, busy: false, done: false, existing: false, signup: null, error: '' }; }
+  function resetShow() { SH = blankShow(); ss(SHOW_KEY, null); }
+  function saveShow() { ss(SHOW_KEY, { f: SH.f, done: SH.done, existing: SH.existing, signup: SH.signup, doneSeen: !!SH.doneSeen }); }
+  (function restoreShow() {
+    SH = blankShow();
+    var d = ss(SHOW_KEY);
+    if (!d || !d.f) return;
+    SFIELDS.forEach(function (k) { if (d.f[k] != null) SH.f[k] = String(d.f[k]); });
+    SH.signup = d.signup && d.signup.event ? d.signup : null;
+    SH.done = !!d.done && !!SH.signup; SH.existing = !!d.existing; SH.doneSeen = !!d.doneSeen;
+  })();
+  /** 公開している一番近い回（domain.js が無い・申し込める回が無いときは null） */
+  function nextShow() { try { return R && R.publicShowcase ? R.publicShowcase() : null; } catch (e) { return null; } }
+  function showOf(id) { try { return R && R.publicShowcase && id ? R.publicShowcase(id) : null; } catch (e) { return null; } }
+  function checkShow(name, v) {
+    v = typeof v === 'string' ? v.trim() : v;
+    if (name === 'name') {
+      if (!v) return 'お名前を入力してください';
+      if (v.length > 30) return 'お名前は30文字までで入力してください';
+    }
+    if (name === 'email') return emailError(half(v).trim());
+    return '';
+  }
+  function showHash(step) { return '#/showcase' + (step === 'done' ? '?step=done' : ''); }
+  function routeShow(q, entering) {
+    var want = q.step === 'done' ? 'done' : 'input';
+    // 受付のあと、戻るで入力へ来たときは、このページより前まで戻す（お問い合わせと同じ）
+    if (!entering && SH.done && SH.doneSeen && want !== 'done') { skipBack(showHash('done')); return false; }
+    // 受付を見たあとに開き直したら、空のフォームから（別の方の申込み・次の回）
+    if (entering && SH.done && SH.doneSeen && want !== 'done') resetShow();
+    // 申し込めなかった知らせは、そのときだけ（ほかのページから来たら出さない）
+    if (entering) SH.error = '';
+    var ok = SH.done ? 'done' : 'input';
+    if (ok !== want) { replaceHash(showHash(ok)); return false; }
+    SH.step = want;
+    return true;
+  }
+  /** 「10月30日（金）20:00〜20:30」 */
+  function showWhen(ps) {
+    return dateText(ps.at) + ' ' + DATA.hm(new Date(ps.at)) + '〜' + DATA.hm(new Date(ps.endAt));
+  }
+  /** 成果発表会の中身（イベントの説明の最初の1文） */
+  function showDesc(ps) {
+    var e = null;
+    DATA.EVENTS.forEach(function (x) { if (x.id === ps.eventId) e = x; });
+    var d = e && e.desc ? String(e.desc) : '';
+    return d ? (d.match(/^[^。]+。/) || [d])[0] : '';
+  }
+  var SHOW_P = DATA.PUBLIC_SHOWCASE || {};
+  function showLead(ps) {
+    var mins = (ps && ps.minutes) || SHOW_P.minutes || 30;
+    var place = (ps && ps.place) || SHOW_P.place || '', fee = (ps && ps.fee) || SHOW_P.fee || '';
+    return '毎月最終' + SHOWCASE_AT + 'からの成果発表会は、はじめの' + mins + '分を会員でない方も見られます。' +
+      (/オンライン/.test(place) ? 'オンラインで、' : '') + (fee ? '参加は' + fee + 'です。' : '');
+  }
+  function showHead(title, lead) {
+    return backLink() +
+      '<h1 class="site-page__ttl" data-page-title tabindex="-1">' + esc(title) + '</h1>' +
+      (lead ? '<p class="site-page__lead">' + jp(lead) + '</p>' : '');
+  }
+  /** 次の回の案内（日時・場所・参加費・中身・参加のしかた）と、成果発表会の写真 */
+  function showInfo(ps) {
+    var desc = showDesc(ps);
+    return '<div class="site-show__top">' +
+      '<section class="site-show__next" aria-labelledby="h-show-next">' +
+        '<h2 class="site-h3" id="h-show-next">次の回</h2>' +
+        '<p class="site-show__when"><time datetime="' + esc(new Date(ps.at).toISOString()) + '">' + jp(showWhen(ps)) + '</time></p>' +
+        kvTable([
+          ps.place ? ['場所', ps.place] : null,
+          ps.fee ? ['参加費', ps.fee] : null,
+          desc ? ['内容', desc] : null,
+          ps.note ? ['参加のしかた', ps.note] : null
+        ], 'site-kv--stack site-show__kv') +
+      '</section>' +
+      '<figure class="site-show__photo">' +
+        '<div class="site-photos__img">' + photoImg(EVENT_IMG.showcase || 'assets/img/photo-showcase.webp', 1200, 800, '器の写真を映したテレビの前で、座っている人たちに話す女性') + '</div>' +
+        '<figcaption class="site-hero__note">写真はイメージです。</figcaption>' +
+      '</figure>' +
+    '</div>';
+  }
+  function showForm(ps) {
+    var F = SH, p = 's-';
+    return '<form class="site-panel site-form site-show__form" id="site-show-form" novalidate aria-labelledby="h-show-form">' +
+      '<h2 class="site-panel__ttl" id="h-show-form">申込み</h2>' +
+      (SH.error ? '<div class="site-alert site-alert--err" id="show-error" role="alert" tabindex="-1"><p class="site-alert__ttl">申し込めませんでした</p><p>' + jp(SH.error) + '</p></div>' : '') +
+      fieldBox(F, p, 'name', 'お名前', { control: inputHtml(F, p, 'name', 'text', ' autocomplete="name" placeholder="例：山田 はな" maxlength="30"', { required: true }) }) +
+      fieldBox(F, p, 'email', 'メールアドレス', { cls: 'site-field--email', hint: true, help: ps.after || '参加のURLをメールでお送りします。',
+        control: inputHtml(F, p, 'email', 'email', ' autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="例：name@example.jp"',
+          { required: true, help: true, hint: true }) }) +
+      '<p class="site-show__privacy">お名前とメールアドレスは、この会のご案内だけに使います（' + newTabLink('index.html#/privacy', 'プライバシーポリシー') + '）。</p>' +
+      '<div class="site-form__foot">' +
+        '<p class="site-form__sum" id="site-form-sum" aria-live="polite"></p>' +
+        '<button type="submit" class="site-btn site-btn--ink site-btn--l site-btn--block">申し込む</button>' +
+        '<p class="site-pay__status" id="show-status" role="status" aria-live="polite"></p>' +
+      '</div>' +
+    '</form>';
+  }
+  /** 申し込める回がない（運営が一般公開を切った・次の回が未定・domain.js が無い）。
+      送った直後に受付が切れていたとき（SH.error）は、申し込めなかったことを先に言う（黙って空の形に変えない） */
+  function showEmpty() {
+    var failed = !!SH.error;
+    return '<div class="site-panel site-show__empty' + (failed ? ' site-show__empty--err" id="show-error" role="alert" tabindex="-1"' : '" role="status"') + '>' +
+      '<p class="site-show__emptyttl">' + (failed ? '申し込めませんでした。' : '') + 'いま申し込める回がありません。</p>' +
+      '<p>次の回が決まったら、このページでお知らせします。</p>' +
+      '<div class="site-show__acts"><a class="site-btn site-btn--ghost" href="#/news">お知らせを見る</a><a class="site-btn site-btn--ghost" href="#/">トップへ戻る</a></div>' +
+    '</div>';
+  }
+  function showDone() {
+    var sg = SH.signup || {}, ps = showOf(sg.event), email = half(sg.email || SH.f.email).trim();
+    var title = SH.existing ? 'すでに申し込まれています' : '申込みを受け付けました';
+    var lead = SH.existing ? 'このメールアドレスで、この回に申し込まれています。もう一度申し込む必要はありません。' :
+      (sg.name || SH.f.name) + 'さん、お申込みありがとうございます。';
+    return showHead(title, lead) +
+      '<div class="site-panel site-show__done">' +
+        kvTable([
+          ps ? ['回', '<span class="site-nb">' + jp(ps.event.title) + '</span> <span class="site-nb">' + jp(showWhen(ps)) + '</span>', true] : null,
+          ps && ps.place ? ['場所', ps.place] : null,
+          ['お名前', sg.name || SH.f.name],
+          ['メールアドレス', '<span class="site-email">' + esc(email) + '</span>', true]
+        ], 'site-kv--confirm site-kv--stack') +
+        (ps && ps.after ? '<p class="site-show__after">' + jp(ps.after) + '</p>' : '') +
+      '</div>' +
+      (ps && !ps.on ? '<p class="site-join__notice">この回の一般公開は、運営の都合で取りやめになりました。</p>' : '') +
+      '<div class="site-show__acts">' +
+        '<a class="site-btn site-btn--ghost" href="#/">トップへ戻る</a>' +
+        '<button type="button" class="site-textbtn" data-show="again">別の方を申し込む</button>' +
+      '</div>';
+  }
+  function showcasePage() {
+    var body;
+    if (SH.step === 'done') body = showDone();
+    else {
+      var ps = nextShow();
+      body = showHead('成果発表会の一般公開', showLead(ps)) + (ps ? showInfo(ps) + showForm(ps) +
+        '<p class="site-page__p site-show__member">会員の方は、<a class="site-link" href="member.html#/events">会員ページのイベント</a>から予約できます。</p>' : showEmpty());
+    }
+    return '<article class="site-wrap site-wrap--narrow site-page site-show">' + body + '</article>';
+  }
+  function submitShow() {
+    if (SH.busy || SH.done) return;
+    var form = doc.getElementById('site-show-form'), btn = form && form.querySelector('button[type=submit]');
+    SH.busy = true; SH.error = '';
+    if (btn) {
+      btn.setAttribute('disabled', ''); btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML = '<span class="site-spin" aria-hidden="true"></span>申し込んでいます…';
+    }
+    var st = doc.getElementById('show-status');
+    if (st) st.textContent = '申し込んでいます。';
+    setTimeout(function () {
+      SH.busy = false;
+      var res;
+      try { res = R && R.showcaseSignup ? R.showcaseSignup({ name: SH.f.name.trim(), email: half(SH.f.email).trim() }) : null; } catch (e) { res = null; }
+      if (!res) res = { ok: false, error: '申し込めませんでした。時間をおいて、もう一度お試しください。' };
+      if (res.ok) {
+        SH.done = true; SH.existing = !!res.existing; SH.signup = res.signup; saveShow();
+        if (current === 'showcase') replaceHash(showHash('done'));
+        return;
+      }
+      if (current !== 'showcase') return;
+      if (res.errors) {
+        SFIELDS.forEach(function (k) { SH.err[k] = res.errors[k] || ''; });
+        renderMain(false);
+        var bad = SFIELDS.filter(function (k) { return SH.err[k]; })[0];
+        focusEl(doc.getElementById('s-' + (bad || 'name')), true);
+        return;
+      }
+      SH.error = res.error || '申し込めませんでした。';
+      renderMain(false);
+      // 回がなくなったとき（運営が一般公開を切った）は、フォームの代わりに「いま申し込める回がありません」が出る
+      if (doc.getElementById('show-error')) focusEl(doc.getElementById('show-error'), true); else focusTitle();
+    }, 700);
+  }
+  function showAct(name) {
+    if (SH.busy) return;
+    if (name === 'again') { resetShow(); go(showHash('input')); }
+  }
   var FORMS = {
     'site-join-form': { p: 'f-', fields: FIELDS, check: checkJoin, state: function () { return J; }, save: function () { saveJoin(); },
       change: function (name) { J.confirmed = false; if (name === 'email') J.dup = false; if (name === 'ref') { J.refTouched = true; J.ok.ref = ''; } },
       submit: function () { J.dup = false; saveJoin(); goJoin('confirm'); } },
     'site-contact-form': { p: 'c-', fields: CFIELDS, check: checkContact, state: function () { return C; }, save: function () { saveContact(); },
-      change: function () { C.confirmed = false; }, submit: function () { C.confirmed = true; saveContact(); go(contactHash('confirm')); } }
+      change: function () { C.confirmed = false; }, submit: function () { C.confirmed = true; saveContact(); go(contactHash('confirm')); } },
+    'site-show-form': { p: 's-', fields: SFIELDS, check: checkShow, state: function () { return SH; }, save: function () { saveShow(); },
+      change: function () {}, submit: function () { submitShow(); } }
   };
   function specOf(el) { var f = el && el.form; return f && FORMS[f.id] ? FORMS[f.id] : null; }
   function readField(el) { return el.type === 'checkbox' ? el.checked : el.value; }
@@ -1212,6 +1516,7 @@
   function onFormInput(e) {
     var el = e.target, spec = specOf(el);
     if (!spec || !el.name || spec.fields.indexOf(el.name) < 0) {
+      if (el && el.hasAttribute && el.hasAttribute('data-goal')) { onGoalChange(el); return; }
       if (el && el.id === 'f-adult') { J.f.adult = el.checked; if (el.checked) { J.err.adult = ''; showMsg('f-adult', '', ''); } saveJoin(); }
       return;
     }
@@ -1295,7 +1600,7 @@
       if (t) { J.ok.ref = t; showMsg('f-ref', '', t); }
       else if (J.f.ref && !J.refTouched) { J.err.ref = checkJoin('ref', J.f.ref); showMsg('f-ref', J.err.ref, ''); }
     }
-    ['f-', 'c-'].forEach(function (p) {
+    ['f-', 'c-', 's-'].forEach(function (p) {
       var em = doc.getElementById(p + 'email');
       if (em && em.value) showHint(specOf(em), em.value);
     });
@@ -1367,40 +1672,70 @@
       '<p class="site-page__p"><a class="site-link site-more" href="#/about">運営と講師</a></p>' +
     '</article>';
   }
+  /* やりたいことの絞り込み（#/curriculum?goal=<id>）。知らない id は絞らない */
+  var curGoal = '';
+  function goalFilter(g) {
+    if (!GOALS.length) return '';
+    var items = [['', 'すべて']].concat(GOALS.map(function (x) { return [x.id, x.short || x.label]; }));
+    return '<nav class="site-cur__goals" aria-labelledby="h-goalf">' +
+      '<p class="site-cur__goalsttl" id="h-goalf">やりたいことで絞り込む</p>' +
+      '<ul>' + items.map(function (x) {
+        var on = (g ? g.id : '') === x[0];
+        return '<li><a class="site-chip" data-goal-filter href="#/curriculum' + (x[0] ? '?goal=' + encodeURIComponent(x[0]) : '') + '"' +
+          (on ? ' aria-current="true"' : '') + '>' + esc(x[1]) + '</a></li>';
+      }).join('') + '</ul></nav>';
+  }
+  /** その道の講座を見る順に。道の途中で Lv が上がって開くことを1行で書く */
+  function goalList(g, block) {
+    var cs = goalCourses(g);
+    return '<section class="site-cur__fac site-cur__path" aria-labelledby="h-path">' +
+      '<h2 class="site-h2" id="h-path">' + esc(g.label) + '</h2>' +
+      '<p class="site-cur__desc">' + jp('講座は' + cs.length + '本。レベルが上がると次の講座が開きます。') + '</p>' +
+      (cs.length ? cs.map(function (c, i) { return block(c, i + 1); }).join('') :
+        '<p class="site-page__p">この道の講座は準備中です。</p>') +
+      '<p class="site-page__p"><a class="site-link site-more" href="#/curriculum">すべての講座を見る</a></p>' +
+    '</section>';
+  }
   function curriculum() {
-    var sample = DATA.COURSES[0], sl = sample && sample.lessons[0];
-    var minutes = function (c) { return c.lessons.reduce(function (a, l) { return a + l.min; }, 0); };
+    var sample = DATA.COURSES[0], sl = sample && sample.lessons[0], g = goalOf(curGoal);
     return '<article class="site-wrap site-wrap--narrow site-page site-cur">' +
       backLink() +
       '<h1 class="site-page__ttl" data-page-title tabindex="-1">講座の一覧</h1>' +
       '<p class="site-page__lead">' + jp(SITE.contentLine + '。' + SITE.lessonLength + 'です。') + '</p>' +
-      (sl ? '<section class="site-cur__sample" aria-labelledby="h-sample">' +
+      goalFilter(g) +
+      // 見本の回は、絞り込んでいないときだけ（絞り込んだときは、その道の講座をすぐ下に並べる）
+      (sl && !g ? '<section class="site-cur__sample" aria-labelledby="h-sample">' +
         '<h2 class="site-h3" id="h-sample">見本の回：' + esc(sample.title) + ' 第1回「' + esc(sl.title) + '」（' + esc(sl.min) + '分）</h2>' +
         (sl.desc ? '<p>' + jp(sl.desc) + '</p>' : '') +
         (sl.points ? '<ul class="site-bullets">' + sl.points.map(function (t) { return '<li>' + jp(t) + '</li>'; }).join('') + '</ul>' : '') +
         '<p><a class="site-btn site-btn--ghost" href="member.html?demo=1#/lesson/' + encodeURIComponent(sample.id) + '/' + encodeURIComponent(sl.id) + '">デモの会員ページで見る</a></p>' +
       '</section>' : '') +
-      DATA.FACULTIES.map(function (fac) {
+      (g ? goalList(g, courseBlock) : DATA.FACULTIES.map(function (fac) {
         var list = DATA.COURSES.filter(function (c) { return c.faculty === fac.id; }).sort(function (a, b) { return a.level - b.level; });
         if (!list.length) return '';
         return '<section class="site-cur__fac" aria-labelledby="fac-' + esc(fac.id) + '">' +
           '<h2 class="site-h2" id="fac-' + esc(fac.id) + '">' + esc(fac.name) + '</h2>' +
           '<p class="site-cur__desc">' + jp(fac.desc) + '</p>' +
-          list.map(function (c) {
-            var t = person(c.teacher);
-            return '<div class="site-cur__course" id="c-' + esc(c.id) + '">' +
-              '<h3 class="site-h3" tabindex="-1">' + esc(c.title) + '</h3>' +
-              '<p class="site-cur__meta">Lv' + esc(c.level) + 'で開く・全' + c.lessons.length + '回・' + minutes(c) + '分' + (t ? '・講師 <span class="site-nw">' + esc(kari(t)) + '</span>' : '') + '</p>' +
-              '<p class="site-cur__sum">' + jp(c.summary) + '</p>' +
-              '<ol class="site-cur__lessons">' + c.lessons.map(function (l, i) {
-                return '<li><span class="site-cur__no">第' + (i + 1) + '回</span><span class="site-cur__lt">' + jp(l.title) + '</span><span class="site-cur__min num">' + esc(l.min) + '分</span></li>';
-              }).join('') + '</ol>' +
-            '</div>';
-          }).join('') +
+          list.map(function (c) { return courseBlock(c); }).join('') +
         '</section>';
-      }).join('') +
+      }).join('')) +
       '<p class="site-page__p">講座はレベルで順に開きます。<a class="site-link site-nw" href="#/levels">講座とレベル</a></p>' +
     '</article>';
+  }
+  /** 講座1本（見出し・開くレベル・回の一覧）。n は、やりたいことの道で見る順（絞り込んだときだけ） */
+  function courseBlock(c, n) {
+    var t = person(c.teacher), mins = c.lessons.reduce(function (a, l) { return a + l.min; }, 0), free = +c.freeFirst || 0;
+    return '<div class="site-cur__course" id="c-' + esc(c.id) + '">' +
+      '<h3 class="site-h3" tabindex="-1">' + (n ? '<span class="site-cur__ord num">' + n + '.</span>' : '') + esc(c.title) + '</h3>' +
+      '<p class="site-cur__meta">Lv' + esc(c.level) + 'で開く・全' + c.lessons.length + '回・' + mins + '分' + (t ? '・講師 <span class="site-nw">' + esc(kari(t)) + '</span>' : '') + '</p>' +
+      // AI・動画の1回目（freeFirst）はレベルに関係なく開く。Lv1 の講座は最初から開くので書かない
+      (free && c.level > 1 ? '<p class="site-cur__free">' + esc(FREE_NOTE) + '</p>' : '') +
+      '<p class="site-cur__sum">' + jp(c.summary) + '</p>' +
+      '<ol class="site-cur__lessons">' + c.lessons.map(function (l, i) {
+        return '<li><span class="site-cur__no">第' + (i + 1) + '回</span><span class="site-cur__lt">' + jp(l.title) + '</span>' +
+          '<span class="site-cur__min num">' + esc(l.min) + '分</span></li>';
+      }).join('') + '</ol>' +
+    '</div>';
   }
   function newsItems() {
     var e4 = eventOf('showcase'), D = SITE.docsDate || {};
@@ -1537,6 +1872,7 @@
       return ol([
         '紹介の対象は1段（直接紹介した方）に限ります。紹介した方がさらにほかの方を紹介しても、最初に紹介した会員に報酬は発生しません。',
         '収入を約束する勧誘、紹介であることを隠した勧誘は禁止します。',
+        '紹介リンクを付けてSNSなどに投稿するときは、「#PR」を入れて広告であることを示してください（会員ページのシェアの文面には、紹介リンクを付けると自動で入ります）。',
         '紹介の報酬の額・支払いの時期など、そのほかの詳細は別に定めます。'
       ]);
     }],
@@ -1601,19 +1937,22 @@
     function sec(t, body) { n++; return '<section class="site-doc__art" id="doc-p' + n + '"><h2 tabindex="-1">' + n + '. ' + esc(t) + '</h2>' + body + '</section>'; }
     var body = para(co + '（以下「当社」）は、' + BRAND + 'の会員とお申込みの方の個人情報を、次のとおり取り扱います。') +
       sec('取得する情報', ol([
-        'お申込みのときに入力いただく情報（お名前、ふりがな、メールアドレス、住んでいる地域、お仕事、紹介コード）',
-        '会員ページの利用記録（講座の視聴、投稿、イベントの予約、案件への応募など）',
+        'お申込みのときに入力いただく情報（お名前、ふりがな、メールアドレス、住んでいる地域、お仕事、やりたいこと、紹介コード）',
+        '成果発表会の一般公開に申し込まれた方のお名前とメールアドレス',
+        '会員ページの利用記録（講座の視聴、投稿、リクエスト、イベントの予約、案件への応募など）',
         'お問い合わせ・ご相談の内容'
       ])) +
       sec('利用目的', ol([
         '本サービスの提供、本人確認、料金の請求',
         '新しい講座・案件・イベントなどのお知らせ',
         'サービスの改善、不正な利用の防止',
-        'お問い合わせ・ご相談への対応'
+        'お問い合わせ・ご相談への対応',
+        '成果発表会の一般公開に申し込まれた方への、その回のご案内（ほかのお知らせには使いません）'
       ])) +
       sec('会員どうしで表示される情報', ol([
         '会員ページでは、表示名・地域・レベル・入会した月・自己紹介・投稿が、ほかの会員に表示されます。',
         '地域は、はじめは都道府県までです。市区町村まで出すか、出さないかは本人が選べます。',
+        'やりたいことは、ほかの会員に出すか、出さないかを本人が選べます。リクエストは、名前を出さずに（匿名で）出せます。',
         '本名（表示名と別にした場合）・メールアドレス・住所・支払いの情報は、ほかの会員には表示しません。'
       ])) +
       sec('紹介の記録', ol([
@@ -1661,6 +2000,7 @@
     about: { title: '運営と講師', render: about },
     company: { title: '運営会社', render: company },
     curriculum: { title: '講座の一覧', render: curriculum },
+    showcase: { title: function () { return SH.step === 'done' ? (SH.existing ? 'すでに申し込まれています' : '申込みを受け付けました') : '成果発表会の一般公開'; }, render: showcasePage },
     news: { title: 'お知らせ', render: news },
     tokushoho: { title: '特定商取引法に基づく表記', render: tokushoho },
     terms: { title: '利用規約', render: terms },
@@ -1733,7 +2073,8 @@
     main.innerHTML = route.render();
     if (current === 'join' && J.step === 'done') { J.doneSeen = true; saveJoin(); }
     if (current === 'contact' && C.step === 'sent') { C.sentSeen = true; saveContact(); }
-    if (current === 'join' || current === 'contact') afterFormRender();
+    if (current === 'showcase' && SH.step === 'done') { SH.doneSeen = true; saveShow(); }
+    if (current === 'join' || current === 'contact' || current === 'showcase') afterFormRender();
     if (toTop) global.scrollTo(0, 0);
     watchLp();
   }
@@ -1750,8 +2091,14 @@
     var changed = name !== current;
     if (name === 'join' && !routeJoin(r.query, changed)) return;
     if (name === 'contact' && !routeContact(r.query, changed)) return;
+    if (name === 'showcase' && !routeShow(r.query, changed)) return;
+    // 講座の一覧の絞り込み（?goal=）。知らない id は絞らない
+    var goalNow = name === 'curriculum' && goalOf(r.query.goal) ? r.query.goal : '';
     // 段と、再入会かどうか（同じ段でも中身が入れ替わるので、見出しへ焦点を移す）
-    var step = name === 'join' ? J.step + (J.rejoin ? '-rejoin' : '') : name === 'contact' ? C.step : '';
+    var step = name === 'join' ? J.step + (J.rejoin ? '-rejoin' : '') : name === 'contact' ? C.step : name === 'showcase' ? SH.step : '';
+    // 同じ講座の一覧の中で絞り込みを変えたときは、先頭へ戻さず、押した絞り込みに焦点を残す（描き直すと押したリンクが消えるため）
+    if (name === 'curriculum' && !changed && goalNow !== curGoal && !r.query.c) pendingFocus = '[data-goal-filter][aria-current]';
+    curGoal = goalNow;
     var stepChanged = !changed && step !== curStep;
     current = name; curStep = step;
     // 申込みの画面は屋号とログインだけの簡単なヘッダーにする（ほかへ気が散らないように）
@@ -1865,12 +2212,13 @@
     var menu = doc.getElementById('site-menu');
     if (menu && !menu.hidden && !t.closest('.site-head')) toggleMenu(false);
 
-    var el = t.closest('[data-scroll],[data-site],[data-join],[data-contact],[data-doc],a[href^="#"]');
+    var el = t.closest('[data-scroll],[data-site],[data-join],[data-contact],[data-show],[data-doc],a[href^="#"]');
     if (!el) return;
     if (el.hasAttribute('data-scroll')) { e.preventDefault(); goSection(el.getAttribute('data-scroll')); return; }
     if (el.hasAttribute('data-site')) { siteAct(el.getAttribute('data-site'), el, e); return; }
     if (el.hasAttribute('data-join')) { if (el.disabled) return; joinAct(el.getAttribute('data-join'), el); return; }
     if (el.hasAttribute('data-contact')) { if (el.disabled) return; contactAct(el.getAttribute('data-contact'), el); return; }
+    if (el.hasAttribute('data-show')) { if (el.disabled) return; showAct(el.getAttribute('data-show')); return; }
     if (el.hasAttribute('data-doc')) {
       // 規約の目次：URL は変えず、その条へ動かして見出しに焦点を置く
       e.preventDefault();
@@ -1924,12 +2272,23 @@
     doc.addEventListener('pointercancel', holdEnd, true);
     global.addEventListener('hashchange', render);
     global.addEventListener('scroll', onScroll, { passive: true });
+    if (CLG.store && CLG.store.on) CLG.store.on(onStoreChange);
     render();
+  }
+  /** 別のタブ（運営画面）で成果発表会の一般公開を切った・入れたとき、申込みの頁の形（フォームか「いま申し込める回がありません」か）を合わせる。
+      形が変わらないときは描き直さない（打っている途中の欄を消さないため） */
+  function onStoreChange() {
+    if (current !== 'showcase' || !SH || SH.step !== 'input' || SH.busy || !main) return;
+    if (!!doc.getElementById('site-show-form') === !!nextShow()) return;
+    var had = main.contains(doc.activeElement);
+    renderMain(false);
+    if (had) focusTitle();
   }
 
   CLG.site = {
     ROUTES: ROUTES, COND: COND, parse: parse, render: render,
     join: function () { return J; }, resetJoin: resetJoin, contact: function () { return C; }, resetContact: resetContact,
+    showcase: function () { return SH; }, resetShowcase: resetShow,
     getRef: getRef, captureRef: captureRef, header: headerHtml, footer: footerHtml, faq: faqItems
   };
 

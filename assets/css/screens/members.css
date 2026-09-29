@@ -1,6 +1,6 @@
 /* ============================================================
    会員名簿（#/members）と会員のページ（#/members/<id>）
-   名簿：探す欄と4つの絞り込み（都道府県・入会月・学部・レベル）→ 行の一覧。
+   名簿：やりたいことの札 → 探す欄と4つの絞り込み（都道府県・入会月・学部・レベル）→ 行の一覧（やりたいことの印つき）。
    会員のページ：顔・名前・レベル章 → 表 → 自己紹介 → 投稿・講座・イベント・案件。
    ============================================================ */
 .scr-members .mb-you { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--ink-3); vertical-align: 1px; }
@@ -31,6 +31,10 @@
   .scr-members .mb-sort .select { width: 100%; }
   .scr-members .mb-filters__sel { gap: 8px; }
 }
+
+/* ---------- 名簿：やりたいことの札（一覧の上）と、行に添える印 ---------- */
+.scr-members .mb-goals { margin-bottom: 12px; }
+.scr-members .mb-row__goals { display: flex; margin-top: 5px; }
 
 /* ---------- 名簿：結果 ---------- */
 .scr-members .mb-results { margin-top: 16px; }
@@ -70,6 +74,14 @@
 .scr-members .mb-muted > div { flex: 1 1 220px; }
 .scr-members .mb-bio { margin: 0 2px 16px; color: var(--ink-2); font-size: 14.5px; line-height: 1.8; max-width: 40em; }
 .scr-members .mb-kv .kv th { width: 8.5em; }
+/* 表の「やりたいこと」：選んだ項目（名簿へのリンク）→ 1行のやりたいこと → 自分だけの注記 */
+.scr-members .mb-goaltags { display: flex; margin: 1px 0 2px; }
+/* 指で押す幅：印が2行に折れたとき、上下の押せる範囲（44px）が重ならないように行の間をあける */
+@media (max-width: 860px) { .scr-members .mb-goaltags { row-gap: 24px; margin: 4px 0; } }
+.scr-members .mb-goaltags + .mb-goaltext { margin-top: 6px; }
+.scr-members .mb-goaltext { display: block; }
+.scr-members .mb-goalnote { display: block; margin-top: 4px; font-size: 13px; color: var(--ink-2); }
+.scr-members .mb-goalnote a { color: var(--indigo); font-weight: 600; }
 .scr-members .mb-sec { margin-top: 26px; }
 .scr-members .mb-intro { padding: 16px 20px 6px; }
 .scr-members .mb-intro__text { font-size: 14.5px; line-height: 1.85; overflow-wrap: anywhere; }

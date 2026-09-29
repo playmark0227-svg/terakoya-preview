@@ -5,6 +5,7 @@
      ルールは見出しの横の「コミュニティのルール」から窓で開く
    - 投稿は1枚ずつのカードにせず、1つの箱に線で区切って並べる
    - 運営が隠した投稿・コメント（本人にだけ見える）は、黄土の知らせと --warn-ink の一言で示す
+   - 自己紹介：種類の札の下に「やりたいこと」の札（.feed-goals）。投稿には U.goalTags の印（.post__goals。色と形は app.css）
    ============================================================ */
 .scr-feed { max-width: 680px; margin-inline: auto; }
 .scr-feed .feed-layout { display: grid; gap: 28px; align-items: start; }
@@ -104,6 +105,19 @@
 @media (max-width: 640px) {
   .scr-feed .feed-chips { margin-top: 14px; margin-bottom: 8px; }
 }
+/* 自己紹介のときだけ：やりたいことの札（#/feed?kind=intro&goal=sns）。種類の札の下に、名前を左に置いて1段 */
+.scr-feed .feed-goals { display: flex; align-items: center; gap: 6px 12px; margin: -2px 0 12px; min-width: 0; }
+.scr-feed .feed-goals__lbl { flex: none; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.scr-feed .feed-goals__chips { flex: 1 1 auto; min-width: 0; gap: 6px; }
+.scr-feed .feed-goals .chip { height: 32px; padding: 0 12px; font-size: 12.5px; }
+@media (max-width: 860px) {
+  .scr-feed .feed-goals .chip { height: 40px; }
+}
+@media (max-width: 640px) {
+  /* 名前は上に置き、札は横に流す（種類の札と同じ） */
+  .scr-feed .feed-goals { display: block; margin: 0 0 8px; }
+  .scr-feed .feed-goals__lbl { margin-bottom: 2px; }
+}
 
 /* 入会月でしぼったとき（#/feed?kind=intro&cohort=2026-09）：何でしぼっているかと件数、条件を外すリンク */
 .scr-feed .feed-cohort { display: flex; align-items: center; flex-wrap: wrap; gap: 0 14px; margin: -2px 2px 8px; }
@@ -163,6 +177,9 @@
 .scr-feed .post__kind, .scr-feed .post__text, .scr-feed .post__link, .scr-feed .post__imgs, .scr-feed .post__cmts { margin-left: 52px; }
 .scr-feed .post__foot { margin-left: 42px; }   /* いいねの押せる範囲の左の余白ぶん、少し左へ */
 .scr-feed .post__kind { margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+/* 自己紹介のやりたいこと（U.goalTags。押せない印）。種類の名前があれば、その右に並べる */
+.scr-feed .post__kind:has(.post__goals) { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+.scr-feed .post__kname { flex: none; }
 .scr-feed .post__text { margin-top: 2px; font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; text-wrap: pretty; }
 .scr-feed .post__link { margin-top: 8px; font-size: 14px; }
 .scr-feed .post__link a { display: inline-block; padding: 10px 0; margin: -10px 0; color: var(--indigo); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }

@@ -92,6 +92,8 @@
     var act = ms.filter(function (m) { return m.status !== 'left'; });
     var v = DATA.COURSES.map(function (c) {
       var n = c.lessons.length, hard = 1 + hashOf(c.id) % Math.max(1, n - 1);
+      // 最近足した講座は、始めた人・進んだ人を少なめに（courses.js の cms.courseRamp。足した日から45日で前からある講座と同じ）
+      var rp = AD.cms && AD.cms.courseRamp ? AD.cms.courseRamp(c) : { at: '', f: 1, g: 1 };
       var reach = []; for (var i = 0; i < n; i++) reach.push(0);
       var open = act.filter(function (m) { return m.level >= c.level; }), started = 0, done = 0;
       open.forEach(function (m) {
@@ -99,8 +101,8 @@
         if (m.live) k = R.courseState(c).done;
         else {
           var r = DATA.rng(hashOf(m.no + ':' + c.id));
-          var gap = m.level - c.level, startP = c.level === 1 ? 0.93 : gap >= 1 ? 0.84 : 0.55;
-          if (r() < startP) { k = 1; while (k < n && r() < (k === hard ? 0.72 : 0.95 - (gap === 0 ? 0.08 : 0))) k++; }
+          var gap = m.level - c.level, startP = (c.level === 1 ? 0.93 : gap >= 1 ? 0.84 : 0.55) * rp.f;
+          if (r() < startP) { k = 1; while (k < n && r() < (k === hard ? 0.72 : 0.95 - (gap === 0 ? 0.08 : 0)) * rp.g) k++; }
         }
         if (k > 0) started++;
         if (k >= n) done++;
@@ -111,7 +113,7 @@
         var drop = reach[s - 1] ? 1 - reach[s] / reach[s - 1] : 0;
         if (!stop || drop > stop.drop) stop = { i: s, drop: drop, lesson: c.lessons[s] };
       }
-      return { id: c.id, title: c.title, level: c.level, n: n, open: open.length, started: started, done: done, rate: started ? done / started : 0, reach: reach, stop: stop, course: c };
+      return { id: c.id, title: c.title, level: c.level, n: n, since: rp.at, open: open.length, started: started, done: done, rate: started ? done / started : 0, reach: reach, stop: stop, course: c };
     });
     cmemo = { key: key, v: v };
     return v;
@@ -286,7 +288,7 @@
         // 止まる回：狭い幅では列を隠すので、講座名の下にも出す（CSS で幅によって片方だけ見せる）
         var stop = c.stop && c.stop.drop > 0 && c.started >= 5 ? '第' + (c.stop.i + 1) + '回 ' + c.stop.lesson.title : '';
         return '<tr class="is-link' + (on ? ' is-sel' : '') + '" data-tb-href="' + esc(AD.app.hashOf('reports', Object.assign({}, ctx.query, { course: on ? null : c.id }))) + '">' +
-          '<td class="is-main"><a href="' + esc(AD.app.hashOf('reports', Object.assign({}, ctx.query, { course: on ? null : c.id }))) + '"' + (on ? ' aria-current="true"' : '') + '><b>' + esc(c.title) + '</b></a><span class="rp-sub">Lv' + c.level + '・' + c.n + '回</span>' +
+          '<td class="is-main"><a href="' + esc(AD.app.hashOf('reports', Object.assign({}, ctx.query, { course: on ? null : c.id }))) + '"' + (on ? ' aria-current="true"' : '') + '><b>' + esc(c.title) + '</b></a><span class="rp-sub">Lv' + c.level + '・' + c.n + '回' + (c.since ? '・' + esc(U.fmtShort(c.since)) + 'に追加' : '') + '</span>' +
             (stop ? '<span class="rp-sub rp-stop-inline">止まる回：' + esc(stop) + '</span>' : '') + '</td>' +
           '<td class="r num" data-label="開いている人">' + c.open + '</td><td class="r num" data-label="始めた">' + c.started + '</td><td class="r num" data-label="修了">' + c.done + '</td>' +
           '<td data-label="修了率"><span class="rp-meter"><span class="rp-meter__bar" aria-hidden="true"><i style="width:' + Math.round(c.rate * 100) + '%"></i></span><span class="num">' + Math.round(c.rate * 100) + '%</span></span></td>' +

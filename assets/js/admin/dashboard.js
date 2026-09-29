@@ -3,7 +3,7 @@
    「今日、手を付けることは何か」に答える画面。数字はすべて AD.data（デモのデータ＋会員ページの状態）から作る。
    - 上：在籍・今月の入会・解約予定・今月の売上（税込）・未返信
    - 今日やること（確認待ちの列を急ぐ順に）と、デモ会員へのその場の返信（R.staffReply → 会員ページのタブに届く）
-   - 止まっている新入生・今週のイベント・最近の操作
+   - 止まっている新入生・今週のイベント・要望の多いリクエスト（上位5件）・やりたいことの内訳・最近の操作
    ============================================================ */
 (function () {
   'use strict';
@@ -78,6 +78,7 @@
         sub: m.rewardsReady ? '合わせて ' + U.yen(m.rewardsReadySum) : '' },
       { icon: 'chat', label: '専門家への相談（受付・日程調整）', n: m.experts, href: '#/perks?tab=experts', sub: '' },
       { icon: 'clock', label: '面談の日時の確定待ち', n: m.interviews, href: '#/onboarding?view=interviews', sub: '' },
+      { icon: 'chat', label: '返事がまだのリクエスト', n: m.requests || 0, href: '#/requests?status=open', sub: '' },
       { icon: 'flag', label: 'スタートガイドで止まっている新入生', n: m.stalled, href: '#/onboarding?filter=stalled', unit: '人',
         sub: '入会30日以内の ' + m.newMembers + '人のうち' }
     ];
@@ -160,6 +161,38 @@
       actions: '<a class="ad-panel__link" href="#/events">イベント</a>', body: body });
   }
 
+  /* 要望の多いリクエスト：受付中・検討中のうち＋1の多い5件（R.requests。押すと返事を書く画面） */
+  function requestsPanel() {
+    var list = [];
+    try { list = R.requests({ status: 'active', sort: 'popular', admin: true }).slice(0, 5); } catch (e) { console.error(e); }
+    var body = list.length ? '<ol class="a-rqtop">' + list.map(function (r) {
+      return '<li><a class="a-rqtop__row" href="#/requests/' + esc(encodeURIComponent(r.id)) + '">' +
+        '<span class="a-rqtop__n"><b class="num">' + esc(r.votes) + '</b><span class="sr-only">人が＋1</span></span>' +
+        '<span class="a-rqtop__body"><span class="a-rqtop__ttl">' + esc(r.title) + '</span>' +
+          '<span class="a-rqtop__sub">' + esc(r.kindLabel) + '・<span class="nw">' + (r.reply ? '返事 ' + esc(U.fmtShort(r.reply.at)) : '返事がまだ') + '</span>' + '</span></span>' +
+        AU.status('request', r.status) + U.chevron() + '</a></li>';
+    }).join('') + '</ol>' : AU.empty('いま受付中・検討中のリクエストはありません。', { href: '#/requests', label: 'リクエストを見る' });
+    return AU.panel({ title: '要望の多いリクエスト', id: 'dashRequests', cls: 'a-dash__rq', flush: true,
+      actions: '<a class="ad-panel__link" href="#/requests">リクエスト</a>', body: body });
+  }
+  /* やりたいことの内訳（R.goalStats。在籍中の会員。本人が名簿に出していなくても数える。1人2つまでなので合計は100%を超える） */
+  function goalsPanel() {
+    var gs = null;
+    try { gs = R.goalStats(); } catch (e) { console.error(e); }
+    if (!gs || !gs.total) return AU.panel({ title: 'やりたいこと', id: 'dashGoals', cls: 'a-dash__goals', body: AU.empty('まだ数えられる会員がいません。') });
+    var max = Math.max.apply(null, gs.rows.map(function (r) { return r.pct; }).concat([1]));
+    var body = '<ul class="a-goals">' + gs.rows.map(function (r) {
+      var none = r.id === 'none';
+      return '<li><a class="a-goals__row' + (none ? ' is-none' : '') + '" href="#/members?goal=' + encodeURIComponent(r.id) + '&amp;status=enrolled">' +
+        '<span class="a-goals__label" title="' + esc(none ? 'まだ決めていない' : r.label) + '">' + esc(none ? '未選択' : r.short) + '</span>' +
+        '<span class="a-goals__bar" aria-hidden="true"><i style="width:' + Math.max(2, Math.round(r.pct / max * 100)) + '%"></i></span>' +
+        '<span class="a-goals__n"><b class="num">' + U.num(r.count) + '</b>人<span class="a-goals__pct num">' + esc(Number(r.pct).toFixed(1)) + '%</span></span>' +
+        U.chevron() + '</a></li>';
+    }).join('') + '</ul><p class="a-goals__note">在籍 ' + U.num(gs.total) + '人。2つ選んだ人は両方に数えています。</p>';
+    return AU.panel({ title: 'やりたいこと', id: 'dashGoals', cls: 'a-dash__goals', flush: true,
+      actions: '<a class="ad-panel__link" href="#/members">会員</a>', body: body });
+  }
+
   function auditPanel() {
     var list = AD.db.state.audit.slice(0, 6);
     var body = list.length ? '<ul class="a-log">' + list.map(function (a) {
@@ -186,6 +219,7 @@
         kpis(m, ms) +
         '<div class="a-dash__grid">' + todo(m) + liveCard(ctx) + '</div>' +
         '<div class="a-dash__grid a-dash__grid--b">' + stalledPanel(m) + eventsPanel(m) + '</div>' +
+        '<div class="a-dash__grid a-dash__grid--c">' + requestsPanel() + goalsPanel() + '</div>' +
         auditPanel() +
       '</div>';
     },

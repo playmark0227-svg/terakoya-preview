@@ -113,6 +113,13 @@
 @media (prefers-reduced-motion: reduce) { .scr-gigs .gg-closed__caret { transition: none; } }
 
 /* ---------- 下の注意書き ---------- */
+/* 欲しい案件が無いとき：リクエストへの入口（一覧の終わりに1つ。.card-flat と同じ灰の面） */
+.scr-gigs .gg-req {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+  margin-top: 18px; padding: 14px 16px 14px 20px; border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--line);
+}
+.scr-gigs .gg-req__txt { flex: 1 1 16em; min-width: 0; font-size: 14px; line-height: 1.65; color: var(--ink-2); }
+.scr-gigs .gg-req__btn { flex: none; }
 .scr-gigs .gg-safe { margin: 28px 4px 0; font-size: 13px; color: var(--ink-2); line-height: 1.7; }
 .scr-gigs .gg-safe a { color: var(--indigo); font-weight: 700; }
 

@@ -19,6 +19,14 @@
    COURSES     [{ id, faculty, level, title, teacher, summary, img, alt, learn[],
                   lessons[{ id, title, min, desc, points[3], material{name,type}, newAt? }], quiz? }]（desc・points・material は全部の回にある。LESSON_DETAIL）
                quiz = [{ q, choices[], answer（0始まり）, why, lesson?（まちがえたときに戻る回のid） }]（3問・QUIZ_PASS 問以上で合格）
+               freeFirst?（最初の何回を Lv に関係なく開くか。ai・video は 1）
+               addedAt?（あとから足した講座の、足した日。運営画面の「見た人」の数の作り方に使う。change-basic・remote-work）
+   COUNTS      { courses, lessons, lv1Courses, freeFirst[], steps（スタートガイドの項目の数） }（本数・回数は画面に直に書かずここから）
+   GOALS       [{ id, label, short, courses[], gigs[], events[] }]（やりたいこと。PEOPLE・名簿・デモ会員に goals[]）
+   REQUESTS    [{ id, kind, title, detail, by, anonymous, at, votes, status, reply?{by,at,text}, link?{type,id} }]
+               REQUEST_KINDS / REQUEST_STATUS（open 受付中・considering 検討中・added 追加しました・declined 今回は見送り）
+   SHARE       { hashtag, moments{course,level,showcase,start30,invite}, prLine, guide[] }（シェアにポイントは付けない）
+   PUBLIC_SHOWCASE { eventId, minutes, when, place, fee, note, after }（成果発表会のはじめの30分の一般公開）
    ARCHIVE     [{ id, faculty（学部id か 'showcase'）, genre（表示の群名）, title, date, newAt, min, teacher,
                   desc, chapters[[時刻, 題]], files[{name,type}], course?（関係する講座のid） }]   … 勉強会の録画
    PEOPLE      { id: { name（表示名）, realName?, initial（姓のローマ字1字）, role?, staff?, color, area, lv, xp,
@@ -27,7 +35,9 @@
    ROSTER      [{ id, no, person（PEOPLE のid / 'demo' / null）, name, pref, city, area, job, joinedAt, joinedDaysAgo,
                   xp, level, stepsDone, lastActive, status（active/canceling/left/past_due）, leftAt?, cancelAt?,
                   failedAt?・graceUntil?（past_due の人だけ：失敗した請求の日＝入会日から数えた直近の請求日と、猶予の最後）,
-                  monthPoints, monthXp, cohort }]   genRoster(n, seed) で作る。ROSTER_INDEX[会員番号] で引ける
+                  monthPoints, monthXp, cohort, goals[] }]   genRoster(n, seed) で作る。ROSTER_INDEX[会員番号] で引ける
+               stepsDone はスタートガイドの済んだ数（「やりたいことを選ぶ」は goals を選んでいれば済・ほかは上から順に済）。
+               項目ごとの済は rosterSteps(m)（ONBOARDING の順の true/false）・rosterStep(m, id)
                past_due は直近の請求日が2・4・5日前の3人（運営画面の seed.js と同じ選び方。運営画面の支払いの失敗と日付がそろう）
    ONBOARDING  [{ id, week, xp, title, desc, go, auto? }]
    FEED        [{ id, kind（news/new/gig/event/win/post/question/intro）, by, at, text, likes, comments（=replies数）,
@@ -284,11 +294,19 @@
       summary: '確定申告、経費、20万円のライン、開業届。提携の税理士が話します。',
       learn: ['確定申告が必要になる条件', '経費になるもの・ならないもの', 'スマホで週1回つける帳簿', '開業届を出すタイミング'],
       lessons: L('mt', [['副業と確定申告、最初に知っておくこと', 15], ['経費になるもの・ならないもの', 13], ['帳簿は「スマホで週1」で足りる', 10], ['開業届はいつ出す？', 9]]) },
+    { id: 'change-basic', addedAt: D(-6, 11, 0), img: 'assets/img/course-change-basic.webp', alt: 'カフェの窓ぎわでノートを開いて考える女性', faculty: 'basic', level: 1, title: '自分を知る・目標を決める', teacher: 'staff2',
+      summary: 'いまの自分を書き出して、1か月と3か月の小さな目標を決める。何から始めるか決めていない人は、ここからどうぞ。',
+      learn: ['いまの時間・得意・苦手の書き出し方', 'やりたいことを候補から1つにしぼる方法', '1か月と3か月の目標を行動で書く', '仲間と記録を使って続ける方法'],
+      lessons: L('cb', [['いまの自分の棚卸し', 11], ['やりたいことの見つけ方', 13], ['小さな目標の決め方（1か月・3か月）', 12], ['続けるための仕組み（仲間・記録・振り返り）', 10]]) },
     { id: 'sns-basic', img: 'assets/img/fac-sns.webp', alt: 'カフェでスマートフォンを構える女性', faculty: 'sns', level: 1, title: 'SNS発信入門', teacher: 'staff4',
       summary: 'プロフィールの作り方と、投稿を続けるコツ。',
       learn: ['発信を始める前に決めること', '自分の軸を1行で言う方法', 'プロフィールの整え方', '投稿を続けるための型', '週1回の数字の見方'],
       lessons: L('sb', [['発信で得られるもの・失うもの', 10], ['自分の「軸」を1行で言う', 12], ['プロフィールの整え方', 9], ['投稿を続けるための型', 11], ['数字の見方（週1でOK）', 8]]) },
-    { id: 'ai', img: 'assets/img/course-ai.webp', alt: 'カフェの窓際でノートパソコンに向かう女性', faculty: 'skill', level: 2, title: 'AI活用', teacher: 'staff3',
+    { id: 'remote-work', addedAt: D(-6, 11, 0), img: 'assets/img/course-remote-work.webp', alt: '窓ぎわの机でノートパソコンに向かう男性', faculty: 'skill', level: 1, title: 'リモートワーク入門', teacher: 'staff4',
+      summary: '在宅でできる仕事の探し方、業務委託の契約で見るところ、応募文の整え方。',
+      learn: ['在宅でできる仕事の種類と、募集の探し方', '業務委託と雇用の違い、契約で確かめること', '応募文とプロフィールの整え方', '家で続けるための時間と場所の決め方'],
+      lessons: L('rw', [['在宅の仕事の種類と探し方', 12], ['業務委託と雇用の違い・契約で見るところ', 14], ['応募文とプロフィールの整え方', 11], ['在宅で続けるための時間と場所', 10]]) },
+    { id: 'ai', img: 'assets/img/course-ai.webp', alt: 'カフェの窓際でノートパソコンに向かう女性', faculty: 'skill', level: 2, freeFirst: 1, title: 'AI活用', teacher: 'staff3',
       summary: 'ChatGPTなどの生成AIで、文章・企画・表計算の作業を減らす。',
       learn: ['生成AIに任せられる作業・任せられない作業', '指示（プロンプト）の書き方', '文章・企画・表計算をAIと作る手順', '実際の案件でAIを使った例'],
       lessons: L('ai', [['生成AIでできること・できないこと', 12], ['指示の出し方（プロンプト）の基本', 15], ['文章・企画・表計算をAIと作る', 18], ['画像と動画のAI', 14], ['AIで副業の作業を減らす実例', 16]]) },
@@ -300,7 +318,7 @@
       summary: 'アカウント設計、投稿、リール、運用代行の受け方。',
       learn: ['アカウントの設計（誰に・何を）', '保存される投稿の作り方', 'リールとストーリーズの使い分け', '運用代行として仕事を受けるまで'],
       lessons: L('ig', [['アカウント設計（誰に、何を）', 14], ['保存される投稿の作り方', 16], ['リールの基本', 13], ['ストーリーズで関係を深める', 11], ['運用代行として仕事にする', 15]]) },
-    { id: 'video', img: 'assets/img/course-video.webp', alt: '三脚のスマートフォンで花を生ける手元を撮影しているところ', faculty: 'skill', level: 3, title: '動画編集', teacher: 'staff3',
+    { id: 'video', img: 'assets/img/course-video.webp', alt: '三脚のスマートフォンで花を生ける手元を撮影しているところ', faculty: 'skill', level: 3, freeFirst: 1, title: '動画編集', teacher: 'staff3',
       summary: 'カット、テロップ、音入れ。60秒の縦動画を1本作るまで。',
       learn: ['編集ソフトの準備と基本操作', 'カットとテロップでテンポを作る', '音と効果音の入れ方', 'ポートフォリオと、はじめての納品'],
       lessons: L('vd', [['編集ソフトの準備と基本操作', 16], ['カットとテンポ', 14], ['テロップの入れ方', 15], ['音と効果音', 11], ['ポートフォリオを作る', 12], ['はじめての納品', 10]]) },
@@ -346,14 +364,30 @@
       lessons: L('tc', [['教える側になるとは', 10], ['講座の設計図', 16], ['収録と編集', 14], ['講座を出す手続きと売上の分け方', 12]]) }
   ];
 
-  /* 講座の中身（19講座の全部の回）。回の id: [説明, この回でわかること3つ, [資料の名前, 種類（pdf/slide/doc/sheet/zip/video/txt）]]。
+  /* 講座の中身（21講座の全部の回）。回の id: [説明, この回でわかること3つ, [資料の名前, 種類（pdf/slide/doc/sheet/zip/video/txt）]]。
      タイムラインや運営の返事が「◯◯の第N回」と書いているものは、ここの中身と合わせてある */
   var LESSON_DETAIL = {
+    'cb-1': ['1週間の時間の使い方、得意なこと、苦手なことを紙に書き出します。',
+      ['平日と休日の空いている時間を数える', '人からよく頼まれることを3つ書く', 'やりたくないことも書いておく'], ['棚卸しシート（PDF・1ページ）', 'pdf']],
+    'cb-2': ['気になっていることを候補として並べ、1つにしぼる方法です。',
+      ['候補を5つまで書く', '「1か月続けられるか」で残す', '決めきれないときは講座の1回目を見比べる'], ['候補の比べ表（PDF）', 'pdf']],
+    'cb-3': ['1か月と3か月の目標を、結果ではなく行動で書きます。',
+      ['「週3回投稿する」のように数えられる形にする', '1か月の目標は小さめにする', '3か月後に見直す日を決めておく'], ['目標シート（PDF）', 'pdf']],
+    'cb-4': ['一人で続けないための仕組みです。仲間・記録・振り返りの3つを使います。',
+      ['タイムラインに週1回だけ記録を書く', '月末の成果発表会を振り返りの日にする', '止まったら運営に相談する'], ['振り返りシート（PDF）', 'pdf']],
+    'rw-1': ['在宅でできる仕事の種類と、募集が載っている場所の探し方です。',
+      ['入力・文章・デザイン・事務のサポートなどの種類', '募集サイトと知人の紹介、それぞれの見方', '会員ページの案件の使い方'], ['在宅の仕事の一覧（PDF）', 'pdf']],
+    'rw-2': ['業務委託と雇用の違いと、契約の前に確かめることです。',
+      ['業務委託は時間ではなく成果物で約束する', '報酬・納期・修正の回数を先に決める', '前払いを求める募集には応募しない'], ['契約前のチェック表（PDF）', 'pdf']],
+    'rw-3': ['応募文とプロフィールを、相手が読みやすい形に整えます。',
+      ['応募文は5行で：あいさつ・できること・実績・時間・連絡', '実績がないときは練習で作ったものを見せる', 'プロフィールの写真と一行紹介'], ['応募文の見本（テキスト）', 'txt']],
+    'rw-4': ['家で仕事を続けるための、時間と場所の決め方です。',
+      ['作業する時間帯を先に決めて家族に伝える', '作業する場所を1か所に決める', '1日の終わりに翌日の最初の作業を書いておく'], ['1週間の予定表（PDF）', 'pdf']],
     'ori-1': ['講座・タイムライン・案件・イベント・相談・福利厚生を、実際の画面で順に見ます。',
       ['ホーム：今日やることと、続きの講座', '講座：レベルで開く順番', '相談・メッセージ：運営に聞く場所'], ['会員ページの地図（PDF・1ページ）', 'pdf']],
     'ori-2': ['スマホとパソコンで、ログインから講座の再生、投稿、イベントの予約までを通しでやってみせます。',
       ['ログインと会員番号', 'スマホのホーム画面に追加する', '通知をLINEで受け取る設定'], ['操作の手順書（PDF・2ページ）', 'pdf']],
-    'ori-3': ['スタートガイドの10項目を、週ごとに何をするかで説明します。',
+    'ori-3': ['スタートガイドの項目を、週ごとに何をするかで説明します。',
       ['1週目：プロフィールと自己紹介', '2週目：講座3回と運営との面談', '3〜4週目：案件への応募と成果発表会'], ['30日の目標シート（PDF）', 'pdf']],
     'ori-4': ['投稿・案件・紹介で守ってほしいことと、その理由です。',
       ['会員どうしの勧誘・営業はしない', '紹介では報酬があることを伝え、#PRを付ける', '講座や録画の中身は外に出さない'], ['コミュニティのルール（PDF・1ページ）', 'pdf']],
@@ -570,6 +604,22 @@
     { q: 'SNSで紹介リンクを載せるときに必ずすることは？', choices: ['「#PR」を入れる', '「必ず稼げる」と書く', '入会した人の名前を書く'], answer: 0,
       why: '紹介の報酬があることが分かるように「#PR」を入れます。収入を約束する書き方はしません。', lesson: 'ori-4' }
   ];
+  byId(COURSES, 'change-basic').quiz = [
+    { q: '1か月の目標の書き方として合っているのは？', choices: ['「人生を変える」と書く', '「週3回、講座を1回ずつ見る」のように行動で書く', '目標は書かずに気分で決める'], answer: 1,
+      why: '数えられる行動で書くと、できたかどうかが分かります。', lesson: 'cb-3' },
+    { q: 'やりたいことが決めきれないときは？', choices: ['候補の講座の1回目を見比べる', '全部を同時に始める', '決まるまで何もしない'], answer: 0,
+      why: '1回目を見比べて、1か月続けられそうなものを残します。', lesson: 'cb-2' },
+    { q: '続けるための仕組みに入らないものは？', choices: ['タイムラインに週1回記録を書く', '月末の成果発表会で振り返る', '誰にも言わずに一人で進める'], answer: 2,
+      why: '仲間・記録・振り返りの3つを使います。止まったら運営に相談できます。', lesson: 'cb-4' }
+  ];
+  byId(COURSES, 'remote-work').quiz = [
+    { q: '業務委託の契約の前に決めておくことは？', choices: ['報酬・納期・修正の回数', '会社の場所だけ', '何も決めずに始める'], answer: 0,
+      why: '業務委託は成果物で約束します。報酬・納期・修正の回数を先に決めます。', lesson: 'rw-2' },
+    { q: '応募しないほうがよい募集は？', choices: ['報酬と納期が書いてある', '始める前にお金の支払いを求める', '試しの作業が1件ある'], answer: 1,
+      why: '前払いを求める募集には応募しません。困ったら運営に相談してください。', lesson: 'rw-2' },
+    { q: '実績がまだないときの応募文は？', choices: ['実績があるように書く', '練習で作ったものを見せる', '応募しない'], answer: 1,
+      why: '練習で作ったものでも、できることが相手に伝わります。', lesson: 'rw-3' }
+  ];
   byId(COURSES, 'sns-basic').quiz = [
     { q: '軸を1行で言うときに入れる3つは？', choices: ['誰に・何を・どんな自分が', 'いつ・どこで・いくらで', 'フォロワー数・投稿数・いいね数'], answer: 0,
       why: '第2回の「誰に・何を・どんな自分が」です。', lesson: 'sb-2' },
@@ -593,6 +643,20 @@
   /* ---------- 人（すべて架空） ----------
      name は会員が決めた表示名（「さん」は付けない）。area の出し方は visibility（決定事項：既定は都道府県まで）。
      photo は空（決定事項：生成した顔写真は使わない。頭文字の丸を出し、本人が上げた写真だけ出す） */
+  /* ---------- やりたいこと（GOALS） ----------
+     入会の申込み・スタートガイド・アカウントで選ぶ（2つまで。1つ目が主）。ラベルに「稼ぐ」「収入」は使わない。
+     courses：ホームの「あなたの道」で見る順。gigTypes / gigs：合う案件（種類か id）。events：合うイベントの id。 */
+  var GOALS = [
+    { id: 'sns', label: 'SNSで発信したい', short: 'SNS発信',
+      courses: ['sns-basic', 'writing', 'instagram', 'shortvideo', 'marketing'], gigs: ['g4', 'g8', 'g5', 'g15'], events: ['e15'] },
+    { id: 'remote', label: '在宅・リモートで働きたい', short: '在宅・リモート',
+      courses: ['remote-work', 'okozukai', 'writing', 'design', 'freelance'], gigs: ['g3', 'g17', 'g12', 'g1'], events: ['e5', 'e13', 'e14'] },
+    { id: 'aivideo', label: 'AI・動画を身につけたい', short: 'AI・動画',
+      courses: ['ai', 'video', 'shortvideo', 'nocode'], gigs: ['g5', 'g13', 'g2'], events: ['e2', 'e12'] },
+    { id: 'change', label: '自分を変えたい・これからを考えたい', short: 'これからを考える',
+      courses: ['change-basic', 'business-basic', 'money-tax', 'coaching', 'startup'], gigs: ['g14', 'g1', 'g2'], events: ['e16', 'e4'] }
+  ];
+
   var PEOPLE = {
     staff1: { name: '森 大輔',   initial: 'M', role: '運営代表',             staff: true, color: '#c63f25',
       bio: '広告代理店で12年、地方の中小企業の集客を担当。TAISEIの代表。「マーケティング」「起業・法人化」を受け持つ。' },
@@ -676,6 +740,18 @@
     if (!p.staff) p.lv = levelOf(p.xp);
   });
 
+  /* 会員（架空）のやりたいこと。選んでいない人もいる（未選択は goals: []） */
+  (function (g) {
+    Object.keys(g).forEach(function (id) { if (PEOPLE[id]) PEOPLE[id].goals = g[id]; });
+    Object.keys(PEOPLE).forEach(function (id) { if (!PEOPLE[id].staff && !PEOPLE[id].goals) PEOPLE[id].goals = []; });
+  })({
+    m1: ['remote'], m2: ['sns', 'aivideo'], m3: ['change'], m4: ['remote', 'change'], m5: ['aivideo'], m6: ['remote'],
+    m7: ['sns'], m8: ['sns', 'aivideo'], m9: ['aivideo', 'remote'], m10: [], m11: ['remote'], m12: ['sns', 'aivideo'], m13: ['change'],
+    m14: ['remote', 'change'], m15: ['sns'], m16: ['remote'], m17: ['change', 'remote'], m18: ['aivideo'], m19: [],
+    m20: ['remote', 'sns'], m21: ['aivideo'], m22: ['sns'], m23: ['sns', 'change'], m24: ['aivideo'], m25: ['remote'],
+    m26: ['aivideo', 'sns'], m27: ['change']
+  });
+
   /* ---------- デモ会員（ログイン画面のボタンで入る人） ---------- */
   var MEMBER = {
     id: 'TS-000271',
@@ -684,6 +760,7 @@
     area: '北海道 旭川市',
     job: '会社員（事務）・2児の母',
     goal: '動画編集を覚えて、在宅の仕事を1件受ける',
+    goals: ['sns', 'remote'],   // やりたいこと（GOALS の id。1つ目が主）
     joinedDaysAgo: 23,
     color: '#c63f25',
     refCode: 'SAKURA271',
@@ -697,6 +774,7 @@
   var VETERAN = {
     id: 'TS-000069',
     person: 'm8',
+    goals: ['sns', 'aivideo'],
     name: '木村 あや',
     kana: 'きむら あや',
     area: '沖縄県 浦添市',
@@ -713,6 +791,7 @@
   /* ---------- 最初の30日（スタートガイド） ----------
      week: 何週目の目安 / go: 押すと飛ぶ先 / auto: 他の画面の操作で自動で済になるもの */
   var ONBOARDING = [
+    { id: 'goals',    week: 1, xp: 0,  title: 'やりたいことを選ぶ', desc: '2つまで選ぶと、ホームに「あなたの道」が出ます。入会の申込みで選んだ人は済みです。', go: '#/start?focus=goals', auto: 'goals' },
     { id: 'profile',  week: 1, xp: 10, title: 'プロフィールを整える', desc: '名前・地域・いまのお仕事を入れます。', go: '#/account' },
     { id: 'orient',   week: 1, xp: 20, title: 'オリエンテーションを見る', desc: '全4回、合わせて30分です。', go: '#/courses/orientation', auto: 'course:orientation' },
     { id: 'line',     week: 1, xp: 10, title: 'LINEで通知を受け取る', desc: '返信や新しい案件がLINEに届きます。', go: '#/account' },
@@ -726,7 +805,7 @@
   ];
 
   /* 自己紹介のひな形（スタートガイドの「自己紹介」から使う） */
-  var INTRO_TEMPLATE = 'はじめまして、{name}です。\n住んでいるところ：{area}\nいまのお仕事：{job}\nやりたいこと：{goal}\nよろしくお願いします！';
+  var INTRO_TEMPLATE = 'はじめまして、{name}です。\n住んでいるところ：{area}\nいまのお仕事：{job}\n目標：{goal}\nよろしくお願いします！';
 
   /* ---------- 会員名簿（管理画面・ランキングの下位・参加者の顔ぶれ・同期の一覧が読む） ----------
      番号は入会順。名前のある人（PEOPLE）とデモ会員・在籍半年の会員は、入会日に合う番号に入れる。
@@ -772,12 +851,31 @@
   function cohortOf(iso) { var d = new Date(iso); return d.getFullYear() + '年' + (d.getMonth() + 1) + '月入会'; }
 
   /** n 人の名簿。入会は240日前から昨日まで、あとになるほど増える（毎月の退会はおよそ4%） */
+  /* 名簿の人のやりたいことの割り当て（12人で一回り。未選択が2人） */
+  var ROSTER_GOALS = [['remote'], ['sns'], ['aivideo'], ['change'], ['remote', 'sns'], [], ['sns', 'aivideo'], ['remote'],
+    ['aivideo', 'remote'], ['change', 'remote'], [], ['sns']];
+  /* 名簿の人のスタートガイド：「やりたいことを選ぶ」は goals を選んでいれば済。ほかの項目（OB_REST 個）は済んだ数だけ上から順に済。
+     stepsDone はその合計（項目の数は ONBOARDING から数える。項目を足しても名簿の数え方がずれないように） */
+  var OB_REST = ONBOARDING.filter(function (s) { return s.id !== 'goals'; }).length;
+  /** 名簿の行 m のスタートガイド：ONBOARDING の順に済んでいるか（true/false） */
+  function rosterSteps(m) {
+    var g = !!(m.goals && m.goals.length), rest = (m.stepsDone || 0) - (g ? 1 : 0), k = 0;
+    return ONBOARDING.map(function (s) { return s.id === 'goals' ? g : k++ < rest; });
+  }
+  /** 名簿の行 m で、項目 id が済んでいるか */
+  function rosterStep(m, id) {
+    var i = -1;
+    ONBOARDING.some(function (s, k) { if (s.id === id) { i = k; return true; } return false; });
+    return i >= 0 && rosterSteps(m)[i];
+  }
+
   function genRoster(n, seed) {
     var r = rng(seed || 1), list = [], i;
     var dayOf = function (k) { return 1 + Math.round(239 * Math.pow((n - k) / (n - 1), 1 / 0.85)); };
     var fixed = {};   // 番号 → 名前のある人
-    fixed[MEMBER.id] = { person: 'demo', name: MEMBER.name, area: MEMBER.area, job: MEMBER.job, xp: 530, days: MEMBER.joinedDaysAgo, steps: 9 };
-    fixed[VETERAN.id] = { person: 'm8', name: VETERAN.name, area: VETERAN.area, job: VETERAN.job, xp: PEOPLE.m8.xp, days: VETERAN.joinedDaysAgo, steps: 10 };
+    // steps は「やりたいことを選ぶ」以外の済んだ数（デモ会員は成果発表会だけまだ・在籍半年の人はすべて済み）
+    fixed[MEMBER.id] = { person: 'demo', name: MEMBER.name, area: MEMBER.area, job: MEMBER.job, xp: 530, days: MEMBER.joinedDaysAgo, steps: OB_REST - 1 };
+    fixed[VETERAN.id] = { person: 'm8', name: VETERAN.name, area: VETERAN.area, job: VETERAN.job, xp: PEOPLE.m8.xp, days: VETERAN.joinedDaysAgo, steps: OB_REST };
     // PEOPLE の会員は、入会日のいちばん近い空き番号に入れる
     Object.keys(PEOPLE).forEach(function (pid) {
       var p = PEOPLE[pid];
@@ -789,7 +887,7 @@
         var dd = Math.abs(dayOf(k) - p.joinedDaysAgo);
         if (dd < bd) { bd = dd; best = k; }
       }
-      fixed['TS-' + pad(best, 6)] = { person: pid, name: p.name, area: p.area, job: p.job, xp: p.xp, days: p.joinedDaysAgo, steps: p.joinedDaysAgo >= 30 ? 10 : Math.min(9, 2 + Math.floor(p.joinedDaysAgo / 3)) };
+      fixed['TS-' + pad(best, 6)] = { person: pid, name: p.name, area: p.area, job: p.job, xp: p.xp, days: p.joinedDaysAgo, steps: p.joinedDaysAgo >= 30 ? OB_REST : Math.min(OB_REST - 1, 2 + Math.floor(p.joinedDaysAgo / 3)) };
     });
     var ranked = {};
     RANKING.forEach(function (x) { ranked[x.person] = x; });
@@ -833,7 +931,7 @@
         job = pickW(r, JOBS, 1)[0];
         var pace = 1.2 + r() * 5.5;              // 1日あたりのXP
         xp = Math.min(1900, Math.round(dAgo * pace * (0.6 + r() * 0.5) / 10) * 10);
-        steps = dAgo >= 30 ? 6 + Math.floor(r() * 5) : Math.min(10, Math.floor(dAgo / 3 * (0.5 + r())));
+        steps = dAgo >= 30 ? OB_REST - 4 + Math.floor(r() * 5) : Math.min(OB_REST, Math.floor(dAgo / 3 * (0.5 + r())));
         // 退会：在籍した月数に応じて、毎月4%ずつ
         var months = dAgo / 30.4;
         if (r() < 1 - Math.pow(0.96, months)) {
@@ -860,11 +958,14 @@
         mx = Math.min(xp, Math.round(r() * 12) * 10);
       }
       if (f && !rk && f.person !== 'demo') { mp = f.xp >= 20 ? [4, 2][i % 2] : 0; mx = Math.min(f.xp, 60); }
+      // やりたいこと：名前のある人は PEOPLE・デモ会員から、ほかは番号から決まった形で（乱数は引かない。ほかの中身を変えないため）
+      var goals = f ? (f.person === 'demo' ? MEMBER.goals.slice() : ((PEOPLE[f.person] || {}).goals || []).slice()) : ROSTER_GOALS[(i * 7 + 3) % ROSTER_GOALS.length].slice();
+      steps += goals.length ? 1 : 0;   // 「やりたいことを選ぶ」は選んでいれば済（rosterSteps と同じ決め方）
       list.push({
         id: no, no: no, person: f ? f.person : null, name: name, pref: pr, city: city, area: pr + (city ? ' ' + city : ''), job: job,
         joinedAt: joinedAt, joinedDaysAgo: dAgo, xp: xp, level: levelOf(xp), stepsDone: steps,
         lastActive: D(-lastAgo, 12 + Math.floor(r() * 11), Math.floor(r() * 60)), status: status, leftAt: leftAt, cancelAt: cancelAt,
-        monthPoints: mp, monthXp: mx, cohort: cohortOf(joinedAt)
+        monthPoints: mp, monthXp: mx, cohort: cohortOf(joinedAt), goals: goals
       });
     }
     /* 支払いエラーの人：入会日から1か月ごとの請求のうち、いちばん新しいものが2日前・4日前・5日前だった人を1人ずつ（猶予の7日の中）。
@@ -893,6 +994,7 @@
      紹介した人数ではポイントは付かない（紹介を競わせないため）。
      「ありがとう」はコメントに付けるボタン（投稿のほうは「いいね」）。 */
   var POINT_RULES = [
+    { id: 'request', name: 'リクエストが採用された（運営が「追加しました」にしたもの）', pt: 20 },
     { id: 'answer',  name: '質問に答えた（運営が回答に選んだもの）', pt: 10 },
     { id: 'thanks',  name: 'コメントに「ありがとう」をもらった', pt: 2 },
     { id: 'host',    name: 'イベントを主催・手伝った', pt: 50 },
@@ -1614,6 +1716,84 @@
   var REF_CLICKS = 14;    // この30日で専用URLが開かれた回数（本番は計測サーバーの値）
 
   /* 紹介するときの文面（#PR を最初から入れておく。収入の話は入れない） */
+  /* ---------- 「あったらいい」リクエスト（REQUESTS） ----------
+     会員が欲しい案件・講座・イベントを出し、ほかの会員が＋1を付ける。運営が状態と返事を付ける。
+     by：出した人（PEOPLE の id）。anonymous：画面では「匿名」と出す（運営画面には出した人が出る）。
+     votes：＋1の数（この試作の見本の数。デモ会員の＋1は store が足す）。link：追加したもの { type: gig|course|event, id } */
+  var REQUEST_KINDS = [{ id: 'gig', name: '案件' }, { id: 'course', name: '講座' }, { id: 'event', name: 'イベント・勉強会' }];
+  var REQUEST_STATUS = [
+    { id: 'open', name: '受付中' }, { id: 'considering', name: '検討中' },
+    { id: 'added', name: '追加しました' }, { id: 'declined', name: '今回は見送り' }
+  ];
+  var REQUESTS = [
+    { id: 'rq1', kind: 'course', title: '在宅の仕事の探し方を最初に知りたい', by: 'm17', anonymous: false, at: D(-40, 22, 10), votes: 31,
+      detail: '育休明けに在宅で働きたいです。どこで募集を探して、契約で何を見ればいいかを知りたいです。',
+      status: 'added', reply: { by: 'staff2', at: D(-6, 11, 0), text: '「リモートワーク入門」を Lv1 に追加しました。4回、1回10〜15分です。' }, link: { type: 'course', id: 'remote-work' } },
+    { id: 'rq2', kind: 'gig', title: 'データ入力など、在宅でできる作業の案件', by: 'm6', anonymous: false, at: D(-12, 21, 40), votes: 27,
+      detail: '平日の夜に1〜2時間ずつできるものがあるとうれしいです。',
+      status: 'considering', reply: { by: 'staff1', at: D(-3, 10, 20), text: '取引先に相談しています。10月中に1件出せるように進めています。' } },
+    { id: 'rq3', kind: 'gig', title: 'ショート動画の編集の案件をもっと', by: 'm21', anonymous: false, at: D(-35, 20, 5), votes: 23,
+      detail: '講座で覚えたので、練習をかねて受けてみたいです。',
+      status: 'added', reply: { by: 'staff3', at: D(-20, 15, 30), text: '「ショート動画の編集（1本60秒）」を出しました。' }, link: { type: 'gig', id: 'g5' } },
+    { id: 'rq4', kind: 'course', title: '自分に合う副業の選び方', by: 'm3', anonymous: true, at: D(-30, 23, 15), votes: 22,
+      detail: '何から始めればいいか決められずにいます。',
+      status: 'added', reply: { by: 'staff2', at: D(-6, 11, 5), text: '「自分を知る・目標を決める」を Lv1 に追加しました。' }, link: { type: 'course', id: 'change-basic' } },
+    { id: 'rq5', kind: 'event', title: '確定申告の前に、税金の質問会を', by: 'm11', anonymous: false, at: D(-28, 19, 0), votes: 18,
+      detail: '経費のことを、税理士の方に直接聞いてみたいです。',
+      status: 'added', reply: { by: 'staff5', at: D(-14, 12, 0), text: '「税金Q&A（提携税理士と）」を開きます。' }, link: { type: 'event', id: 'e7' } },
+    { id: 'rq6', kind: 'course', title: 'Canvaで作る画像の講座', by: 'm15', anonymous: false, at: D(-9, 13, 30), votes: 15,
+      detail: 'Instagramの投稿画像を自分で作れるようになりたいです。',
+      status: 'considering', reply: { by: 'staff4', at: D(-2, 18, 0), text: 'Webデザインの講師と、1講座にするか回を足すかを相談しています。' } },
+    { id: 'rq7', kind: 'course', title: 'AIで動画の台本を作る回', by: 'm24', anonymous: false, at: D(-8, 22, 45), votes: 14,
+      detail: '動画編集の前の、台本づくりをAIでやる方法を知りたいです。',
+      status: 'considering', reply: { by: 'staff3', at: D(-1, 16, 40), text: '「AI活用」に1回足す方向で準備しています。' } },
+    { id: 'rq8', kind: 'event', title: '子どもが寝たあとの22時からのもくもく会', by: 'm20', anonymous: false, at: D(-5, 22, 30), votes: 12,
+      detail: '21時はまだ寝かしつけの時間なので、22時からだと参加できます。', status: 'open' },
+    { id: 'rq9', kind: 'gig', title: '地元のお店のSNS運用（札幌）', by: 'm2', anonymous: true, at: D(-4, 12, 10), votes: 9,
+      detail: '会って話せる近くのお店の案件があると始めやすいです。', status: 'open' },
+    { id: 'rq10', kind: 'event', title: '那覇オフ会をもう一度', by: 'm22', anonymous: false, at: D(-50, 20, 0), votes: 8,
+      detail: '前回行けなかったので、次は参加したいです。',
+      status: 'added', reply: { by: 'staff1', at: D(-25, 10, 0), text: '那覇オフ会の日程を出しました。' }, link: { type: 'event', id: 'e6' } },
+    { id: 'rq11', kind: 'event', title: '新入生どうしのオンライン自己紹介会', by: 'm14', anonymous: true, at: D(-2, 21, 50), votes: 6,
+      detail: 'タイムラインに書くのが苦手なので、話して自己紹介できる場があるとうれしいです。', status: 'open' },
+    { id: 'rq12', kind: 'gig', title: '英語の文字起こし', by: 'm5', anonymous: false, at: D(-18, 9, 30), votes: 4,
+      detail: '英語の音声の文字起こしがあれば受けたいです。',
+      status: 'declined', reply: { by: 'staff1', at: D(-10, 17, 0), text: 'いまは英語の仕上がりを確かめられる運営がいないため、今回は見送ります。確かめられる人が見つかったらお知らせします。' } },
+    { id: 'rq13', kind: 'course', title: 'LINE公式アカウントの作り方の講座', by: 'm7', anonymous: false, at: D(-15, 14, 0), votes: 5,
+      detail: 'お店の予約をLINEで受けたいです。',
+      status: 'declined', reply: { by: 'staff4', at: D(-7, 11, 30), text: '初期設定の手順は「LINE公式アカウントの初期設定代行」の案件の頁で案内しています。講座にするかは、同じ要望が増えてから決めます。' } },
+    { id: 'rq14', kind: 'gig', title: 'イベント当日のスタッフの手伝い', by: 'm13', anonymous: false, at: D(-1, 19, 20), votes: 3,
+      detail: 'オフ会の受付や設営を手伝える案件があれば。', status: 'open' }
+  ];
+
+  /* ---------- シェア（修了・レベルアップ・成果発表・最初の30日） ----------
+     画像（1080×1080）の一行（img）と、文面の初め（text）。{course} {lv} {levelName} を埋める。
+     紹介リンクを付けたときだけ prLine と紹介リンクを足す（#PR は外せない）。シェアしてもポイントや XP は付けない
+     （事業者が得になるものを渡して書いてもらった投稿は広告として扱われ、#PR の表示が要るため）。 */
+  var SHARE = {
+    hashtag: '#TAISEI',
+    moments: {
+      course:   { name: '講座の修了', img: '「{course}」を修了', text: 'TAISEIで「{course}」を修了しました。' },
+      level:    { name: 'レベルアップ', img: 'Lv{lv}「{levelName}」になりました', text: 'TAISEIで Lv{lv}「{levelName}」になりました。' },
+      showcase: { name: '成果発表会で発表', img: '成果発表会で発表しました', text: 'TAISEIの成果発表会で発表しました。' },
+      start30:  { name: '最初の30日', img: '最初の30日をやりきりました', text: 'TAISEIの最初の30日（スタートガイド）をやりきりました。' },
+      invite:   { name: '成果発表会に誘う', img: '成果発表会は、はじめの30分をどなたでも見られます', text: '毎月最終金曜20:00のTAISEIの成果発表会は、はじめの30分を会員でない方も見られます。' }
+    },
+    prLine: '#PR 紹介リンクから入会があると、私に紹介報酬が入ります。',
+    guide: [
+      '収入や金額は書かないでください。',
+      '紹介リンクを付けると「#PR」が入ります。',
+      'ほかの人の顔や名前を載せるときは、本人に確かめてからにしてください。'
+    ]
+  };
+
+  /* 成果発表会の一般公開（毎月最終金曜20:00の成果発表会のうち、はじめの30分を会員でない方も見られる） */
+  var PUBLIC_SHOWCASE = {
+    eventId: 'e4', minutes: 30, when: '毎月最終金曜 20:00〜20:30', place: 'オンライン（Zoom）', fee: '無料',
+    note: '見るだけの参加もできます。カメラとマイクはオフのままでかまいません。',
+    after: '申込みのあと、前日までに参加のURLをメールでお送りします。'
+  };
+
   var SHARE_TEMPLATE = '#PR\n私が入っているオンラインスクール「{site}」の紹介リンクです。\n副業の講座（レベルに合わせて順に開く）、案件の紹介、運営への相談があります。\n月額{price}円（税込）、入会金なし、いつでも解約できます。\n{url}';
 
   /* ---------- 福利厚生 ----------
@@ -1826,15 +2006,22 @@
   /* ---------- ヘルプ（よくある質問） ---------- */
   var HELP_CATS = ['使い方', '支払い', '解約', '案件', '紹介'];
   var perRef = yen(Math.round(SITE.price * REFERRAL.rate));
+  // お試しの回がある講座（freeFirst）の名前と、リクエストが採用されたときの貢献ポイント（数や名前を答えに直に書かない）
+  var trialNames = COURSES.filter(function (c) { return c.freeFirst; }).map(function (c) { return '「' + c.title + '」'; }).join('');
+  var reqPt = (POINT_RULES.filter(function (r) { return r.id === 'request'; })[0] || {}).pt || 0;
   var HELP = [
     { id: 'h1', cat: '使い方', q: '会員番号はどこで分かりますか？', a: '入会のときのメールに書いてあります。ログインしたあとは、会員証とアカウントの画面でも見られます。' },
     { id: 'h2', cat: '使い方', q: 'パスワードを忘れました', a: 'ログイン画面の「パスワードを忘れた方」から、登録のメールアドレスに再設定のリンクを送れます。リンクは24時間有効です。' },
-    { id: 'h3', cat: '使い方', q: '講座はどの順番で見ればいいですか？', a: '入会したらオリエンテーション（4回・30分）から見てください。講座はレベルが上がると開き、講座の中は1回ずつ順に開きます。' },
+    { id: 'h3', cat: '使い方', q: '講座はどの順番で見ればいいですか？', a: '入会したらオリエンテーション（4回・30分）から見てください。講座はレベルが上がると開き、講座の中は1回ずつ順に開きます。' +
+      (trialNames ? trialNames + 'は、1回目だけ入会直後から見られます。' : '') },
     { id: 'h4', cat: '使い方', q: '動画が止まる・音が出ない', a: 'ページを読み込み直してください。直らなければ、使っている機種とブラウザを「相談・メッセージ」で教えてください。' },
     { id: 'h5', cat: '使い方', q: 'LINEやメールの通知を止めたい', a: 'アカウントの「通知」で、種類ごとにLINEとメールを切り替えられます。お支払いのメールだけは止められません。' },
     { id: 'h6', cat: '使い方', q: '運営への質問はいつ返ってきますか？', a: SITE.replySla + '。受付時間は' + SITE.contactHours + 'です。' },
     { id: 'h24', cat: '使い方', q: 'ミュートした人を元に戻したい', a: 'アカウントの「ミュート中の人」で「ミュートをやめる」を押します。その人の投稿とコメントが、またタイムラインに出ます。' },
     { id: 'h25', cat: '使い方', q: '自分の記録を書き出したい・消したい', a: 'アカウントの「記録の書き出しと削除」から申し込めます。書き出しはファイルができたら保存できます。削除は会員期間が終わったあとに行います。解約とは別の手続きです。' },
+    { id: 'h26', cat: '使い方', q: 'あったらいい講座や案件を運営に伝えたい', a: 'コミュニティの「リクエスト」から出せます。種類は「案件」「講座」「イベント・勉強会」です。' +
+      '名前を出さずに匿名でも出せます（運営には名前が見えます）。' +
+      (reqPt ? '運営が「追加しました」にすると、出した人に貢献ポイントが' + reqPt + 'pt付きます。＋1を押したときや、出しただけのときは付きません。' : '') },
     { id: 'h7', cat: '支払い', q: '支払い方法は？', a: 'クレジットカードです（Visa・Mastercard・JCB・American Express）。決済はStripeで行います。' },
     { id: 'h8', cat: '支払い', q: '請求日はいつですか？', a: '入会した日が毎月の請求日です。31日に入会した場合、31日がない月は月末に請求します。' },
     { id: 'h9', cat: '支払い', q: '領収書はもらえますか？', a: 'アカウントの「請求と領収書」から、月ごとの領収書をダウンロードできます。' },
@@ -1851,6 +2038,8 @@
     { id: 'h20', cat: '紹介', q: '紹介の報酬のしくみは？', a: '紹介した人が入会すると、その人が会員でいるあいだ、月額の' + Math.round(REFERRAL.rate * 100) + '%（' + perRef + '）を毎月お支払いします（試作版の仮の条件です）。初回の決済から' +
       REFERRAL.holdDays + '日は保留で、返金・解約がなければ確定します。紹介した人がさらに紹介しても、あなたへの報酬はありません。' },
     { id: 'h21', cat: '紹介', q: '紹介するときのルールは？', a: '報酬があることを最初に伝えてください。SNSでは「#PR」を入れます。「必ず稼げる」のような言い方はしません。' },
+    { id: 'h27', cat: '紹介', q: 'シェアしてもポイントが付かないのはなぜですか？', a: 'ポイントなどのお礼を渡して書いてもらった投稿は、' + SITE.name + 'の広告として扱われ、「#PR」を入れる決まりがあるためです。' +
+      '紹介リンクを付けないシェアには「#PR」は入りません。紹介リンクを付けたときは、先頭に「#PR」が入り、消せません。' },
     { id: 'h22', cat: '紹介', q: '報酬はいつ振り込まれますか？', a: '月末に締めて、翌月' + REFERRAL.payDay + '日にお支払いします（土日は翌営業日）。' + yen(REFERRAL.minPayout) + '未満は翌月に繰り越します。' },
     { id: 'h23', cat: '紹介', q: '紹介した人の名前は見えますか？', a: '頭文字だけ表示します（例：S.さん）。' }
   ];
@@ -1863,12 +2052,13 @@
     h12: ['#/account/cancel', '解約の手続きへ'], h13: ['#/account?focus=plan', '契約を見る'], h16: ['#/account?focus=bank', '振込先を見る'],
     h17: ['#/lesson/money-tax/mt-1', '第1回を見る'], h18: ['#/gigs', '案件を見る'],
     h19: ['#/messages?kind=' + encodeURIComponent('相談したい'), '運営に相談する'], h20: ['#/referral', '紹介を見る'], h21: ['#/referral', '紹介を見る'],
-    h22: ['#/account?focus=bank', '振込先を見る'], h24: ['#/account?focus=mutes', 'ミュート中の人を見る'], h25: ['#/account?focus=data', '記録の書き出しと削除へ']
+    h22: ['#/account?focus=bank', '振込先を見る'], h24: ['#/account?focus=mutes', 'ミュート中の人を見る'], h26: ['#/requests', 'リクエストを見る'], h25: ['#/account?focus=data', '記録の書き出しと削除へ']
   };
   HELP.forEach(function (h) { var l = HELP_LINKS[h.id]; if (l) h.link = { href: l[0], label: l[1] }; });
 
   /* ---------- 通知の種類（アカウントの「通知」）。line / email は最初の設定 ---------- */
   var NOTIFY_TYPES = [
+    { id: 'request', name: 'リクエストへの返事', line: true, email: false },
     { id: 'reply',            name: '運営からの返信',             line: true,  email: true },
     { id: 'event_before',     name: '予約したイベントの前日',       line: true,  email: true },
     { id: 'event_30min',      name: '予約したイベントの30分前',     line: true,  email: false },
@@ -1924,9 +2114,19 @@
       line: { text: '紹介報酬（{amount}）が確定しました。{date}にお支払いします。' } }
   };
 
+  /* 講座の本数・回数・Lv1 で開く講座の数。画面や文に 21・95 のような数を直に書かず、ここから出す */
+  var COUNTS = {
+    courses: COURSES.length,
+    lessons: COURSES.reduce(function (n, c) { return n + c.lessons.length; }, 0),
+    lv1Courses: COURSES.filter(function (c) { return c.level === 1; }).length,
+    freeFirst: COURSES.filter(function (c) { return c.freeFirst; }).map(function (c) { return c.id; }),
+    steps: ONBOARDING.length   // スタートガイドの項目の数（「11項目」などはここから）
+  };
+
   CLG.DATA = {
-    SITE: SITE, LEVELS: LEVELS, XP: XP, QUIZ_PASS: QUIZ_PASS, FACULTIES: FACULTIES, COURSES: COURSES, ARCHIVE: ARCHIVE,
-    PEOPLE: PEOPLE, MEMBER: MEMBER, VETERAN: VETERAN, ROSTER: ROSTER, ROSTER_INDEX: ROSTER_INDEX, genRoster: genRoster,
+    COUNTS: COUNTS, GOALS: GOALS, REQUESTS: REQUESTS, REQUEST_KINDS: REQUEST_KINDS, REQUEST_STATUS: REQUEST_STATUS,
+    SHARE: SHARE, PUBLIC_SHOWCASE: PUBLIC_SHOWCASE, SITE: SITE, LEVELS: LEVELS, XP: XP, QUIZ_PASS: QUIZ_PASS, FACULTIES: FACULTIES, COURSES: COURSES, ARCHIVE: ARCHIVE,
+    PEOPLE: PEOPLE, MEMBER: MEMBER, VETERAN: VETERAN, ROSTER: ROSTER, ROSTER_INDEX: ROSTER_INDEX, genRoster: genRoster, rosterSteps: rosterSteps, rosterStep: rosterStep,
     ONBOARDING: ONBOARDING, FEED: FEED, DEMO_POSTS: DEMO_POSTS, INTRO_TEMPLATE: INTRO_TEMPLATE,
     GIGS: GIGS, GIGS_CLOSED: GIGS_CLOSED, GIG_TYPES: GIG_TYPES, EVENTS: EVENTS, EVENT_IMG: EVENT_IMG, PAST_EVENTS: PAST_EVENTS,
     REFERRAL: REFERRAL, REFERRED: REFERRED, REF_CLICKS: REF_CLICKS, SHARE_TEMPLATE: SHARE_TEMPLATE,

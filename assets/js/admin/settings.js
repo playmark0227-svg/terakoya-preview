@@ -445,7 +445,7 @@
     if (/^(refund|payment|receipt)/.test(x)) return 'money';
     if (/^(points|ranking|prize|answer)/.test(x)) return 'points';
     if (/^(setting|staff_(invite|role|stop|resume))/.test(x)) return 'setting';
-    if (/^(gig|event|post|perk|expert|notice|lesson|quiz|faculty|report|hidden|warned|waitlist|attendance|staff_post|flag|held|schedule)/.test(x)) return 'content';
+    if (/^(gig|event|post|perk|expert|notice|course|lesson|archive|quiz|faculty|report|hidden|warned|waitlist|attendance|staff_post|flag|held|schedule|showcase|comment)/.test(x)) return 'content';
     return 'member';
   }
   function auditTab(ctx) {

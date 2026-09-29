@@ -12,6 +12,7 @@
      store.resetDemo(keep)         デモ会員（高橋さくら・入会24日目）に戻す。keep=true ならログインしたまま
      store.startVeteran(keep)      在籍半年の会員（木村あや）で始める
      store.startFresh(form)        公開サイトの入会フォームから、入会したての会員として始める
+                                   （form.goals にやりたいことの id の配列を渡すと、選んだものとして入る。知らない id は捨てる・2つまで）
      （3つとも、講座のメモの古いキーと、探す欄の最近の言葉（terakoya-search-recent:…）も消す）
      store.login() / logout()      store.migrate(s) v1 の状態を v2 に直す（テスト用に外に出してある）
      store.applyCms()              state.cms を data.js の配列に重ね直す（ふつうは呼ばなくていい。読み込み・update・別のタブの変更で自動）
@@ -26,6 +27,7 @@
      運営画面で下書きも含めて並べるときは R.cmsList(kind) を使う（DATA の配列は「会員に見えるもの」）。
      重ねる時：読み込んだとき・update のあと（cms が変わったときと、予約公開の時刻が来たとき）・別のタブで保存が変わったとき。
      state.cms と state.settings は、人を切り替えても（resetDemo・startVeteran・startFresh）引き継ぐ（運営の中身なので）。
+     リクエストへの運営の返事（state.requests.answers）と、成果発表会の一般公開の申込み（state.showcaseSignups）も同じく引き継ぐ。
      タイムラインの見回り（staffPosts・pins・hiddenPosts・hiddenComments）も同じく引き継ぐ（運営が書くもの。R.resetStaffFeed で消す）。
 
    ■ 状態の形（v2）。足すのはよいが、名前は変えない。★ はルール（domain.js）があとから書く入れ物
@@ -76,9 +78,27 @@
      lineLink: {status（none/pending/linked/failed）, at, code?（連携コード）},
      dataRequests: [{id, kind（export/delete）, at, status（received/canceled/done）, canceledAt?, doneAt?}],
      ★loginBlock: null|{on, at, reason}（運営画面の「ログインを止める」。R.setLoginBlocked が書く）,
+     // やりたいこと（2026-09-28。DATA.GOALS の id。R.setGoals が書く）
+     goals: [id…]（2つまで。1つ目が主。[] は未選択）, goalsAt: 時刻|null（選んだ・「まだ決めていない」を選んだ時刻。null はまだ答えていない）,
+     hideGoals: bool（会員名簿・会員のページに出さない。運営画面には出る）,
+     // 「あったらいい」リクエスト（R.addRequest・R.toggleVote・R.answerRequest が書く）
+     requests: { mine: [{id（'rqm…'）, kind, title, detail, anonymous, at, editedAt?, votes（ほかの人の＋1の数）}],
+                 votes: {リクエストid: 時刻}（自分が押した＋1）,
+                 answers: {リクエストid: {status, reply:{by, at, text}|null, link:{type, id}|null, at, pointed?（+20pt を付けた印）}}
+                          （運営の返事。DATA.REQUESTS の状態・返事より優先。★人を切り替えても引き継ぐ）,
+                 seen: {リクエストid: 時刻}（自分の・＋1したリクエストの返事を見た時刻） },
+     // 成果発表会の一般公開（公開サイトの申込み。試作版は送らない。★人を切り替えても引き継ぐ）
+     showcaseSignups: [{id, name, email, event, at, demo?（最初から入っている見本）}],
      // 運営の中身（人を切り替えても引き継ぐ）
      ★cms: {savedAt, rev, items: {種類: {id: 記録}}, order: {並びの名前: [id…]}}（R.cmsUpsert などが書く。重ね方は下の「運営が直した中身」）,
-     ★settings: {meetSlots?: {min, weekly[{dow, time}], off[{at, why}], fixed?[時刻]}}（R.setMeetingSlots が書く） }
+     ★settings: {meetSlots?: {min, weekly[{dow, time}], off[{at, why}], fixed?[時刻]}（R.setMeetingSlots が書く）,
+                 showcasePublic?: {イベントid: {on, at}}（成果発表会の「一般公開の枠」。R.setShowcasePublic が書く。書いていない回は公開） } }
+
+   ■ 見る人ごとの最初のやりたいこと・リクエスト（2026-09-28）
+     デモ会員：goals = DATA.MEMBER.goals（['sns','remote']）。＋1 は rq1（追加しました・返事は見た）・rq2・rq8。自分のリクエスト1件（受付中）。
+     在籍半年：goals = DATA.VETERAN.goals（['sns','aivideo']）。＋1 は rq3・rq6・rq7。自分のリクエスト1件（検討中・運営の返事つき）。
+     入会したて：公開サイトの申込みで選んだもの（form.goals）。選んでいなければ []（スタートガイドで選ぶ）。
+     前の保存（この入れ物がない）を読んだときも、見る人に合わせて同じ中身を入れる（fillDefaults）。
    ============================================================ */
 (function (global) {
   'use strict';
@@ -157,11 +177,62 @@
       profile: { nickname: '', visibility: 'pref', photo: '' },
       lineLink: { status: 'none', at: null },
       dataRequests: [], loginBlock: null,
+      // やりたいこと・リクエスト
+      goals: [], goalsAt: null, hideGoals: false, requests: emptyRequests(),
       // 運営の中身（人を切り替えても引き継ぐ。carry を見る）
-      cms: emptyCms(), settings: {}
+      cms: emptyCms(), settings: {}, showcaseSignups: seedSignups()
     };
   }
   function emptyCms() { return { savedAt: null, rev: '', items: {}, order: {} }; }
+  function emptyRequests() { return { mine: [], votes: {}, answers: {}, seen: {} }; }
+  /** やりたいことの id をそろえる（知っている id だけ・重なりなし・2つまで） */
+  function cleanGoals(list) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (id) {
+      if (out.length < 2 && out.indexOf(id) < 0 && byId(DATA.GOALS || [], id)) out.push(id);
+    });
+    return out;
+  }
+  /** 成果発表会の一般公開の申込み（最初から入っている見本。会員ではない方。名前・メールは架空） */
+  function seedSignups() {
+    var ev = (DATA.PUBLIC_SHOWCASE || {}).eventId || '';
+    return [
+      ['ss1', '小松 はるみ', 'harumi.komatsu@example.jp', 6, 21, 10],
+      ['ss2', '宮本 拓海', 'takumi.m@example.jp', 4, 12, 40],
+      ['ss3', '上田 さおり', 'saori.ueda.83@example.jp', 2, 22, 5],
+      ['ss4', '平良 ゆうな', 'yuna.taira@example.jp', 1, 20, 30]
+    ].map(function (x) { return { id: x[0], name: x[1], email: x[2], event: ev, at: daysAgo(x[3], x[4], x[5]), demo: true }; });
+  }
+  /** 見る人ごとの最初のリクエスト（自分の＋1・自分のリクエスト・見た印）。kind: demo / veteran。ほかは空 */
+  function personaRequests(kind, joinedAt) {
+    var r = emptyRequests(), Q = DATA.REQUESTS || [];
+    function vote(id, at) { var q = byId(Q, id); if (q) r.votes[id] = past(new Date(Math.max(new Date(at).getTime(), new Date(q.at).getTime() + 60 * MIN)).toISOString(), 60); }
+    function saw(id) { var q = byId(Q, id); if (q && q.reply) r.seen[id] = past(plus(q.reply.at, 90), 30); }
+    if (kind === 'demo') {
+      vote('rq1', daysAgo(20, 22, 30)); saw('rq1');
+      vote('rq2', daysAgo(10, 22, 20)); saw('rq2');
+      vote('rq8', daysAgo(4, 22, 45));
+      r.mine.push({ id: 'rqm-d1', kind: 'course', title: 'スマホだけで動画の編集まで終える回', anonymous: false, at: daysAgo(3, 22, 40), votes: 7,
+        detail: 'パソコンを開けない日が多いので、スマホのアプリだけで撮影から編集まで終える回があるとうれしいです。' });
+    } else if (kind === 'veteran') {
+      vote('rq3', daysAgo(34, 21, 10)); saw('rq3');
+      vote('rq6', daysAgo(8, 22, 0)); saw('rq6');
+      vote('rq7', daysAgo(7, 21, 30));
+      var at = daysAgo(16, 21, 40);
+      r.mine.push({ id: 'rqm-v1', kind: 'event', title: '那覇で料理写真の撮影練習会', anonymous: false, at: at, votes: 11,
+        detail: '飲食店の撮影を受ける前に、みんなで同じ料理を撮って見せ合う会があると練習になります。' });
+      r.answers['rqm-v1'] = { status: 'considering', link: null, at: daysAgo(9, 15, 20),
+        reply: { by: 'staff4', at: daysAgo(9, 15, 20), text: '那覇の会場と、料理を出してくれるお店を探しています。決まったらイベントに載せます。' } };
+      r.seen['rqm-v1'] = daysAgo(9, 21, 50);
+    }
+    return r;
+  }
+  /** 見る人ごとの最初のやりたいこと */
+  function personaGoals(kind) {
+    if (kind === 'demo') return cleanGoals(DATA.MEMBER.goals);
+    if (kind === 'veteran') return cleanGoals(DATA.VETERAN.goals);
+    return [];
+  }
 
   /* 見終えた回を入れて、XPを記録する。times: [[回id, 時刻], ...] */
   function watch(s, times) {
@@ -189,8 +260,15 @@
   }
   function stepAt(s, id, at) {
     var st = byId(DATA.ONBOARDING, id);
+    if (!st) return;          // data.js にない項目（あとから足す「やりたいことを選ぶ」など）は何もしない
     s.steps[id] = at;
-    s.xpLog.push({ at: at, xp: st.xp, why: 'スタートガイド「' + st.title + '」', link: '#/start' });
+    if (st.xp) s.xpLog.push({ at: at, xp: st.xp, why: 'スタートガイド「' + st.title + '」', link: '#/start' });
+  }
+  /** やりたいこと：見る人の最初の中身と、選んだ時刻（スタートガイドの「やりたいことを選ぶ」も済にする） */
+  function setPersonaGoals(s, at) {
+    s.goals = personaGoals(s.kind);
+    s.goalsAt = s.goals.length ? at : null;
+    if (s.goalsAt) stepAt(s, 'goals', at);
   }
   /** お知らせは、新しいほうから keep 件だけ未読にしておく */
   function readAllBut(s, keep) {
@@ -259,7 +337,7 @@
       g2: [{ from: 'staff3', at: DATA.staffAfter(g2At, 50), text: '応募ありがとうございます。担当の青木です。面談の候補は運営の佐藤さんから「相談・メッセージ」に送ります。' }]
     };
 
-    // スタートガイド（9/10。残りは成果発表会）。時刻は済ませた記録にそろえる
+    // スタートガイド（成果発表会のほかは済み。「やりたいことを選ぶ」は下の setPersonaGoals で済になる）。時刻は済ませた記録にそろえる
     stepAt(s, 'profile', plus(joinedAt, 13));
     stepAt(s, 'line', plus(joinedAt, 16));
     stepAt(s, 'intro', my1.at);
@@ -271,6 +349,9 @@
     stepAt(s, 'goal', DM.goalAt);
     var by = new Date(joinedAt); by.setDate(by.getDate() + 30); by.setHours(23, 59, 0, 0);
     s.goal30 = { what: '動画編集の講座を修了して、最初の編集案件に応募する', by: by.toISOString(), at: DM.goalAt };
+    // やりたいこと（入会の申込みで選んだ）と、リクエスト（＋1を3つ・自分の1件）
+    setPersonaGoals(s, plus(joinedAt, 2));
+    s.requests = personaRequests('demo', joinedAt);
     certify(s);
 
     // イベントの予約とキャンセル待ち
@@ -464,7 +545,7 @@
         { person: 'm17', at: ago(2, 13, 0), note: '子どもを預けられる日なら行けます。', status: 'applied' }
       ] }];
 
-    // スタートガイド（10/10）
+    // スタートガイド（すべて済み。「やりたいことを選ぶ」は下の setPersonaGoals で済になる）
     var sorted = W.map(function (x) { return x[1]; }).sort();
     stepAt(s, 'profile', plus(VJ, 15));
     stepAt(s, 'line', plus(VJ, 18));
@@ -478,6 +559,9 @@
     stepAt(s, 'showcase', plus(sc[0], 120));
     var by = new Date(VJ); by.setDate(by.getDate() + 30); by.setHours(23, 59, 0, 0);
     s.goal30 = { what: 'Instagram運用の講座まで進んで、運用代行の案件に応募する', by: by.toISOString(), at: s.steps.goal };
+    // やりたいこと（アカウントの設定で選んだ）と、リクエスト（＋1を3つ・自分の1件は検討中）
+    setPersonaGoals(s, plus(VJ, 20));
+    s.requests = personaRequests('veteran', VJ);
 
     // イベントの予約
     s.events = { e6: ago(3, 22, 0), e4: ago(10, 21, 0) };
@@ -586,6 +670,9 @@
     });
     s.session = true;
     s.referredBy = form.ref || null;
+    // やりたいこと（申込みで選んだとき。任意）。選んでいればスタートガイドの「やりたいことを選ぶ」も済
+    s.goals = cleanGoals(form.goals);
+    if (s.goals.length) { s.goalsAt = now; stepAt(s, 'goals', now); }
     var call = (form.name ? String(form.name).split(/\s+/)[0] + 'さん、' : '');
     s.thread = [
       { from: 'staff2', auto: true, at: plus(now, 0.1),
@@ -610,6 +697,8 @@
   };
   function fillDefaults(s) {
     var d = blank(s.me || {});
+    // 2026-09-28 に足した入れ物が前の保存にあったか（下の「足りない入れ物を足す」より先に見る）
+    var had = { goals: Array.isArray(s.goals), requests: !!s.requests && typeof s.requests === 'object', signups: Array.isArray(s.showcaseSignups) };
     Object.keys(d).forEach(function (k) { if (s[k] === undefined || s[k] === null && d[k] !== null) s[k] = d[k]; });
     ['done', 'archiveSeen', 'steps', 'likes', 'gigs', 'events'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
     if (!s.plan || typeof s.plan !== 'object') s.plan = d.plan;
@@ -634,7 +723,28 @@
     // （会員が自分で書いたコメントは state.comments にあるので、ここを入れ替えても消えない）
     var my1 = s.kind === 'demo' && byId(s.posts || [], 'my1'), d1 = DATA.DEMO_POSTS && DATA.DEMO_POSTS.my1;
     if (my1 && d1 && (my1.replies || []).length < (d1.replies || []).length) { my1.replies = clone(d1.replies); my1.comments = d1.comments; }
+    fillGoalsAndRequests(s, had);
     return s;
+  }
+  /** やりたいこと・リクエスト・一般公開の申込み（2026-09-28 に足した入れ物）。前の保存にはないので、見る人に合わせて入れる。
+      デモ会員・在籍半年は台本の中身（personaGoals・personaRequests）、入会したては空。形がくずれていたら直す */
+  var patched = false;   // 読み込んだ保存に、新しい入れ物を足した（すぐ保存しておく）
+  function fillGoalsAndRequests(s, had) {
+    if (!had.goals || !had.requests || !had.signups) patched = true;
+    if (!had.goals) {
+      var at = s.me && s.me.joinedAt ? plus(s.me.joinedAt, s.kind === 'veteran' ? 20 : 2) : nowIso();
+      setPersonaGoals(s, at);
+    } else s.goals = cleanGoals(s.goals);
+    if (s.goalsAt != null && (typeof s.goalsAt !== 'string' || isNaN(new Date(s.goalsAt)))) s.goalsAt = s.goals.length ? nowIso() : null;
+    if (s.goalsAt === undefined) s.goalsAt = null;
+    s.hideGoals = !!s.hideGoals;
+    var r = s.requests;
+    if (!had.requests || !r || typeof r !== 'object' || Array.isArray(r)) s.requests = personaRequests(s.kind, s.me && s.me.joinedAt);
+    else {
+      if (!Array.isArray(r.mine)) r.mine = [];
+      ['votes', 'answers', 'seen'].forEach(function (k) { if (!r[k] || typeof r[k] !== 'object' || Array.isArray(r[k])) r[k] = {}; });
+    }
+    if (!Array.isArray(s.showcaseSignups)) s.showcaseSignups = seedSignups();
   }
   function migrateDemo(s) {
     var fresh = demoState();
@@ -942,7 +1052,7 @@
   }
   /** 人を切り替えるとき、運営の中身（cms）と設定（settings）と、タイムラインの見回り（運営の投稿・固定・隠した投稿とコメント）を
       次の人に引き継ぐ。どれも運営が書くもので、会員ごとのものではないため（運営画面を開いていなくても、隠したものは隠れたまま） */
-  var CARRY = { cms: 'o', settings: 'o', staffPosts: 'a', pins: 'o', hiddenPosts: 'o', hiddenComments: 'o' };
+  var CARRY = { cms: 'o', settings: 'o', staffPosts: 'a', pins: 'o', hiddenPosts: 'o', hiddenComments: 'o', showcaseSignups: 'a' };
   function carry(next) {
     var prev = store && store.state;
     if (!prev) return next;
@@ -950,6 +1060,9 @@
       var v = prev[k];
       if (CARRY[k] === 'a' ? Array.isArray(v) : v && typeof v === 'object' && !Array.isArray(v)) next[k] = v;
     });
+    // リクエストへの運営の返事（requests.answers）も運営が書くもの。次の人の台本の返事に、前の人のときに付けた返事を重ねる
+    var pa = prev.requests && prev.requests.answers;
+    if (pa && typeof pa === 'object' && !Array.isArray(pa) && next.requests) next.requests.answers = Object.assign({}, next.requests.answers || {}, pa);
     return next;
   }
 
@@ -974,8 +1087,9 @@
       if (raw) {
         var s = JSON.parse(raw);
         var was = s && s.v;
+        patched = false;
         var m = migrate(s);
-        if (m) { migrated = was !== VERSION; return m; }
+        if (m) { migrated = was !== VERSION || patched; return m; }
       }
     } catch (e) {}
     return null;

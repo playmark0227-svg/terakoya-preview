@@ -1,11 +1,13 @@
 /* ============================================================
-   運営画面：イベント（#/events ?tab=list|past|proposals、#/events/<イベントid>）
+   運営画面：イベント（#/events ?tab=list|past|proposals|signups、#/events/<イベントid>）
    ------------------------------------------------------------
    - これから：作る・直す・中止する。予約した会員・キャンセル待ち（繰り上げ）・参加URLと会場の案内を送る。
    - 当日から出欠を付けられる。デモ会員の出席は R.markAttendance（会員ページのタブに +30 XP が付く）。
      ほかの会員の出欠は運営の記録（eventOps.attendance）に入る。
    - 終わった会：出席の数と、録画を「勉強会の録画」に載せる（講座の画面の録画の登録を AD.cms.archiveForm で使う）。
    - 会員からの企画・発表の申込み：通す／見送る（デモ会員の分は R.approveEventProposal）。通した企画はそのままイベントにできる。
+   - 成果発表会の一般公開（はじめの30分を会員でない方も見られる）：詳細の「一般公開の枠」で開く・閉じる（AD.ops.showcasePublic →
+     R.setShowcasePublic。公開サイトの index.html#/showcase の申込み先が変わる）。申込みの一覧は ?tab=signups（R.showcaseSignups。?event= で回を絞る。?tab=public も同じ）。
    - 会員ページとのつながり：作った・直した・中止したイベントは R.cmsUpsert('event') で会員ページにも出す（中止は会員ページから外す）。
      一覧の元は data.js の元の中身（cms.base('event')）。デモ会員の繰り上げは R.promoteWaitlist(イベント, 会員番号)、出席は R.markAttendance。
      新しいイベントのお知らせは AD.cms.notify（会員ページの鈴）。
@@ -180,7 +182,9 @@
       columns: [
         AU.col.when('at', '日時', { dir: 'asc' }),
         { key: 'title', label: 'イベント', main: true, html: function (e) {
-          return '<a class="a-ev__ttl" href="#/events/' + esc(encodeURIComponent(e.id)) + '">' + esc(e.title) + '</a><span class="a-ev__sub">' + esc(e.place || '') + (e.audience === 'new30' ? '・入会30日以内の方' : '') + '</span>';
+          var ps = showcaseOf(e);
+          return '<a class="a-ev__ttl" href="#/events/' + esc(encodeURIComponent(e.id)) + '">' + esc(e.title) + '</a><span class="a-ev__sub">' + esc(e.place || '') + (e.audience === 'new30' ? '・入会30日以内の方' : '') +
+            (ps && ps.on ? '・はじめの' + esc(ps.minutes) + '分を一般公開' : '') + '</span>';
         } },
         { key: 'kind', label: '種類', hide: 'sm', value: function (e) { return KIND[e.kind] || ''; } },
         { key: 'reserved', label: '予約', dir: 'desc', html: function (e) { return seatBar(e.reserved, e.cap); }, csv: function (e) { return e.reserved + '/' + e.cap; } },
@@ -193,6 +197,74 @@
       csv: { name: 'イベント' }, empty: 'これからのイベントはありません。'
     });
   }
+  /* ---------- 成果発表会の一般公開（はじめの30分を会員でない方も見られる。R.publicShowcase・R.showcaseSignups） ---------- */
+  function showcaseOf(e) {
+    if (!e || e.kind !== 'showcase' || !R.publicShowcase) return null;
+    try { return R.publicShowcase(e.id); } catch (x) { return null; }
+  }
+  function signups(eventId) { return AD.ops.showcaseSignups ? AD.ops.showcaseSignups(eventId) : []; }
+  var PUBLIC_PAGE = 'index.html#/showcase';
+  function publicView(ctx) {
+    var rows = signups(), evs = {};
+    rows.forEach(function (x) { if (x.event && !evs[x.event]) evs[x.event] = x; });
+    var evOpts = Object.keys(evs).map(function (id) { var x = evs[id]; return [id, (x.eventAt ? U.fmtShort(x.eventAt) + ' ' : '') + (x.eventTitle || id)]; });
+    var next = null;
+    try { next = R.publicShowcase ? R.publicShowcase() : null; } catch (x) { next = null; }
+    var lead = next
+      ? '<p class="a-ev__pubnext"><span>次の公開：<a href="#/events/' + esc(encodeURIComponent(next.eventId)) + '">' + esc(next.event.title) + '</a>・' +
+          '<span class="num">' + esc(U.fmtShort(next.at, true)) + '〜' + esc(hm(next.endAt)) + '</span>（はじめの' + esc(next.minutes) + '分）・申込み <b class="num">' + esc(next.signups) + '</b>人</span></p>'
+      : '<p class="a-ev__pubnext"><span>いま一般公開している成果発表会はありません。公開サイトの申込みの頁は「いま申し込める回がありません」になっています。</span></p>';
+    return lead + AU.table({
+      id: 'evpub', rows: rows, query: ctx.query, sort: '-at', label: '一般公開の申込み',
+      search: { placeholder: '名前・メール', keys: ['name', 'email'] },
+      filters: evOpts.length > 1 ? [{ key: 'event', label: '回', options: [['', 'すべて']].concat(evOpts), match: function (r, v) { return r.event === v; } }] : [],
+      columns: [
+        { key: 'name', label: '名前', main: true, html: function (r) { return '<b>' + esc(r.name) + '</b>' + (r.demo ? '<span class="a-ev__sub">見本</span>' : ''); } },
+        { key: 'email', label: 'メール', cls: 'a-ev__mail', html: function (r) { return esc(r.email).replace('@', '<wbr>@'); } },
+        { key: 'eventTitle', label: '回', hide: 'sm', html: function (r) {
+          return '<a class="a-ev__ttl" href="#/events/' + esc(encodeURIComponent(r.event)) + '">' + esc(r.eventTitle || r.event) + '</a>' + (r.eventAt ? '<span class="a-ev__sub num">' + esc(U.fmtShort(r.eventAt, true)) + '</span>' : '');
+        }, csv: function (r) { return (r.eventAt ? AU.ymd(r.eventAt, true) + ' ' : '') + (r.eventTitle || r.event); } },
+        AU.col.when('at', '申し込んだ日時')
+      ],
+      tools: '<a class="btn btn-ghost btn-s" href="' + PUBLIC_PAGE + '" target="_blank" rel="noopener">' + icon('external', 'ico-s') + '公開の頁を見る</a>',
+      csv: { name: '一般公開の申込み' }, empty: 'まだ申込みはありません。'
+    });
+  }
+  function publicPanel(e) {
+    var ps = showcaseOf(e); if (!ps) return '';
+    var list = signups(e.id), over = e.ended || e.src === 'past' || e.canceled;
+    var state = ps.on ? U.statusTag('confirmed', '公開中') : '<span class="ad-st">閉じています</span>';
+    var body = '<p class="a-ev__pubst">' + state + (ps.on ? '<a href="' + PUBLIC_PAGE + '" target="_blank" rel="noopener">公開サイトの申込みの頁' + icon('external', 'ico-s') + '</a>'
+        : '<span>公開サイトの申込みの頁には出ていません</span>') + '</p>' + AU.kv([
+        ['見られる時間', U.fmtShort(ps.at, true) + '〜' + hm(ps.endAt) + '（はじめの' + ps.minutes + '分）'],
+        ['場所', ps.place || ''],
+        ['参加費', ps.fee || '無料'],
+        ['申込み', '<b class="num">' + list.length + '</b>人', true]
+      ]) +
+      (list.length ? '<ul class="a-ev__pub">' + list.slice(0, 5).map(function (x) {
+        return '<li><span class="a-ev__pubname">' + esc(x.name) + '</span><span class="a-ev__pubmail">' + esc(x.email).replace('@', '<wbr>@') + '</span>' +
+          '<span class="num a-ev__pubat">' + esc(U.fmtShort(x.at, true)) + '</span></li>';
+      }).join('') + '</ul>' : '<p class="a-ev__none">まだ申込みはありません。</p>') +
+      '<div class="a-ev__pubacts">' +
+        (list.length ? '<a class="btn btn-text btn-s" href="#/events?tab=signups&event=' + esc(encodeURIComponent(e.id)) + '">申込みの一覧（' + list.length + '人）</a>' : '') +
+        (over ? '' : '<button type="button" class="btn btn-ghost btn-s" data-ev-public="' + (ps.on ? 'off' : 'on') + '"' + disE(e) + '>' + (ps.on ? '一般公開をやめる' : '一般公開にする') + '</button>') +
+      '</div>';
+    return AU.panel({ title: '一般公開の枠', id: 'evPublic', body: body });
+  }
+  function togglePublic(e, on) {
+    var ps = showcaseOf(e); if (!ps) return;
+    var n = signups(e.id).length;
+    AU.act({
+      title: on ? '一般公開にする' : '一般公開をやめる', ok: on ? '公開する' : '一般公開をやめる', cancel: on ? 'やめる' : 'そのままにする', danger: !on, kind: 'ink',
+      text: on ? '「' + e.title + '」のはじめの' + ps.minutes + '分を、会員でない方も申し込めるようにします。公開サイトの申込みの頁に出ます。'
+        : '「' + e.title + '」の一般公開をやめます。公開サイトの申込みの頁から外れます。' + (n ? 'もう申し込んだ ' + n + '人には、別に連絡してください。' : ''),
+      reason: 'optional',
+      run: function () { return AD.ops.showcasePublic(e.id, on); },
+      audit: function (reason, form, res) { return res && res.audit; },
+      done: on ? '一般公開にしました' : '一般公開をやめました'
+    }).then(function (r) { if (r) cur.refresh(); });
+  }
+
   function pastView(ctx) {
     return AU.table({
       id: 'eventsPast', rows: pastRows(), query: ctx.query, sort: '-at', label: '終わったイベント',
@@ -337,7 +409,7 @@
       (canE(e) ? '' : AU.roleNote('content', 'イベントの対応')) +
       kpis +
       '<div class="a-ev__grid"><div class="a-ev__main">' + attPanel + wlPanel + spPanel + '</div>' +
-        '<div class="a-ev__side">' + info + howPanel + recPanel + '</div></div>' +
+        '<div class="a-ev__side">' + info + publicPanel(e) + howPanel + recPanel + '</div></div>' +
     '</div>';
   }
 
@@ -621,14 +693,15 @@
         if (!e) return '<div class="a-events">' + AU.head({ title: 'ページが見つかりません', crumb: [['#/events', 'イベント']], sub: 'このイベントはありません。' }) + '<a class="btn btn-ink" href="#/events">イベントの一覧へ</a></div>';
         return detail(ctx, e);
       }
-      var tab = ctx.query.tab || 'list', q = ctx.data.queues(), m = ctx.data.metrics();
+      var tab = ctx.query.tab === 'public' ? 'signups' : ctx.query.tab || 'list', q = ctx.data.queues(), m = ctx.data.metrics();
       var up = upcomingRows(), todo = pastRows().filter(function (e) { return e.recording && !e.archivedTo && !e.canceled; }).length;
       var tabs = AU.tabs([
         { id: 'list', label: 'これから', href: '#/events', n: up.length },
         { id: 'past', label: '終わった会', href: '#/events?tab=past', n: todo ? '録画待ち ' + todo : '' },
-        { id: 'proposals', label: '会員からの企画', href: '#/events?tab=proposals', n: m.proposals || '', alert: m.proposals > 0 }
+        { id: 'proposals', label: '会員からの企画', href: '#/events?tab=proposals', n: m.proposals || '', alert: m.proposals > 0 },
+        { id: 'signups', label: '一般公開の申込み', href: '#/events?tab=signups', n: signups().length || '' }
       ], tab, 'イベントの表示');
-      var body = tab === 'proposals' ? proposalsView(ctx, q) : tab === 'past' ? pastView(ctx) : listView(ctx);
+      var body = tab === 'proposals' ? proposalsView(ctx, q) : tab === 'past' ? pastView(ctx) : tab === 'signups' ? publicView(ctx) : listView(ctx);
       var wk = ctx.data.weekEvents();
       return '<div class="a-events">' + AU.head({ title: 'イベント', sub: 'これから7日 ' + wk.length + '件・予約 ' + U.num(ctx.data.metrics().weekReserved) + '人',
         actions: '<button type="button" class="btn btn-ink btn-s" data-ev-new' + (AU.canSome('content') ? '' : ' disabled') + '>' + icon('plus', 'ico-s') + 'イベントを作る</button>' }) +
@@ -652,6 +725,7 @@
         if ((b = t.closest('[data-ev-promote]'))) { if (e && AU.need('content', own)) promote(e, b.getAttribute('data-ev-promote')); return; }
         if ((b = t.closest('[data-ev-send]'))) { if (e && AU.need('content', own)) send(e, b.getAttribute('data-ev-send')); return; }
         if ((b = t.closest('[data-ev-archive]'))) { if (e && AU.need('content', own)) toArchive(e); return; }
+        if ((b = t.closest('[data-ev-public]'))) { if (e && AU.need('content', own)) togglePublic(e, b.getAttribute('data-ev-public') === 'on'); return; }
         if ((b = t.closest('[data-ev-prop]'))) {
           var p = propRows(AD.data.queues()).filter(function (x) { return x.id === b.getAttribute('data-ev-prop'); })[0];
           if (p) propDrawer(p);

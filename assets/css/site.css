@@ -6,6 +6,8 @@
    - 会員ページの部品（app.css）は読み込まない。ここは body.site と .site-* で閉じる（顔の丸 .avatar だけ同じ名前）。
    - 本文の幅は2つだけ：980px（.site-wrap）と 820px（読むページの .site-wrap--narrow、紹介ページの中の .site-narrow）。
    - 表はひとつの形：外枠なし、上に --line-2、行の間に --line。
+   - やりたいこと：紹介ページの4つの面（.site-goals / .site-goal）、申込みの選ぶ欄（.site-goalpick / .site-goalopt。2つまで・選んだ順の数）、
+     講座の一覧の絞り込み（.site-cur__goals / .site-chip。いまのものは aria-current で墨）。成果発表会の一般公開は .site-show*。
    ============================================================ */
 
 body.site {
@@ -239,6 +241,30 @@ body.site[data-route="join"] .site-head__login { display: inline-flex !important
 @media (max-width: 640px) {
   .site-can > div { grid-template-columns: minmax(0, 1fr); padding: 14px 0; }
 }
+/* イベントの行の終わりの「成果発表会は会員でない方も見られます」（#/showcase へ）。リンクの途中では割らない */
+.site-can__more { white-space: nowrap; }
+@media (max-width: 360px) { .site-can__more { white-space: normal; } }
+
+/* ---------- やりたいこと別の講座（押せる4つの面。2列 → 640px 以下は1列） ---------- */
+.site-goals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.site-goal {
+  display: flex; align-items: center; gap: 12px; height: 100%; min-height: 44px; padding: 16px 16px 16px 20px;
+  border: 1px solid var(--line-2); border-radius: 12px; background: #fff; color: inherit; text-decoration: none; line-height: 1.6;
+  transition: border-color .15s, background .15s;
+}
+.site-goal:hover { border-color: var(--ink-2); background: var(--site-band); }
+.site-goal:hover .site-goal__name { text-decoration: underline; text-underline-offset: 3px; }
+/* 同じ段の2枚で行の数が違っても、題の高さをそろえる（中身は上に寄せ、右の矢印だけ縦の真ん中） */
+.site-goal__body { flex: 1; min-width: 0; align-self: flex-start; display: flex; flex-direction: column; gap: 2px; }
+.site-goal__name { font-size: 17px; font-weight: 700; line-height: 1.5; }
+.site-goal__first { font-size: 15px; }
+.site-goal__rest { font-size: 14px; color: var(--ink-2); }
+.site-goal .chev { flex: none; width: 18px; height: 18px; color: var(--ink-3); }
+@media (max-width: 640px) {
+  .site-goals { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .site-goal { padding: 14px 12px 14px 16px; }
+  .site-goal__name { font-size: 16px; }
+}
 
 /* ---------- 会員ページの中身（スクリーンショット3枚。上の帯を切り、高さは1枚ずつ） ---------- */
 .site-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 8px; align-items: start; }
@@ -435,6 +461,8 @@ body.site .avatar-photo { object-fit: cover; background: var(--line); }
   .site-foot__top { flex-direction: column; }
   .site-foot__nav { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 28px; width: 100%; }
   @media (max-width: 360px) { .site-foot__nav { column-gap: 22px; } }
+  /* 320px ほどでは、左の列の長い名前（成果発表会の一般公開）を2行にして、右の列のプライバシーポリシーを1行で入れる */
+  @media (max-width: 345px) { .site-foot__nav { grid-template-columns: fit-content(40%) minmax(0, 1fr); } }
 }
 
 /* ============================================================
@@ -527,6 +555,27 @@ body.site .avatar-photo { object-fit: cover; background: var(--line); }
   .site-field__foot .site-count { margin-top: 4px; }
   .site-field__foot .site-field__help { margin-top: 0; }
 }
+/* やりたいこと（任意・2つまで）。枠のある選ぶ面を2列に。選んだ順の数（1・2）を右に出す */
+fieldset.site-goalpick { border: 0; padding: 0; margin: 0 0 20px; min-width: 0; }
+.site-goalpick legend { padding: 0; }
+.site-goalpick__opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+.site-goalopt {
+  display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 8px;
+  background: #fff; font-size: 15px; line-height: 1.5; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.site-goalopt input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--accent); }
+.site-goalopt__txt { flex: 1; min-width: 0; }
+.site-goalopt__n { flex: none; min-width: 1.2em; font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: right; }
+.site-goalopt:hover { border-color: var(--ink-2); }
+.site-goalopt:has(input:checked) { border-color: var(--ink); background: var(--site-band); font-weight: 700; }
+.site-goalopt:has(input:focus-visible) { border-color: var(--accent); box-shadow: var(--ring); }
+/* 2つ選んだあとの、ほかの2つ（押せない。字は読める濃さのまま） */
+.site-goalopt:has(input:disabled) { cursor: default; border-style: dashed; color: var(--ink-2); }
+.site-goalopt:has(input:disabled):hover { border-color: var(--line-2); }
+.site-goalpick__note { margin-top: 6px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.site-goalpick__note:empty { display: none; }
+@media (max-width: 400px) { .site-goalpick__opts { grid-template-columns: minmax(0, 1fr); } }
+.site-kv__sep { color: var(--ink-3); }
 .site-agree { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
 .site-check { display: flex; gap: 10px; align-items: flex-start; min-height: 44px; padding: 8px 0; font-size: 15px; line-height: 1.7; cursor: pointer; }
 .site-check input { width: 20px; height: 20px; margin: 3px 0 0; flex: none; accent-color: var(--accent); }
@@ -596,6 +645,8 @@ body.site .avatar-photo { object-fit: cover; background: var(--line); }
 .site-done__next ol { margin-top: 2px; padding-left: 1.4em; list-style: decimal; }
 .site-done__next li + li { margin-top: 4px; }
 .site-done__next p { margin-top: 10px; }
+.site-done__next li.is-done { color: var(--ink-2); }
+.site-done__ok { margin-left: 4px; font-size: 14px; color: var(--ok); white-space: nowrap; }
 
 /* ============================================================
    読むページ（運営と講師・運営会社・講座の一覧・お知らせ・見つからない）
@@ -640,6 +691,52 @@ body.site .avatar-photo { object-fit: cover; background: var(--line); }
 .site-cur__no { color: var(--ink-2); font-size: 14px; }
 .site-cur__min { color: var(--ink-2); font-size: 14px; white-space: nowrap; }
 @media (max-width: 640px) { .site-cur__lessons li { grid-template-columns: 3.6em minmax(0, 1fr) auto; gap: 8px; } }
+/* やりたいことの絞り込み（リンクの並び。いまのものは墨で塗る） */
+.site-cur__goals { margin-top: 20px; }
+.site-cur__goalsttl { font-size: 14px; font-weight: 700; color: var(--ink-2); line-height: 1.5; }
+.site-cur__goals ul { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.site-chip {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 999px;
+  background: #fff; color: var(--ink); font-size: 14.5px; font-weight: 600; line-height: 1.3; text-decoration: none; white-space: nowrap;
+}
+.site-chip:hover { border-color: var(--ink-2); }
+.site-chip[aria-current] { background: var(--ink); border-color: var(--ink); color: var(--ink-inv); }
+@media (max-width: 860px) { .site-chip { min-height: 44px; } }
+.site-cur__path { margin-top: 36px; }
+.site-cur__ord { margin-right: 6px; color: var(--ink-2); font-weight: 700; }
+/* AI・動画の1回目（freeFirst）はレベルに関係なく開く */
+.site-cur__free { margin-top: 2px; font-size: 14px; font-weight: 700; color: var(--ok); }
+
+/* ---------- 成果発表会の一般公開（#/showcase） ---------- */
+.site-show__top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 24px 32px; align-items: start; margin-top: 24px; }
+.site-show__next .site-h3 { margin-bottom: 2px; color: var(--ink-2); font-size: 14px; }
+.site-show__when { font-size: clamp(20px, 5.4vw, 24px); font-weight: 800; line-height: 1.45; }
+.site-show .site-show__kv { margin-top: 12px; }
+.site-show__photo { margin: 6px 0 0; }
+.site-show__photo .site-photos__img { aspect-ratio: 3 / 2; }
+.site-show__form { margin-top: 28px; }
+.site-show__form .site-panel__ttl { font-size: 17px; margin-bottom: 14px; }
+.site-show__privacy { margin: -4px 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.7; }
+.site-show__member { font-size: 15px; }
+.site-show__empty { margin-top: 24px; }
+.site-show__emptyttl { font-size: 17px; font-weight: 700; }
+/* 送った直後に受付が切れていた（申し込めなかった）。誤りの知らせと同じ色 */
+.site-show__empty--err { background: var(--accent-weak); border-color: transparent; scroll-margin-top: 90px; }
+.site-show__empty--err .site-show__emptyttl { color: var(--accent-ink); }
+.site-show__acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 20px; }
+.site-show__done { margin-top: 20px; }
+.site-show__done > .site-kv { margin-top: 0; }
+.site-show__after { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 15px; }
+@media (max-width: 760px) {
+  .site-show__top { grid-template-columns: minmax(0, 1fr); }
+  .site-show__photo { max-width: 420px; }
+}
+@media (max-width: 640px) {
+  .site-show__acts .site-btn { flex: 1 1 auto; }
+  .site-show__form { margin-top: 24px; }
+  /* スマホでは写真を出さない（案内のすぐ下に申込みを置くため） */
+  .site-show__photo { display: none; }
+}
 
 /* お知らせ */
 .site-news { margin-top: 24px; border-top: 1px solid var(--line-2); }

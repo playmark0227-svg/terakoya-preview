@@ -2,10 +2,10 @@
    運営画面：講座（#/courses ?tab=tree|archive|stats、#/courses/<講座id>）
    ------------------------------------------------------------
    - 講座：学部 → 講座 → 回 の木。学部・講座・回を足す・直す・並べ替える（上へ／下へ）。
-     講座は 題・学部・開くLv・講師・写真・説明・状態（下書き／予約公開／公開）、
+     講座は 題・学部・開くLv・お試しの回（freeFirst：最初の何回を Lv に関係なく開くか。ai・video は 1）・講師・写真・説明・状態（下書き／予約公開／公開）、
      回は 題・分・動画ID・説明・この回でわかること（3つ）・資料・状態、確認テストは3問。
    - 勉強会の録画：ジャンル（学部）ごとの一覧と登録。イベントの画面の「録画に載せる」もここに入る。
-   - 視聴：講座ごとの見始めた人・修了した人と、止まる人が多い回。
+   - 視聴：講座ごとの見始めた人・修了した人と、止まる人が多い回。最近足した講座（足した日から45日）は数を少なめに作り、「9/24(木)に追加」と添える（cms.courseRamp）。
    直したものは運営画面の保存（AD.db の cmsCourses）に書き、同じものを R.cmsUpsert で会員ページにも出す（下の「会員ページとのつながり」）。
    一覧の元は data.js の元の中身（cms.base）。DATA.COURSES は会員に見えるものだけなので、下書きにした講座も並べるためにこちらを使う。
    役割：直せるのは代表・運営。講師は自分の講座（講師が自分）の中身・回・確認テスト・自分の録画だけ。経理は見るだけ。
@@ -331,7 +331,8 @@
   /** 講座を会員ページにも出す（学部が見つからないときは false） */
   function syncCourse(id) {
     var c = findCourse(id); if (!c || !facultyOk(c.faculty)) return false;
-    var obj = clean(Object.assign({ id: c.id, title: c.title, faculty: c.faculty, level: +c.level, teacher: c.teacher, summary: c.summary || '', img: c.img || undefined }, pubOf(c)));
+    var obj = clean(Object.assign({ id: c.id, title: c.title, faculty: c.faculty, level: +c.level, teacher: c.teacher, summary: c.summary || '', img: c.img || undefined,
+      freeFirst: c.freeFirst != null ? freeOf(c) : undefined }, pubOf(c)));
     var qz = (box().quiz || {})[c.id]; if (qz && qz.length) obj.quiz = qz;
     return cms.push('course', obj, '講座を');
   }
@@ -424,25 +425,53 @@
     DATA.LEVELS.forEach(function (l) { c[l.lv] = rows.filter(function (r) { return r.level >= l.lv; }).length; });
     return c;
   }
+  /* 最近足した講座：足した日から RAMP_DAYS 日までは、見た人を少なめに作る（入会からずっと開いていた講座と同じ数にしない）。
+     足した日＝data.js の addedAt、無ければ「追加しました」のリクエスト（DATA.REQUESTS の返事の日。見本の最初の形で決める）。
+     cms.courseRamp(c) → { at, days, f（見始める人にかける割合）, g（次の回へ進む人にかける割合） }。分析（reports.js）も使う */
+  var RAMP_DAYS = 45;
+  cms.courseSince = function (c) {
+    if (!c) return '';
+    if (c.addedAt) return c.addedAt;
+    var q = (DATA.REQUESTS || []).filter(function (x) { return x.status === 'added' && x.link && x.link.type === 'course' && x.link.id === c.id && x.reply && x.reply.at; })[0];
+    return q ? q.reply.at : '';
+  };
+  cms.courseRamp = function (c) {
+    var at = cms.courseSince(c), none = { at: '', days: -1, f: 1, g: 1 };
+    if (!at || isNaN(new Date(at))) return none;
+    var a = new Date(CLG.now()), b = new Date(at); a.setHours(0, 0, 0, 0); b.setHours(0, 0, 0, 0);
+    var days = Math.max(0, Math.round((a - b) / 864e5));
+    if (days >= RAMP_DAYS) return none;
+    return { at: at, days: days, f: 0.12 + 0.88 * days / RAMP_DAYS, g: 0.82 + 0.18 * days / RAMP_DAYS };
+  };
+  function sinceShort(at) { return at ? U.fmtShort(at) + 'に追加' : ''; }
   function stats(c, lvc) {
     var ls = lessonsOf(c).filter(function (l) { return statusOf(l) === 'published'; });
     var open = lvc[c.level] || 0;
-    if (statusOf(c) !== 'published' || !ls.length || c.added) return { open: statusOf(c) === 'published' ? open : 0, started: 0, done: 0, reach: ls.map(function () { return 0; }), lessons: ls, drop: -1, dropPct: 0, views: 0, rate: 0 };
-    var r = DATA.rng(cms.hash(c.id) + 11);
-    var started = Math.round(open * (0.58 + r() * 0.32));
+    if (statusOf(c) !== 'published' || !ls.length || c.added) return { open: statusOf(c) === 'published' ? open : 0, started: 0, done: 0, reach: ls.map(function () { return 0; }), lessons: ls, drop: -1, dropPct: 0, views: 0, rate: 0, since: '', days: -1 };
+    var rp = cms.courseRamp(c), r = DATA.rng(cms.hash(c.id) + 11);
+    var started = Math.round(open * (0.58 + r() * 0.32) * rp.f);
     var dropAt = ls.length > 2 ? 1 + Math.floor(r() * (ls.length - 1)) : -1;
     var reach = [], x = started;
-    ls.forEach(function (l, i) { if (i > 0) x = Math.round(x * (i === dropAt ? 0.56 + r() * 0.1 : 0.86 + r() * 0.1)); reach.push(x); });
+    ls.forEach(function (l, i) { if (i > 0) x = Math.round(x * (i === dropAt ? 0.56 + r() * 0.1 : 0.86 + r() * 0.1) * rp.g); reach.push(x); });
     var drop = -1, dropPct = 0;
     reach.forEach(function (v, i) { if (!i || !reach[i - 1]) return; var p = (reach[i - 1] - v) / reach[i - 1]; if (p > dropPct) { dropPct = p; drop = i; } });
-    var views = Math.round(reach.reduce(function (a, v) { return a + v; }, 0) * (0.2 + r() * 0.12));
+    // 足して30日たたない講座は、見た回がみな「30日の再生」に入る（見た人より少なくはならない）
+    var fresh = rp.days >= 0 && rp.days < 30;
+    var views = Math.round(reach.reduce(function (a, v) { return a + v; }, 0) * (fresh ? 1.1 + r() * 0.3 : 0.2 + r() * 0.12));
     var done = reach[reach.length - 1];
-    return { open: open, started: started, done: done, reach: reach, lessons: ls, drop: drop, dropPct: dropPct, views: views, rate: started ? done / started : 0 };
+    return { open: open, started: started, done: done, reach: reach, lessons: ls, drop: drop, dropPct: dropPct, views: views, rate: started ? done / started : 0, since: rp.at, days: rp.days };
   }
   function pct(v) { return Math.round(v * 100) + '%'; }
 
   function teacherName(id) { return DATA.PEOPLE[id] ? DATA.PEOPLE[id].name : (id || ''); }
-  var IMGS = ['course-orientation', 'course-business-basic', 'course-okozukai', 'course-ai', 'course-writing', 'course-instagram', 'course-video', 'course-design',
+  /* お試しの回（freeFirst）：最初の何回を Lv に関係なく開くか（0〜2） */
+  function freeOf(c) { return Math.max(0, Math.min(2, parseInt(c && c.freeFirst, 10) || 0)); }
+  function freeShort(c) { var n = freeOf(c); return n === 1 ? '1回目は Lv1 から' : n > 1 ? '1〜' + n + '回目は Lv1 から' : ''; }
+  function freeText(c) {
+    var n = freeOf(c); if (!n) return '';
+    return (n === 1 ? '1回目' : '1〜' + n + '回目') + 'は入会直後から見られます' + (c.level > 1 ? '（' + (n + 1) + '回目からは Lv' + c.level + ' で開く）' : '（Lv1 の講座なので、ほかの回も開いています）');
+  }
+  var IMGS = ['course-orientation', 'course-change-basic', 'course-remote-work', 'course-business-basic', 'course-okozukai', 'course-ai', 'course-writing', 'course-instagram', 'course-video', 'course-design',
     'course-marketing', 'course-affiliate', 'course-freelance', 'course-shortvideo', 'course-nocode', 'course-coaching', 'course-teacher',
     'fac-basic', 'fac-sns', 'fac-skill', 'fac-sales', 'fac-biz'];
 
@@ -479,7 +508,8 @@
         return '<tr class="is-link' + (statusOf(c) === 'draft' ? ' is-quiet' : '') + '" data-tb-href="#/courses/' + esc(encodeURIComponent(c.id)) + '">' +
           '<td class="a-cs__ord" data-label="順">' + (filtered || !canAll() ? '<span class="num">' + (i + 1) + '</span>' : moveBtns('course', c.id, i, full.length, c.title)) + '</td>' +
           '<td class="is-main"><a class="a-cs__ttl" href="#/courses/' + esc(encodeURIComponent(c.id)) + '">' + esc(c.title) + '</a>' +
-            '<span class="a-cs__sub"><span class="num">' + ls.length + '</span>回・<span class="num">' + minutesOf(ls) + '</span>分</span></td>' +
+            '<span class="a-cs__sub"><span class="num">' + ls.length + '</span>回・<span class="num">' + minutesOf(ls) + '</span>分' +
+              (freeOf(c) && c.level > 1 ? '・' + esc(freeShort(c)) : '') + (s.since ? '・' + esc(sinceShort(s.since)) : '') + '</span></td>' +
           '<td data-label="開く" class="nw"><span class="num">Lv' + esc(c.level) + '</span></td>' +
           '<td data-label="講師">' + esc(teacherName(c.teacher)) + '</td>' +
           '<td data-label="見始めた" class="r ad-hide-sm"><span class="num">' + U.num(s.started) + '</span>人</td>' +
@@ -543,6 +573,7 @@
       ['状態', statusText(c)],
       ['学部', facultyName(c.faculty)],
       ['開くレベル', 'Lv' + c.level + ' ' + (R.levelName(c.level) || '')],
+      ['お試しの回', freeText(c) || 'なし'],
       ['講師', teacherName(c.teacher)],
       ['回', ls.length + '回・' + minutesOf(ls) + '分'],
       ['XP', '1回見終えると ' + DATA.XP.lesson + ' XP'],
@@ -552,7 +583,8 @@
       (c.summary ? '<p class="a-cs__summary">' + U.jp(c.summary) + '</p>' : '') + '</div>' : '') + kv });
 
     var maxR = Math.max.apply(null, s.reach.concat([1]));
-    var viewBody = s.started ? '<dl class="a-cs__nums">' +
+    var sinceNote = s.since ? '<p class="a-cs__since"><span>' + esc(U.fmtShort(s.since)) + 'に追加した講座です。</span><span>数は追加してからの<span class="num">' + s.days + '</span>日分です。</span></p>' : '';
+    var viewBody = s.started ? sinceNote + '<dl class="a-cs__nums">' +
         '<div><dt>開いている</dt><dd><b class="num">' + U.num(s.open) + '</b>人</dd></div>' +
         '<div><dt>見始めた</dt><dd><b class="num">' + U.num(s.started) + '</b>人</dd></div>' +
         '<div><dt>修了</dt><dd><b class="num">' + U.num(s.done) + '</b>人</dd></div>' +
@@ -567,13 +599,13 @@
       : AU.empty(statusOf(c) === 'published' ? 'まだ見た人はいません。' : '公開すると数え始めます。');
     var views = AU.panel({ title: '視聴', id: 'csViews', body: viewBody });
     var liveP = st ? AU.panel({ title: 'デモ会員', id: 'csLive', body: '<p class="a-cs__livep">' + AU.who(live.no) + '</p><p class="a-cs__livest">' +
-      (st.locked ? esc(st.lockReason) : st.completed ? '修了しています' : st.started ? '<span class="num">' + st.done + '/' + st.total + '</span>回を見ました' + (st.next ? '（次は「' + esc(st.next.title) + '」）' : '') : 'まだ見ていません') + '</p>' }) : '';
+      (st.locked ? esc(st.lockReason) + (st.trial && st.trialNote ? '。' + esc(st.trialNote) : '') : st.completed ? '修了しています' : st.started ? '<span class="num">' + st.done + '/' + st.total + '</span>回を見ました' + (st.next ? '（次は「' + esc(st.next.title) + '」）' : '') : 'まだ見ていません') + '</p>' }) : '';
 
     var acts = (!R.course(c.id) ? '' : '<a class="btn btn-ghost btn-s" href="' + esc(AD.data.memberHref('#/courses/' + encodeURIComponent(c.id))) + '" target="_blank" rel="noopener">' + icon('external', 'ico-s') + '会員ページで見る</a>') +
       '<button type="button" class="btn btn-ink btn-s" data-cs-edit="' + esc(c.id) + '"' + dis(edit) + '>講座を直す</button>';
     return '<div class="a-courses">' +
       AU.head({ title: c.title, crumb: [['#/courses', '講座'], ['#/courses', facultyName(c.faculty)]], actions: acts,
-        sub: 'Lv' + c.level + 'で開く・' + ls.length + '回・' + minutesOf(ls) + '分・講師 ' + teacherName(c.teacher) }) +
+        sub: 'Lv' + c.level + 'で開く' + (freeOf(c) && c.level > 1 ? '（' + freeShort(c) + '）' : '') + '・' + ls.length + '回・' + minutesOf(ls) + '分・講師 ' + teacherName(c.teacher) }) +
       (edit ? '' : AU.roleNote('content', '講座の編集')) +
       (facultyDraft(c.faculty) ? '<div class="notice a-cs__note">' + icon('info') + '<div>学部「' + esc(facultyName(c.faculty)) + '」が下書きなので、この講座は会員ページに出ていません。</div></div>' : '') +
       '<div class="a-cs__grid"><div class="a-cs__main">' + lessonsPanel + quizPanel + '</div><div class="a-cs__side">' + info + views + liveP + '</div></div>' +
@@ -623,7 +655,7 @@
     var lvc = lvCounts();
     var rows = allCourses().filter(function (c) { return statusOf(c) === 'published'; }).map(function (c) {
       var s = stats(c, lvc);
-      return { id: c.id, title: c.title, faculty: facultyName(c.faculty), level: c.level, open: s.open, started: s.started, done: s.done, rate: s.rate, views: s.views,
+      return { id: c.id, title: c.title, faculty: facultyName(c.faculty), level: c.level, since: s.since, open: s.open, started: s.started, done: s.done, rate: s.rate, views: s.views,
         drop: s.drop > 0 ? s.drop + 1 : null, dropTitle: s.drop > 0 ? s.lessons[s.drop].title : '', dropPct: s.dropPct };
     });
     return AU.table({
@@ -631,7 +663,7 @@
       search: { placeholder: '講座', keys: ['title'] },
       filters: [{ key: 'faculty', label: '学部', options: [['', 'すべて']].concat(faculties().map(function (f) { return [f.name, f.name]; })) }],
       columns: [
-        { key: 'title', label: '講座', main: true, html: function (r) { return '<a class="a-cs__ttl" href="#/courses/' + esc(encodeURIComponent(r.id)) + '">' + esc(r.title) + '</a><span class="a-cs__sub">' + esc(r.faculty) + '・Lv' + esc(r.level) + '</span>'; } },
+        { key: 'title', label: '講座', main: true, html: function (r) { return '<a class="a-cs__ttl" href="#/courses/' + esc(encodeURIComponent(r.id)) + '">' + esc(r.title) + '</a><span class="a-cs__sub">' + esc(r.faculty) + '・Lv' + esc(r.level) + (r.since ? '・' + esc(sinceShort(r.since)) : '') + '</span>'; } },
         { key: 'open', label: '開いている', align: 'r', dir: 'desc', hide: 'md', html: function (r) { return '<span class="num">' + U.num(r.open) + '</span>'; } },
         { key: 'started', label: '見始めた', align: 'r', dir: 'desc', html: function (r) { return '<span class="num">' + U.num(r.started) + '</span>'; } },
         { key: 'done', label: '修了', align: 'r', dir: 'desc', html: function (r) { return '<span class="num">' + U.num(r.done) + '</span>'; } },
@@ -699,6 +731,8 @@
           cms.field({ name: 'faculty', label: '学部', type: 'select', value: c.faculty, options: faculties().map(function (f) { return [f.id, f.name]; }) }) +
           cms.field({ name: 'level', label: '開くレベル', type: 'select', value: String(c.level), options: levelOptions() }) +
         '</div>' +
+        cms.field({ name: 'freeFirst', label: 'お試しの回', type: 'select', value: String(freeOf(c)),
+          options: [['0', 'なし（Lv で開く）'], ['1', '1回目は Lv に関係なく開く'], ['2', '1〜2回目は Lv に関係なく開く']] }) +
         cms.field({ name: 'teacher', label: '講師', type: 'select', value: c.teacher, options: cms.staffOptions(/講師|運営|税理士/) }) +
         cms.field({ name: 'summary', label: '講座の説明', type: 'textarea', value: c.summary, rows: 3, maxlength: 200, opt: true }) +
         imgPick + statusFields(c),
@@ -723,7 +757,8 @@
         else if (allCourses().some(function (x) { return x.title === d.title && (!c.id || x.id !== c.id); })) e.title = '同じ名前の講座があります';
         checkStatus(d, e);
         if (Object.keys(e).length) return { ok: false, errors: e };
-        var patch = Object.assign({ title: d.title, faculty: d.faculty, level: +d.level, teacher: d.teacher, summary: String(d.summary || '').trim(), img: d.img || '' }, statusPatch(d));
+        var patch = Object.assign({ title: d.title, faculty: d.faculty, level: +d.level, freeFirst: Math.max(0, Math.min(2, parseInt(d.freeFirst, 10) || 0)),
+          teacher: d.teacher, summary: String(d.summary || '').trim(), img: d.img || '' }, statusPatch(d));
         var before = isNew ? 'draft' : statusOf(c), id = c.id;
         save(function (b) {
           if (isNew) {

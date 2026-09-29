@@ -59,7 +59,8 @@
        行：{ no, name, kana, person, pref, city, area, job, joinedAt, day（入会何日目）, cohort, cohortKey（2026-09）,
              xp, level, levelName, stepsDone, currentStep（止まっている項目の名前）, lastActive, status, statusLabel,
              cancelAt, leftAt, cancelReason, refCode, referredBy, email, card, cust, tags[], memo, suspended,
-             monthPoints, live, kind? }
+             monthPoints, live, kind?, goals[]（やりたいこと。GOALS の id。R.goalsOf＝本人が名簿に出していなくても入る）,
+             goalsHidden（デモ会員が名簿に出していない）, goalsChosen?（デモ会員が選んだか「まだ決めていない」を選んだ） }
      STATUS_LABEL               { active:'有効', canceling:'解約予定', past_due:'支払いエラー', left:'終了', paused:'休会中' }
      payments({ no, month（0＝今月・-1＝先月）, status })  新しい順。デモ会員の分は R.invoices() から
      revenue(monthOffset)       { charged, paid, failed, refunded, net, count, failedCount, refundCount }（税込）
@@ -68,9 +69,9 @@
      queues()                   { gigApps, peerGigs, proposals, reports, experts, interviews }（確認待ちだけでなく全部。live を含む）
      stalled()                  スタートガイドで止まっている新入生（入会30日以内・まだ終えていない人）。重い順
                                 why: 'idle'（7日以上動きがない）| 'behind'（入会日数のわりに進んでいない）
-     expectedSteps(day)         入会 day 日目に済んでいてほしい項目の数
+     expectedSteps(day)         入会 day 日目に済んでいてほしい項目の数（DATA.ONBOARDING の week から数える）
      weekEvents()               これから7日のイベント（予約数つき）
-     metrics()                  ダッシュボードとメニューの数（下の metrics の中身を見る）
+     metrics()                  ダッシュボードとメニューの数（下の metrics の中身を見る。requests＝受付中で返事がまだのリクエスト）
      monthKey(d) / inMonth(d, offset)
 
    ■ AD.ops（書くもの）。会員ページの会員（いま会員ページにいるデモ会員）に効くものは、ここで R.* を通す。
@@ -91,8 +92,14 @@
      cms(kind, obj) / cmsRemove(kind, id) / cmsReorder(kind, ids, group?)   R.cms*（講座・回・録画・案件・福利厚生・イベント・お知らせ。
                                 会員ページにすぐ出る）。R が無い・断られたときは { ok:false, error } を返す（画面は運営の記録を残して一言で知らせる）
      cmsError(res)              断られた理由の文（errors の最初の1つ）
-     resetLinks()               運営のデモを最初に戻すときに、会員ページの側に書いた運営の中身（CMS・面談の枠・ログインの停止・
-                                タイムラインの通報の対応と、R.resetStaffFeed で運営の投稿・固定・隠した投稿とコメント）も戻す
+     answerRequest(id, { status, reply, link }) → { ok, request, notified, pt, audit } / { ok:false, errors|error }
+                                「あったらいい」リクエストに状態・返事・リンク（'course:<id>' など）を付ける（R.answerRequest。返事の名前は
+                                いまログインしている運営）。出した人と＋1した人にお知らせ、「追加しました」で出した人に +20pt（1回だけ）
+     showcasePublic(eventId, on) → { ok, on, audit }   成果発表会の一般公開の枠（R.setShowcasePublic。公開サイトの #/showcase）
+     showcaseSignups(eventId?)  公開の申込みの一覧（R.showcaseSignups。新しい順）
+     resetLinks()            運営のデモを最初に戻すときに、会員ページの側に書いた運営の中身（CMS・面談の枠・ログインの停止・
+                                タイムラインの通報の対応と、R.resetStaffFeed で運営の投稿・固定・隠した投稿とコメント・閉じた一般公開の枠）も戻す。
+                                リクエストへの運営の返事は R.resetRequestAnswers があるときだけ戻す（+20pt とお知らせの扱いはルールが決める）
    ============================================================ */
 (function (global) {
   'use strict';
@@ -680,16 +687,16 @@
     var upcoming = [];
     roster.filter(function (m) { return m.joinedDaysAgo <= 30 && m.status === 'active' && !PERSONA[m.no]; }).forEach(function (m, i) {
       var id = 'iv' + (i + 1);
-      // 面談の項目（6番目）まで済んだ人は、入会の1週間ほどあとに面談を終えている
-      if (m.stepsDone >= 6) {
+      // 面談の項目まで済んだ人は、入会の1週間ほどあとに面談を終えている（済んだかどうかは DATA.rosterStep。項目の並びが変わってもずれない）
+      if (DATA.rosterStep(m, 'meet')) {
         var past = new Date(Math.min(new Date(plus(m.joinedAt, 60 * 24 * (6 + i % 4))).getTime(), n.getTime() - DAY));
         past.setHours([21, 21, 12, 10][i % 4], [0, 30, 15, 0][i % 4], 0, 0);
         db.interviews.push({ id: id, no: m.no, at: past.toISOString(), bookedAt: memberAt(plus(past.toISOString(), -60 * 24 * 2 - 90)), status: 'done' });
         return;
       }
       // 次が面談の人は予約を出して確定待ち。少し先の項目にいる人の何人かは、先に予約して確定している
-      if (m.stepsDone === 5) upcoming.push({ id: id, no: m.no, status: 'pending', bookedAt: memberAt(ago(60 * (4 + i * 3))) });
-      else if (m.stepsDone >= 3 && i % 3 === 0) upcoming.push({ id: id, no: m.no, status: 'confirmed', bookedAt: memberAt(ago(60 * 24 * (1 + i % 3) + 60 * (i % 5))) });
+      if (nextStep(m, true) === 'meet') upcoming.push({ id: id, no: m.no, status: 'pending', bookedAt: memberAt(ago(60 * (4 + i * 3))) });
+      else if (DATA.rosterStep(m, 'line') && i % 3 === 0) upcoming.push({ id: id, no: m.no, status: 'confirmed', bookedAt: memberAt(ago(60 * 24 * (1 + i % 3) + 60 * (i % 5))) });
     });
     // 確定したものを先の近い枠に、確定待ちはそのあとの枠に（1つおきに空けて、会員ページに候補が残るように）
     upcoming.sort(function (a, b) { return a.status === b.status ? 0 : a.status === 'confirmed' ? -1 : 1; }).forEach(function (x, k) {
@@ -735,9 +742,10 @@
     db.notices.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
 
     /* 声かけ（新入生の30日）。送った文は、その会員とのやりとり（受信箱の「運営から」）にも入れる（声かけの画面で送ったときと同じ形） */
-    roster.filter(function (m) { return m.joinedDaysAgo <= 25 && m.joinedDaysAgo >= 8 && m.status === 'active' && !PERSONA[m.no] && !m.person && !used[m.no] && m.stepsDone <= 4; }).slice(0, 3).forEach(function (m, i) {
+    roster.filter(function (m) { return m.joinedDaysAgo <= 25 && m.joinedDaysAgo >= 8 && m.status === 'active' && !PERSONA[m.no] && !m.person && !used[m.no] && !DATA.rosterStep(m, 'goal'); }).slice(0, 3).forEach(function (m, i) {
       used[m.no] = 1;
-      var at = staffAt(ago((2 + i * 2) * 24 * 60 + 100)), step = DATA.ONBOARDING[Math.min(m.stepsDone, DATA.ONBOARDING.length - 1)].title;
+      // 「◯◯まで来ています」は進んだところ（「やりたいことを選ぶ」は申込みでも選べる最初の項目なので、ここでは飛ばす）
+      var at = staffAt(ago((2 + i * 2) * 24 * 60 + 100)), step = stepTitle(nextStep(m, true));
       var text = (realName(m).split(/\s+/)[0] || m.name) + 'さん、運営の佐藤です。スタートガイドは「' + step + '」まで来ています。分からないところや、つまずいているところがあれば、ここに送ってください。';
       db.contacts.push({ id: 'ct' + (i + 1), no: m.no, at: at, by: 'staff2', template: 'stalled', text: text });
       var msgs = [{ from: 'staff2', at: at, text: text }], st = 'doing';
@@ -907,16 +915,19 @@
     var act = activity()[m.no];
     if (act && (!last || act > new Date(last).getTime())) last = new Date(act).toISOString();
     var st = ex.status || m.status;
-    var step = DATA.ONBOARDING[Math.min(m.stepsDone, DATA.ONBOARDING.length - 1)];
+    var step = nextStep(m);
+    var R = Rl(), goals = R && R.goalsOf ? R.goalsOf(m.no) : (m.goals || []).slice();
     return {
       no: m.no, name: m.name, realName: realName(m), kana: ex.kana || '', person: m.person, pref: m.pref, city: m.city, area: m.area, job: m.job,
       joinedAt: m.joinedAt, day: dayOf(m.joinedAt), cohort: m.cohort, cohortKey: monthKey(m.joinedAt),
       xp: m.xp, level: m.level, levelName: levelName(m.level), stepsDone: m.stepsDone,
-      currentStep: m.stepsDone >= DATA.ONBOARDING.length ? '' : step.title,
+      currentStep: stepTitle(step),
       lastActive: last, status: st, statusLabel: STATUS_LABEL[st] || st,
       cancelAt: ex.cancelAt !== undefined ? ex.cancelAt : m.cancelAt, leftAt: ex.leftAt !== undefined ? ex.leftAt : m.leftAt, cancelReason: ex.cancelReason || '',
       refCode: ex.refCode || '', referredBy: ex.referredBy || null, email: ex.email || '', card: ex.card || '', cust: ex.cust || '',
-      tags: (ex.tags || []).slice(), memo: ex.memo || '', suspended: !!ex.suspended, monthPoints: m.monthPoints || 0, live: false
+      tags: (ex.tags || []).slice(), memo: ex.memo || '', suspended: !!ex.suspended, monthPoints: m.monthPoints || 0, live: false,
+      // やりたいこと（運営画面には、本人が名簿に出していなくても出す）
+      goals: goals, goalsHidden: false
     };
   }
   function liveRow() {
@@ -925,6 +936,7 @@
     var row = base ? baseRow(base) : { tags: [], memo: '', suspended: false, person: null };
     var ex = db.state.members[me.id] || {};
     var p = R.plan(), lv = R.level(), ob = R.onboarding(), st = p.status === 'ended' ? 'left' : p.status;
+    var gl = R.goals ? R.goals() : null;
     var parts = String(me.area || '').split(/\s+/);
     var acts = [me.joinedAt];
     (s.xpLog || []).forEach(function (l) { acts.push(l.at); });
@@ -945,7 +957,9 @@
       refCode: me.refCode || '', referredBy: refBy, email: me.email || '', card: me.card || '', cust: row.cust || ex.cust || '',
       // ログインの停止は会員ページが従うもの（R.loginBlocked：運営画面の保存と会員ページの保存の新しいほう）
       tags: (ex.tags || row.tags || []).slice(), memo: ex.memo || row.memo || '', suspended: R.loginBlocked ? !!R.loginBlocked() : !!ex.suspended,
-      monthPoints: R.points().month, live: true, kind: s.kind, plan: p
+      monthPoints: R.points().month, live: true, kind: s.kind, plan: p,
+      // やりたいこと：会員ページで選んだもの（R.setGoals）。名簿に出していない（R.setHideGoals）ときも運営には出す
+      goals: gl ? gl.ids.slice() : [], goalsHidden: !!(gl && gl.hidden), goalsChosen: !!(gl && gl.chosen)
     });
   }
   function members() {
@@ -1099,13 +1113,20 @@
     return { gigApps: gigApps, peerGigs: peerGigs, proposals: proposals, reports: reports, experts: experts, interviews: interviews };
   }
 
-  /* 新入生の30日：入会 day 日目に済んでいてほしい数（1週目に4つ・2週目に7つ・3週目に9つ） */
+  /* 新入生の30日：入会 day 日目に済んでいてほしい数。k 週目の終わりまでに、その週までの項目（DATA.ONBOARDING の week）が済んでいる形で、
+     週の中は日割り。成果発表会（4週目）は日が決まっているので数えない（いまは1週目に5つ・2週目に8つ・3週目に10） */
   function expectedSteps(day) {
-    if (day <= 7) return Math.round(day * 4 / 7);
-    if (day <= 14) return 4 + Math.round((day - 7) * 3 / 7);
-    if (day <= 21) return 7 + Math.round((day - 14) * 2 / 7);
-    return 9;
+    var upto = function (w) { return DATA.ONBOARDING.filter(function (s) { return s.week <= w; }).length; };
+    var w = Math.min(3, Math.max(1, Math.ceil(day / 7))), prev = upto(w - 1), cur = upto(w);
+    return day > 21 ? upto(3) : prev + Math.round((day - (w - 1) * 7) * (cur - prev) / 7);
   }
+  /** 名簿の人のスタートガイドで、まだの最初の項目の id（すべて済みなら ''）。skipGoals：「やりたいことを選ぶ」を飛ばす */
+  function nextStep(m, skipGoals) {
+    var flags = DATA.rosterSteps(m), id = '';
+    DATA.ONBOARDING.some(function (s, i) { if (!flags[i] && !(skipGoals && s.id === 'goals')) { id = s.id; return true; } return false; });
+    return id;
+  }
+  function stepTitle(id) { var s = byId(DATA.ONBOARDING, id); return s ? s.title : ''; }
   function stalled() {
     var n = now();
     // スタートガイドを終えた人は「止まっている」に入れない（動きがないだけなら会員の一覧の「最後のログイン」で見る）
@@ -1135,6 +1156,7 @@
     var failed = payments({ status: 'failed' });
     var we = weekEvents();
     var st = stalled();
+    var rq = requestCounts();
     return {
       enrolled: enrolled.length,
       joined: ms.filter(function (m) { return inMonth(m.joinedAt, 0); }).length,
@@ -1155,8 +1177,15 @@
       experts: q.experts.filter(function (x) { return x.status === '受付' || x.status === '日程調整'; }).length,
       interviews: q.interviews.filter(function (x) { return x.status === 'pending'; }).length,
       rewardsReady: ready.length, rewardsReadySum: ready.reduce(function (a, x) { return a + x.amount; }, 0),
-      weekEvents: we, weekReserved: we.reduce(function (a, e) { return a + e.reserved; }, 0)
+      weekEvents: we, weekReserved: we.reduce(function (a, e) { return a + e.reserved; }, 0),
+      // 「あったらいい」リクエスト：受付中で運営の返事がまだの数（メニューの数）と、会員が出したものの数（新しく届いたら一言で知らせる）
+      requests: rq.pending, requestsActive: rq.active, requestsMine: rq.mine
     };
+  }
+  /* リクエストの数（R.requestCounts）。ルールが無いときは 0 */
+  function requestCounts() {
+    var R = Rl(), z = { pending: 0, active: 0, mine: 0 };
+    try { return R && R.requestCounts ? R.requestCounts() : z; } catch (e) { console.error(e); return z; }
   }
 
   AD.db = db;
@@ -1339,6 +1368,44 @@
     cmsReorder: function (kind, ids, group) { return ruleCall('cmsReorder', [kind, ids, group]); },
     cmsError: cmsError,
 
+    /* ---------- 「あったらいい」リクエスト（会員ページの R.answerRequest） ---------- */
+    /** 状態・返事・リンクを付ける。返事を書いた人は、いまログインしている運営（PEOPLE にいなければ佐藤）。
+        状態が変わる・返事がはじめて付くと、出した人と＋1した人にお知らせ（会員ページのタブに届く）。
+        「追加しました」で出した人に +20pt（1回だけ）→ { ok, request, notified, pt, audit } / { ok:false, errors|error } */
+    answerRequest: function (id, form) {
+      form = form || {};
+      var before = null;
+      try { before = Rl().request(id, { admin: true }); } catch (e) { before = null; }
+      if (!before) return { ok: false, error: 'リクエストが見つかりません' };
+      var r = ruleCall('answerRequest', [id, { status: form.status, reply: form.reply, link: form.link || null, by: staffPerson() }]);
+      if (!r.ok) return r;
+      var q = r.request || before, stName = (DATA.REQUEST_STATUS.filter(function (x) { return x.id === q.status; })[0] || {}).name || q.status;
+      var changed = q.status !== before.status;
+      // +20pt を付けたら、運営画面の貢献ポイントの記録（pointGrants）にも残す（rid＝会員ページの記録の id。grantPoints と同じ形）
+      if (r.pt) {
+        var st = store.state || {}, href = '#/requests?focus=' + encodeURIComponent(id);
+        var e = (before.mine ? st.pointsLog : st.pointGrants || []).filter(function (x) { return x && x.rule === 'request' && x.link === href; }).pop();
+        if (e) db.update(function (s) { s.pointGrants.unshift({ id: uidGen('pg'), rid: e.id, at: e.at, by: staffIdNow(), no: q.byNo, rule: 'request', pt: e.pt, why: e.why, link: href }); });
+      }
+      return Object.assign({}, r, {
+        audit: { action: 'request_answer', label: changed ? 'リクエストを「' + stName + '」にした' : 'リクエストに返事を書いた',
+          target: { type: 'request', id: id, name: q.title },
+          detail: [before.anonymous ? '匿名（' + (q.byName || '') + '）' : q.byName || '', q.link && q.link.title ? '→ ' + q.link.title : '', r.pt ? '+' + r.pt + 'pt' : '']
+            .filter(Boolean).join('・') }
+      });
+    },
+
+    /* ---------- 成果発表会の一般公開（会員ページの R.setShowcasePublic・R.showcaseSignups） ---------- */
+    /** 一般公開の枠を切り替える（公開サイトの #/showcase の申込み先）→ { ok, on, audit } / { ok:false, error } */
+    showcasePublic: function (eventId, on) {
+      var r = ruleCall('setShowcasePublic', [eventId, !!on]);
+      if (!r.ok) return r;
+      var e = DATA.EVENTS.filter(function (x) { return x.id === eventId; })[0] || { title: eventId };
+      return Object.assign({}, r, { audit: { action: on ? 'showcase_public_on' : 'showcase_public_off', label: on ? '一般公開の枠を開いた' : '一般公開の枠を閉じた',
+        target: { type: 'event', id: eventId, name: e.title } } });
+    },
+    showcaseSignups: function (eventId) { var R = Rl(); try { return R && R.showcaseSignups ? R.showcaseSignups(eventId) : []; } catch (e) { return []; } },
+
     /** 運営のデモを最初に戻すとき：会員ページの側に書いた運営の中身も戻す（会員の学び・投稿の記録には触らない）。
         CMS・面談の枠・ログインの停止と、タイムラインの見回り（通報の対応を受付に戻し、R.resetStaffFeed で
         運営の投稿・固定・隠した投稿とコメントを消す。どれも見る人を切り替えても残るので、ここで消さないと会員ページに残る） */
@@ -1350,6 +1417,15 @@
       try {
         (st.reports || []).forEach(function (x) { if (x.status && x.status !== '受付' && R.resolveReport) R.resolveReport(x.id, 'open'); });
         if (R.resetStaffFeed) R.resetStaffFeed();
+      } catch (e) { console.error(e); }
+      // 成果発表会の一般公開：閉じた枠を既定（公開）に戻す。リクエストへの運営の返事は、ルールに戻す関数があるときだけ戻す
+      // （返事と一緒に付いた +20pt・お知らせの扱いはルールの側で決めるため。ここで記録を直に消さない）
+      try {
+        (DATA.EVENTS || []).forEach(function (e) {
+          if (e.kind !== 'showcase' || !R.publicShowcase || !R.setShowcasePublic) return;
+          var ps = R.publicShowcase(e.id); if (ps && !ps.on) R.setShowcasePublic(e.id, true);
+        });
+        if (R.resetRequestAnswers) R.resetRequestAnswers();
       } catch (e) { console.error(e); }
     }
   };

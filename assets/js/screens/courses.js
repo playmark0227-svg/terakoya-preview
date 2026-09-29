@@ -1,13 +1,17 @@
 /* ============================================================
    講座（一覧・講座の目次・1回の再生画面・勉強会の録画・確認テスト・修了証）
-     #/courses                        一覧（レベルごと）
+     #/courses                        一覧（上に「あなたの道」＝R.pathFor、続きから、学部かやりたいことで絞ったレベルごとの一覧、
+                                      下に「講座をリクエストする」→ #/requests?new=1&kind=course）
+     #/courses?goal=<GOALS の id>     やりたいことで絞った一覧（「あなたの道」もその道になる。学部の絞り込みとはどちらか一方）
      #/courses?tab=archive            勉強会の録画の一覧
      #/courses/<講座>                 講座の目次（学べること・講師・目次・確認テスト）
      #/courses/<講座>?focus=quiz      確認テストの場所へ
      #/courses/<講座>/certificate     修了証（印刷・画像で保存）
      #/courses/archive/<録画>         勉強会の録画1本
      #/lesson/<講座>/<回>             1回の再生画面
-   開く・開かないの判定は domain.js（R.courseState / R.lessonState / R.quiz / R.certificate）。
+   開く・開かないの判定は domain.js（R.courseState / R.lessonState / R.quiz / R.certificate）。回ごとの開き方はいつも R.lessonState で見る
+   （お試しの回 freeFirst：講座が Lv で閉じていても最初の回は開く。一覧・目次に st.trialNote「1回目は入会直後から見られます」、
+   閉じている回には「Lv2で開きます」、見終えたら XP がたまる回へ案内）。修了証の「シェアする」は U.shareSheet('course', id)（XP・ポイントは付かない）。
    中身は data.js のまま読む：回の説明・要点・資料（l.desc / points / material）、確認テストの戻る回（R.submitQuiz の results[].lesson）、
    録画に近い講座（a.course）。運営が直した中身（CMS）は store.js が DATA に重ねてあるので、DATA には会員に見えるものだけが入る。
    運営が隠した・下書きの・消した講座／回／録画へのリンクで来たときは「いま公開していません」を出す（R.cmsItem で見分ける）。
@@ -380,22 +384,97 @@
       '</nav>';
   }
 
-  function listView() {
-    var lv = R.level();
+  function listView(ctx) {
+    var lv = R.level(), g = goalSel(ctx);
     if (fac !== 'all' && !byId(facList(), fac)) fac = 'all';
-    return resumeBlock(lv) +
+    var body = DATA.LEVELS.map(function (L) { return levelSection(L, lv, g); }).join('');
+    var path = R.pathFor(g ? g.id : undefined);
+    // 空のとき：絞り込んでいれば外すボタン（U.empty が文を esc するので、ここでは esc しない）
+    var reset = g || fac !== 'all' ? '<button type="button" class="btn btn-soft btn-s" data-cr-fac="all">すべての講座を見る</button>' : '';
+    return pathStrip(g, path) + resumeBlock(lv, path) +
       '<section class="sec cr-all" aria-labelledby="crAllTtl">' +
         '<h2 class="sec-ttl" id="crAllTtl">講座の一覧</h2>' +
-        facChips() +
-        DATA.LEVELS.map(function (L) { return levelSection(L, lv); }).join('') +
-      '</section>';
+        '<div class="cr-filters">' + facChips(g) + goalChips(g) + '</div>' +
+        (body || '<div class="cr-none">' + U.empty('play', g ? '「' + g.label + '」の講座は、いま公開していません。' : 'いま見られる講座はありません。', reset) + '</div>') +
+      '</section>' +
+      requestEntry();
   }
 
-  /** 続きから（始めていて終わっていない講座を1〜2本）。何も始めていなければ最初の1本 */
-  function resumeBlock(lv) {
+  /* ---------- やりたいこと（DATA.GOALS）：一覧の絞り込み（?goal=）と「あなたの道」 ----------
+     道の順番・状態・次に見る回は R.pathFor が決める（決めていない人はオリエンテーションからの既定の道）。
+     絞り込みは学部とどちらか一方だけ（やりたいことを選ぶと学部は「すべて」に戻り、学部を選ぶと ?goal= を外す） */
+  function goalOf(id) { return id ? byId(DATA.GOALS || [], String(id)) : null; }
+  function goalSel(ctx) { return goalOf(ctx && ctx.query && ctx.query.goal); }
+  /** その道の講座で、いま公開しているもの（運営が隠した講座は数えない） */
+  function goalCourses(g) { return (g.courses || []).filter(function (id) { return !!R.course(id); }); }
+  function goalChips(g) {
+    var list = DATA.GOALS || [];
+    if (!list.length) return '';
+    return '<div class="cr-frow"><span class="cr-frow__lbl" id="crGoalLbl">やりたいこと</span>' +
+      '<div class="chips cr-chips" role="group" aria-labelledby="crGoalLbl">' + list.map(function (x) {
+        var on = !!g && g.id === x.id;
+        return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-cr-goal="' + esc(x.id) + '">' +
+          esc(x.short) + '<span class="n num">' + goalCourses(x).length + '</span></button>';
+      }).join('') + '</div></div>';
+  }
+
+  /** 「あなたの道」：道の講座を順に（修了・進み・Lv で開く・お試しの回）。sel はいま絞り込んでいるやりたいこと */
+  function pathStrip(sel, p) {
+    var mine = R.goals();
+    if (!p || !p.courses || !p.courses.length) return '';
+    var own = !sel || mine.ids.indexOf(sel.id) >= 0;
+    var ttl = own ? 'あなたの道' : '「' + sel.short + '」の道';
+    var what = p.goal ? p.goal.label : mine.chosen ? 'まだ決めていない（オリエンテーションから）' : 'オリエンテーションから';
+    var change = mine.chosen ? '<a href="#/account?focus=goals" data-cr-goaledit>やりたいことを変える</a>' : '';
+    var ask = mine.chosen ? '' :
+      '<div class="cr-path__ask"><p>やりたいことを選ぶと、それに合う講座の順番になります。</p>' +
+        '<a class="btn btn-soft btn-s" href="#/start?focus=goals">やりたいことを選ぶ</a></div>';
+    return '<section class="sec cr-path" aria-labelledby="crPathTtl">' +
+      '<h2 class="sec-ttl"><span id="crPathTtl">' + esc(ttl) + '</span>' + change + '</h2>' +
+      '<div class="card cr-path__card">' +
+        '<p class="cr-path__what"><span class="cr-path__goal">' + jp(what) + '</span>' +
+          '<span class="cr-path__sum num">' + (p.done ? '修了 ' + p.done + '/' + p.total + '本' : '全' + p.total + '本') + '</span></p>' +
+        '<ol class="cr-path__steps" style="--n:' + p.courses.length + '">' +
+          p.courses.map(function (x, i) { return pathStep(x, i, p.next && p.next.courseId === x.id); }).join('') +
+        '</ol>' + ask +
+      '</div>' +
+    '</section>';
+  }
+  function pathStep(x, i, isNext) {
+    var st = x.st, locked = x.state === 'locked';
+    // Lv で閉じている講座：次に見るのがお試しの回なら「次に見る・第1回」（「次に見る・Lv2で開きます」と並べない）。
+    // お試しの回を見終えたら、案内の1行は出さずに「1/5回・Lv2で開きます」
+    var trialNow = locked && x.trial && st.nextOpen;
+    var line = x.state === 'done' ? '修了'
+      : locked && isNext && trialNow ? '第' + (lessonIndex(x.course, st.nextOpen.id) + 1) + '回'
+      : locked ? (st.started ? st.done + '/' + st.total + '回・' : '') + 'Lv' + x.lv + 'で開きます'
+      : st.started ? st.done + '/' + st.total + '回' : '全' + st.total + '回';
+    return '<li class="cr-path__step is-' + x.state + (isNext ? ' is-next' : '') + '">' +
+      '<a class="cr-path__link" href="' + courseHref(x.course) + '"' + (isNext ? ' aria-current="step"' : '') + '>' +
+        '<span class="cr-path__no num" aria-hidden="true">' + (x.state === 'done' ? icon('check', 'ico-s') : i + 1) + '</span>' +
+        '<span class="cr-path__ttl">' + jp(x.title) + '</span>' +
+        '<span class="cr-path__st">' + (isNext ? '<b>次に見る</b>・' : '') + esc(line) + '</span>' +
+        (trialNow ? '<span class="cr-path__trial">' + esc(x.trialNote) + '</span>' : '') +
+      '</a></li>';
+  }
+
+  /** 一覧の下：欲しい講座がないとき（リクエストの画面を「講座」を選んだ状態で開く）。
+      案件・イベントの画面の入口（.gg-req・.ev-req）と同じ形：灰の面に1文と「講座をリクエストする」 */
+  function requestEntry() {
+    return '<div class="cr-req"><p class="cr-req__txt">欲しい講座がないときは、運営にリクエストできます。</p>' +
+      '<a class="btn btn-ghost btn-s cr-req__btn" href="#/requests?new=1&amp;kind=course" data-cr-req>' + icon('chat', 'ico-s') + '<span>講座をリクエストする</span></a></div>';
+  }
+
+  /** 続きから（始めていて終わっていない講座を1〜2本）。何も始めていなければ、上の「あなたの道」の次に見る講座
+      （道で見られる回がなければ continueList の最初の1本）。上と下で別の講座を「次」に出さないため */
+  function resumeBlock(lv, path) {
     var list = R.continueList();
     var rows = list.filter(function (x) { return x.st.started; }).slice(0, 2), ttl = '続きから';
-    if (!rows.length && list.length) { rows = [list[0]]; ttl = Object.keys(doneMap()).length ? '次の講座' : '最初に見る講座'; }
+    if (!rows.length && list.length) {
+      var pn = path && path.next && path.next.course;
+      rows = [pn ? { c: pn, st: R.courseState(pn) } : list[0]];
+      ttl = Object.keys(doneMap()).length ? '次の講座' : '最初に見る講座';
+    }
     if (!rows.length) {
       return '<section class="sec"><div class="notice notice-ok cr-alldone">' + icon('checkc') +
         (lv.next
@@ -407,9 +486,26 @@
     return '<section class="sec cr-resume" aria-labelledby="crResumeTtl">' +
       '<h2 class="sec-ttl" id="crResumeTtl">' + ttl + '</h2>' +
       '<div class="list">' + rows.map(function (x) {
-        return U.resumeCard(x.c, x.st.next, { variant: 'row', st: x.st, resumeText: R.resumeText(x.st.next.id) });
+        var l = x.st.nextOpen || x.st.next;
+        return x.st.trial ? trialRow(x.c, l, x.st) : U.resumeCard(x.c, l, { variant: 'row', st: x.st, resumeText: R.resumeText(l.id) });
       }).join('') + '</div>' +
     '</section>';
+  }
+  /** Lv で閉じている講座のお試しの回（U.resumeCard の行と同じ形に、「1回目は入会直後から見られます」を足す） */
+  function trialRow(c, l, st) {
+    var n = lessonIndex(c, l.id) + 1, rt = R.resumeText(l.id);
+    return '<a class="li resume resume--row cr-trialrow" href="' + lessonHref(c, l) + '">' +
+      (c.img ? '<span class="resume__thumb" aria-hidden="true"><img src="' + esc(c.img) + '" alt="" loading="lazy" decoding="async"></span>' : '') +
+      '<span class="li__body">' +
+        '<span class="li__sub">' + jp(c.title) + '　<span class="nw">第' + n + '回・' + esc(l.min) + '分</span>' + (rt ? '・<span class="nw">' + esc(rt) + '</span>' : '') + '</span>' +
+        '<span class="li__ttl">' + jp(l.title) + '</span>' +
+        '<span class="cr-trialnote">' + trialText(st) + '</span>' +
+      '</span>' + U.chevron() + '</a>';
+  }
+  /** お試しの回の案内（esc 済み）「1回目は入会直後から見られます。第2回からはLv2「手習い」で開きます」 */
+  function trialText(st) {
+    var rest = st.freeFirst < st.total ? '。<span class="nw">第' + (st.freeFirst + 1) + '回からは</span>' + jp(st.lockReason) : '';
+    return jp(st.trialNote) + rest;
   }
 
   /** 講座がある学部だけ（運営が学部の講座を全部隠したら、その札は出さない） */
@@ -418,18 +514,23 @@
       return { id: f.id, name: f.name, n: DATA.COURSES.filter(function (c) { return c.faculty === f.id; }).length };
     }).filter(function (f) { return f.n > 0; });
   }
-  function facChips() {
+  /** 学部の絞り込み。やりたいことで絞っているあいだは、どれも押されていない形（「すべて」で両方外れる） */
+  function facChips(g) {
     var all = [{ id: 'all', name: 'すべて', n: DATA.COURSES.length }].concat(facList());
-    return '<div class="chips cr-chips" role="group" aria-label="学部で絞り込む">' + all.map(function (f) {
-      var on = f.id === fac;
-      return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-cr-fac="' + esc(f.id) + '">' +
-        esc(f.name) + '<span class="n num">' + f.n + '</span></button>';
-    }).join('') + '</div>';
+    return '<div class="cr-frow"><span class="cr-frow__lbl" id="crFacLbl">学部</span>' +
+      '<div class="chips cr-chips" role="group" aria-labelledby="crFacLbl">' + all.map(function (f) {
+        var on = !g && f.id === fac;
+        return '<button type="button" class="chip' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-cr-fac="' + esc(f.id) + '">' +
+          esc(f.name) + '<span class="n num">' + f.n + '</span></button>';
+      }).join('') + '</div></div>';
   }
 
-  /** レベルごとのまとまり。開いていないレベルも同じカードの並びで出す（鍵の印と「Lv4で開きます」） */
-  function levelSection(L, lv) {
-    var list = DATA.COURSES.filter(function (c) { return c.level === L.lv && (fac === 'all' || c.faculty === fac); });
+  /** レベルごとのまとまり。開いていないレベルも同じカードの並びで出す（鍵の印と「Lv4で開きます」）。g：やりたいことの絞り込み */
+  function levelSection(L, lv, g) {
+    var ids = g ? goalCourses(g) : null;
+    var list = DATA.COURSES.filter(function (c) {
+      return c.level === L.lv && (ids ? ids.indexOf(c.id) >= 0 : fac === 'all' || c.faculty === fac);
+    });
     if (!list.length) return '';
     var locked = L.lv > lv.lv, need = Math.max(0, L.min - lv.xp);
     var hid = 'crLv' + L.lv;
@@ -449,11 +550,17 @@
     // 開くレベルはまとまりの見出し（「Lv4 実践・あと30XPで開きます」）にあるので、カードには書かない（読み上げだけ）
     var meta = jp('全' + st.total + '回・' + st.minutes + '分・') + '<span class="nw">' + esc(t.name) + '</span>';
     var photo = photoBox(c, 'cr-card__img', true);
-    return '<a class="card card-link cr-card' + (photo ? ' has-img' : '') + (locked ? ' is-locked' : '') + '" href="' + courseHref(c) + '">' +
+    // Lv で閉じていても、お試しの回（freeFirst）はすぐ見られる：その1行を藍で足す（修了していれば出さない）
+    // 情報の頭に記号は付けない（脱AIの約束 §2）。文字だけ
+    var trial = st.trial && !st.completed ? '<span class="cr-card__trial">' + jp(st.trialNote) + '</span>' : '';
+    return '<a class="card card-link cr-card' + (photo ? ' has-img' : '') + (locked ? ' is-locked' : '') + (trial ? ' is-trial' : '') + '" href="' + courseHref(c) + '">' +
       '<span class="cr-card__body">' +
-        '<span class="cr-card__ttl">' + (locked ? icon('lock', 'ico-s cr-card__lock') : '') + jp(c.title) +
-          (locked ? '<span class="sr-only">（Lv' + c.level + 'で開きます）</span>' : '') + '</span>' +
-        '<span class="cr-card__meta">' + meta + '</span>' +
+        // 鍵の印と題は横に並べる（題が長いと、印だけが1行目に残らないように）
+        (locked
+          ? '<span class="cr-card__ttl has-lock">' + icon('lock', 'ico-s cr-card__lock') + '<span class="cr-card__tx">' + jp(c.title) +
+            '<span class="sr-only">（Lv' + c.level + 'で開きます）</span></span></span>'
+          : '<span class="cr-card__ttl">' + jp(c.title) + '</span>') +
+        '<span class="cr-card__meta">' + meta + '</span>' + trial +
         (st.started && !st.completed && !locked
           ? '<span class="cr-prog">' + U.progressBar(st.pct, 'ink', { decorative: true }) + '<span class="num">' + st.done + '/' + st.total + '回</span></span>' : '') +
         // 札は本文の中に置く（広いときは右の列、スマホでは題名の下。320px で題名の幅を取らないように）
@@ -471,7 +578,7 @@
     var st = R.courseState(c);
     var photo = photoBox(c, 'cr-dhead__img', false);
     return crumb([['講座', '#/courses'], [c.title]]) +
-      '<div class="page-head cr-dhead' + (photo ? ' has-img' : '') + (st.locked ? ' is-locked' : '') + '">' +
+      '<div class="page-head cr-dhead' + (photo ? ' has-img' : '') + (st.locked && !st.nextOpen ? ' is-locked' : '') + '">' +
         '<div class="cr-dhead__body">' +
           '<h1 class="page-ttl" data-page-title tabindex="-1">' + jp(c.title) + '</h1>' +
           (c.summary ? '<p class="page-lead">' + jp(c.summary) + '</p>' : '') +
@@ -482,7 +589,7 @@
       '</div>' +
       infoBlock(c) +
       '<section class="sec cr-tocsec" aria-labelledby="crTocTtl">' +
-        '<h2 class="sec-ttl"><span id="crTocTtl">目次</span>' + (st.locked ? '' : '<span class="cr-ttlnote num">' + st.done + '/' + st.total + '回</span>') + '</h2>' +
+        '<h2 class="sec-ttl"><span id="crTocTtl">目次</span>' + (st.locked && !st.trial ? '' : '<span class="cr-ttlnote num">' + st.done + '/' + st.total + '回</span>') + '</h2>' +
         '<div class="list cr-lslist">' + c.lessons.map(function (l, i) { return lessonRow(c, l, i); }).join('') + '</div>' +
       '</section>' +
       quizSection(c, st) +
@@ -490,24 +597,37 @@
   }
 
   /** レベルが足りない講座で、XPをためるために次に見る1回 */
-  function catchUpBtn() {
-    var cont = R.continueList()[0];
+  /** attrs：ボタンに足す属性（見終えた回の下で「次の回を見る」の代わりに置くとき、焦点の印 id と data-cr-next を付ける） */
+  function catchUpBtn(attrs) {
+    var cont = R.continueList()[0], l = cont && (cont.st.nextOpen || cont.st.next), a = attrs || '';
     // 長い講座名は狭い幅で折り返す（文字は1つの span にまとめる。.btn は flex なので、分けると横に並んでしまう）
-    return cont
-      ? '<a class="btn btn-primary cr-catchup" href="' + lessonHref(cont.c, cont.st.next) + '"><span>' + jp(cont.c.title) +
-        ' <span class="nw">第' + (lessonIndex(cont.c, cont.st.next.id) + 1) + '回を見る</span></span></a>'
-      : '<a class="btn btn-primary" href="#/courses?tab=archive">録画を見る</a>';
+    return cont && l
+      ? '<a class="btn btn-primary cr-catchup"' + a + ' href="' + lessonHref(cont.c, l) + '"><span>' + jp(cont.c.title) +
+        ' <span class="nw">第' + (lessonIndex(cont.c, l.id) + 1) + '回を見る</span></span></a>'
+      : '<a class="btn btn-primary"' + a + ' href="#/courses?tab=archive">録画を見る</a>';
   }
-  function levelNeed(c) {
+  /** Lv で閉じている講座の開き方。お試しの回がある講座は「第2回からは」と書く */
+  function levelNeed(c, st) {
     var L = levelOf(c.level), need = needXp(c.level);
+    var from = st && st.freeFirst && st.freeFirst < st.total ? '<span class="nw">第' + (st.freeFirst + 1) + '回からは</span>' : '';
     // 本数は次のレベルのときだけ（先のレベルで「動画44本」と出しても目安にならないため）
-    return 'Lv' + L.lv + '「' + esc(L.name) + '」から見られます。<span class="nw">あと' + U.num(need) + 'XP</span>' +
+    return from + 'Lv' + L.lv + '「' + esc(L.name) + '」' + (from ? 'で' : 'から') + '見られます。<span class="nw">あと' + U.num(need) + 'XP</span>' +
       (L.lv === R.level().lv + 1 ? needText(need) : '') + 'です。';
   }
 
   function startArea(c, st) {
+    if (st.locked && st.nextOpen) {
+      // お試しの回（freeFirst）：講座は Lv で閉じているが、最初の回はすぐ見られる
+      var tn = lessonIndex(c, st.nextOpen.id) + 1, trt = R.resumeText(st.nextOpen.id);
+      return '<div class="notice cr-trial">' + icon('play') + '<div><b>' + jp(st.trialNote) + '。</b>' + levelNeed(c, st) + '</div></div>' +
+        '<div class="cr-start">' +
+          '<a class="btn btn-primary btn-l" href="' + lessonHref(c, st.nextOpen) + '">' + icon('play') + (trt ? '続きから見る' : '第' + tn + '回を見る') + '</a>' +
+          '<button type="button" class="btn btn-soft" data-cr-level aria-haspopup="dialog">レベルのしくみ</button>' +
+          (trt ? '<p class="cr-start__note">第' + tn + '回・' + esc(trt) + '</p>' : '') +
+        '</div>';
+    }
     if (st.locked) {
-      return '<div class="notice cr-lock">' + icon('lock') + '<div>' + levelNeed(c) + '</div></div>' +
+      return '<div class="notice cr-lock">' + icon('lock') + '<div>' + levelNeed(c, st) + '</div></div>' +
         '<div class="cr-start">' + catchUpBtn() + '<button type="button" class="btn btn-soft" data-cr-level aria-haspopup="dialog">レベルのしくみ</button></div>';
     }
     if (st.completed) {
@@ -561,7 +681,9 @@
   /** 目次の1行。見終わった回は薄い墨＋緑の印、鍵の回だけ灰＋鍵 */
   function lessonRow(c, l, i) {
     var ls = R.lessonState(c, l.id), note = R.lessonNote(l.id);
-    var sub = '第' + (i + 1) + '回・' + l.min + '分' + (ls === 'done' ? '・見終わった' : '') + (note ? '・メモあり' : '');
+    // お試しの回がある講座で Lv で閉じているとき、閉じている回には開く Lv を書く（開いている回との違いが見えるように）
+    var trialLock = ls === 'locked' && c.level > R.level().lv && i >= (parseInt(c.freeFirst, 10) || 0) && c.freeFirst;
+    var sub = '第' + (i + 1) + '回・' + l.min + '分' + (ls === 'done' ? '・見終わった' : '') + (trialLock ? '・Lv' + c.level + 'で開きます' : '') + (note ? '・メモあり' : '');
     // 新着は、前の回を見終えていなくても付ける（公開された回として知らせる）。レベルで閉じている講座には付けない（一覧のカードと同じ）
     var tag = ls !== 'done' && c.level <= R.level().lv && isNew(l.newAt) ? '<span class="li__end">' + U.statusTag('new') + '</span>' : '';
     var inner = '<span class="li__ico">' + stateIcon(ls) + '</span>' +
@@ -676,7 +798,7 @@
             ? '講座「' + jp(c.title) + '」はLv' + c.level + 'で開きます。全' + st.total + '回を見終わると修了証が出ます。'
             : '講座「' + jp(c.title) + '」の全' + st.total + '回を見終わると出ます。') + '</p></div>' +
         '<div class="cr-start">' +
-          (!st.locked && st.next ? '<a class="btn btn-primary" href="' + lessonHref(c, st.next) + '">第' + (lessonIndex(c, st.next.id) + 1) + '回を見る</a>' : '') +
+          (st.nextOpen ? '<a class="btn btn-primary" href="' + lessonHref(c, st.nextOpen) + '">第' + (lessonIndex(c, st.nextOpen.id) + 1) + '回を見る</a>' : '') +
           '<a class="btn btn-soft" href="' + courseHref(c) + '">目次に戻る</a>' +
           (!st.locked && st.started
             ? '<div class="cr-start__prog"><p><b class="num">' + st.done + '/' + st.total + '回</b>・残り' + st.left + '分</p>' +
@@ -689,6 +811,7 @@
       '<div class="cr-cert-acts">' +
         '<button type="button" class="btn btn-ink" data-cr-print="' + esc(c.id) + '">印刷する</button>' +
         '<button type="button" class="btn btn-ghost" data-cr-png="' + esc(c.id) + '">' + icon('download', 'ico-s') + '画像で保存</button>' +
+        (canShare('course', c.id) ? '<button type="button" class="btn btn-ghost" data-cr-share="' + esc(c.id) + '" aria-haspopup="dialog">' + icon('share', 'ico-s') + 'シェアする</button>' : '') +
       '</div>' +
       '<article class="cr-cert" aria-labelledby="crCertName">' +
         '<p class="cr-cert__no">No. <span class="num">' + esc(cert.no) + '</span></p>' +
@@ -702,6 +825,11 @@
         '</dl>' +
         '<p class="cr-cert__by">' + U.brandmark(DATA.SITE) + '</p>' +
       '</article>';
+  }
+
+  /** シェアの窓（U.shareSheet）で出せるものがあるか。XP・ポイントは付かない（画面づくりの約束 §3） */
+  function canShare(moment, id) {
+    try { return !!(U.shareSheet && R.shareText && R.shareText(moment, id)); } catch (e) { return false; }
   }
 
   /** 修了証に書く回の数「（全5回）」。修了したあとに運営が回を足した講座では、いまの数と合わないので書かない */
@@ -983,7 +1111,7 @@
           : '講座が見つかりませんでした。講座の一覧から選び直してください。' });
       } else {
         var arc = ctx.query.tab === 'archive' || ctx.params[0] === 'archive';
-        html = head(arc) + (arc ? archiveView() : listView());
+        html = head(arc) + (arc ? archiveView() : listView(ctx));
       }
       return '<div class="scr-courses">' + html + '</div>';
     },
@@ -1001,6 +1129,18 @@
       if (!el) return;
       var p = ctx.params;
       if (p[0] === 'archive' && p[1]) mountArchive(el, p[1]);
+      // 「あなたの道」が横に送る並び（狭い幅）のとき、次に見る講座が見えるところまで送っておく
+      var steps = el.querySelector('.cr-path__steps'), nx = steps && steps.querySelector('.is-next');
+      if (nx && steps.scrollWidth > steps.clientWidth + 1) {
+        steps.scrollLeft += nx.getBoundingClientRect().left - steps.getBoundingClientRect().left - 16;
+      }
+      // スマホで横に流す絞り込みの札：押されている札が見えないところにあれば、見えるところまで送る（?goal= のリンクで来たとき）
+      Array.prototype.forEach.call(el.querySelectorAll('.cr-chips'), function (row) {
+        var on = row.querySelector('[aria-pressed="true"]');
+        if (!on || row.scrollWidth <= row.clientWidth + 1) return;
+        var r = on.getBoundingClientRect(), b = row.getBoundingClientRect();
+        if (r.right > b.right - 24 || r.left < b.left) row.scrollLeft += r.left - b.left - 16;
+      });
       // 「確認テストを受ける」で来たとき（描き直しのたびには動かさない）
       var fk = ctx.query.focus === 'quiz' && p[0] && !p[1] ? ctx.key + '?quiz' : null;
       if (fk && focusDone !== fk) {
@@ -1058,12 +1198,26 @@
     if (root.__crBound) return;
     root.__crBound = true;
     root.addEventListener('click', function (e) {
-      var t = e.target.closest('.scr-courses [data-cr-level], .scr-lesson [data-cr-level], .scr-courses [data-cr-fac], .scr-courses [data-cr-genre],' +
+      var t = e.target.closest('.scr-courses [data-cr-level], .scr-lesson [data-cr-level], .scr-courses [data-cr-fac], .scr-courses [data-cr-goal], .scr-courses [data-cr-genre],' +
+        '.scr-courses [data-cr-share],' +
         '.scr-courses [data-cr-file], .scr-lesson [data-cr-file], .scr-lesson [data-cr-complete], .scr-courses [data-cr-seen],' +
         '.scr-courses [data-cr-print], .scr-courses [data-cr-png], .scr-courses [data-cr-retry], .scr-courses [data-cr-chap]');
       if (!t || !cur) return;
       if (t.hasAttribute('data-cr-level')) { CLG.app.levelInfo(); return; }
-      if (t.hasAttribute('data-cr-fac')) { fac = t.getAttribute('data-cr-fac'); cur.refresh(); return; }
+      if (t.hasAttribute('data-cr-fac')) {
+        // やりたいことで絞っていたら、?goal= を外す（絞り込みはどちらか一方）
+        fac = t.getAttribute('data-cr-fac');
+        if (cur.query.goal) cur.go('#/courses'); else cur.refresh();
+        return;
+      }
+      if (t.hasAttribute('data-cr-goal')) {
+        // 押されているものをもう一度押すと外す。URL に残す（#/courses?goal=sns はほかの画面からも開ける）
+        var gid = t.getAttribute('data-cr-goal');
+        fac = 'all';
+        cur.go(cur.query.goal === gid ? '#/courses' : '#/courses?goal=' + enc(gid));
+        return;
+      }
+      if (t.hasAttribute('data-cr-share')) { U.shareSheet('course', { id: t.getAttribute('data-cr-share') }); return; }
       if (t.hasAttribute('data-cr-genre')) { genre = t.getAttribute('data-cr-genre'); cur.refresh(); return; }
       if (t.hasAttribute('data-cr-file')) { U.toast('本番では「' + fileName(t.getAttribute('data-cr-file')) + '」をダウンロードします'); return; }
       if (t.hasAttribute('data-cr-complete')) { completeLesson(t); return; }
@@ -1209,7 +1363,20 @@
 
   /** 見終えた回の下：次の回（写真・題・分）。最後の回なら、確認テストと修了証 */
   function nextCard(c, i) {
-    var nx = c.lessons[i + 1];
+    var nx = c.lessons[i + 1], cst = R.courseState(c);
+    // お試しの回を見終えた：次の回は Lv で開く。XP がたまる回へ案内する（「次の回を見る」の代わり。焦点もここへ）
+    if (nx && cst.locked && R.lessonState(c, nx.id) === 'locked') {
+      return '<div class="card cr-next cr-next--end cr-next--trial">' +
+        '<div class="cr-next__body">' +
+          '<p class="cr-next__ttl"><span class="nw">第' + (i + 2) + '回からは</span>' + jp(cst.lockReason) + '</p>' +
+          '<p class="cr-next__meta"><span class="nw">あと' + U.num(needXp(c.level)) + 'XP</span>' +
+            (c.level === R.level().lv + 1 ? needText(needXp(c.level)) : '') + 'です。ほかの講座の回を見ると XP がたまります。</p>' +
+        '</div>' +
+        '<div class="cr-next__btns">' + catchUpBtn(' id="crAct" data-cr-next="catchup"') +
+          '<a class="btn btn-soft" href="' + courseHref(c) + '">目次に戻る</a>' +
+        '</div>' +
+      '</div>';
+    }
     if (nx) {
       var rt = R.resumeText(nx.id);
       return '<div class="card cr-next">' +
@@ -1240,8 +1407,11 @@
   function lockNotice(c, ls, st, i) {
     if (ls !== 'locked') return '';
     if (st.locked) {
-      return '<div class="notice cr-lock">' + icon('lock') + '<div>' + levelNeed(c) +
-        '<div class="cr-lock__btns">' + catchUpBtn() +
+      // お試しの回をまだ見ていなければ、その回へ（XP をためる回より先に、この講座の入口を案内する）
+      var tr = st.nextOpen;
+      return '<div class="notice cr-lock">' + icon('lock') + '<div>' + (tr ? '<b>' + jp(st.trialNote) + '。</b>' : '') + levelNeed(c, st) +
+        '<div class="cr-lock__btns">' +
+          (tr ? '<a class="btn btn-primary" href="' + lessonHref(c, tr) + '">第' + (lessonIndex(c, tr.id) + 1) + '回を見る</a>' : catchUpBtn()) +
         '<button type="button" class="btn btn-soft" data-cr-level aria-haspopup="dialog">レベルのしくみ</button></div></div></div>';
     }
     // 開く条件は「すぐ前の回」まで見終えること。ボタンは次に見る回（まだの回がいくつかあるときは「第N回まで」と書く）
@@ -1263,12 +1433,12 @@
   }
 
   function toc(c, cur0, st) {
-    return '<h2 class="sec-ttl"><span>目次</span>' + (st.locked ? '' : '<span class="cr-ttlnote num">' + st.done + '/' + st.total + '回</span>') + '</h2>' +
+    return '<h2 class="sec-ttl"><span>目次</span>' + (st.locked && !st.trial ? '' : '<span class="cr-ttlnote num">' + st.done + '/' + st.total + '回</span>') + '</h2>' +
       '<div class="list cr-toc">' +
         '<a class="li cr-toc__head" href="' + courseHref(c) + '"><span class="li__body"><span class="li__ttl">' + jp(c.title) + '</span></span>' + U.chevron() + '</a>' +
         c.lessons.map(function (l, i) {
           var ls = R.lessonState(c, l.id), isCur = i === cur0;
-          var sub = '第' + (i + 1) + '回・' + l.min + '分' + (ls === 'done' ? '・見終わった' : '');
+          var sub = '第' + (i + 1) + '回・' + l.min + '分' + (ls === 'done' ? '・見終わった' : '') + (st.trial && ls === 'locked' && i >= st.freeFirst ? '・Lv' + c.level + 'で開きます' : '');
           var inner = '<span class="li__ico">' + stateIcon(ls) + '</span>' +
             '<span class="li__body"><span class="li__ttl">' + jp(l.title) + (ls === 'locked' ? '<span class="sr-only">（まだ見られません）</span>' : '') + '</span>' +
             '<span class="li__sub">' + jp(sub) + '</span></span>';

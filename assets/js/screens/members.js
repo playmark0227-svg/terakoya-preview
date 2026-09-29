@@ -5,7 +5,8 @@
    - 地域は本人の公開範囲のまま出す（R.members / R.memberProfile がもう切ってある。既定は都道府県まで）
    - 会員どうしの1対1のメッセージは作らない（決定事項。相談は運営とだけ）。だから「メッセージを送る」は置かない
    - 他人の会員番号は出さない（ログインに使う番号のため）
-   - 名簿の絞り込みは URL（?pref= ?cohort= ?faculty= ?lv= ?q= ?sort=）。名前で探す欄は、打つたびに一覧だけ差し替える
+   - 名簿の絞り込みは URL（?goal= ?pref= ?cohort= ?faculty= ?lv= ?q= ?sort=）。やりたいこと（?goal=<GOALS の id>・none は未選択）は
+     一覧の上の札で選ぶ。行と会員のページには、本人が隠していなければ選んだやりたいことを添える（R.members の行・memberProfile().goals）。名前で探す欄は、打つたびに一覧だけ差し替える
      （画面ごと描き直すと、スマホで入力欄が入れ替わってキーボードが閉じてしまうため）
    - 自分のページでは、運営が非表示にした自分の投稿を上に知らせる（R.memberProfile の投稿には入らないため）
    ============================================================ */
@@ -22,16 +23,16 @@
   /* ---------- 名簿 ---------- */
   function filtersOf(q) {
     q = q || {};
-    return { pref: q.pref || '', cohort: q.cohort || '', faculty: q.faculty || '', lv: q.lv || '', q: q.q || '', sort: q.sort === 'lv' ? 'lv' : 'new' };
+    return { pref: q.pref || '', cohort: q.cohort || '', faculty: q.faculty || '', lv: q.lv || '', goal: q.goal || '', q: q.q || '', sort: q.sort === 'lv' ? 'lv' : 'new' };
   }
   function dirHash(f, n) {
     var p = [];
-    ['pref', 'cohort', 'faculty', 'lv', 'q'].forEach(function (k) { if (f[k]) p.push(k + '=' + enc(f[k])); });
+    ['goal', 'pref', 'cohort', 'faculty', 'lv', 'q'].forEach(function (k) { if (f[k]) p.push(k + '=' + enc(f[k])); });
     if (f.sort && f.sort !== 'new') p.push('sort=' + f.sort);
     if (n && n > SHOW) p.push('n=' + n);
     return '#/members' + (p.length ? '?' + p.join('&') : '');
   }
-  function isFiltered(f) { return !!(f.pref || f.cohort || f.faculty || f.lv || f.q.trim()); }
+  function isFiltered(f) { return !!(f.pref || f.cohort || f.faculty || f.lv || f.goal || f.q.trim()); }
   function select(name, label, opts, val) {
     return '<label class="mb-f"><span class="mb-f__l">' + esc(label) + '</span>' +
       '<select class="select" name="' + name + '" id="mb-' + name + '">' +
@@ -42,12 +43,14 @@
         }).join('') +
       '</select></label>';
   }
-  function memberRow(m, i) {
+  /** 名簿の行。やりたいこと（本人が隠していれば出ない）は、いま絞っているものを除いて添える */
+  function memberRow(m, i, goal) {
     var sub = [m.area, m.cohort, 'Lv' + m.lv].filter(Boolean).join('・');
+    var tags = U.goalTags((m.goals || []).filter(function (g) { return g !== goal; }), { cls: 'mb-row__goals' });
     return '<a class="li mb-row" data-mb-i="' + i + '" href="' + esc(m.href || '#/members/' + enc(m.id)) + '">' + U.avatar(m, 's') +
       '<span class="li__body"><span class="li__ttl">' + esc(m.name) + (m.me ? '<span class="mb-you">あなた</span>' : '') + '</span>' +
         '<span class="li__sub">' + esc(sub) + '</span>' +
-        (m.job ? '<span class="li__sub mb-row__job">' + esc(m.job) + '</span>' : '') +
+        (m.job ? '<span class="li__sub mb-row__job">' + esc(m.job) + '</span>' : '') + tags +
       '</span>' + U.chevron() + '</a>';
   }
   function results(f, n) {
@@ -62,7 +65,7 @@
     return (isFiltered(f) ? '<div class="mb-bar">' +
         '<p class="mb-count" id="mbCount"><b class="num">' + U.num(list.length) + '</b>人</p>' + clear +
       '</div>' : '') +
-      '<div class="list mb-list">' + list.slice(0, shown).map(memberRow).join('') + '</div>' +
+      '<div class="list mb-list">' + list.slice(0, shown).map(function (m, i) { return memberRow(m, i, f.goal); }).join('') + '</div>' +
       (more > 0 ? '<p class="mb-more"><a class="btn btn-ghost" href="' + esc(dirHash(f, shown + SHOW)) + '" data-focus-after="' + esc("[data-mb-i='" + shown + "']") + '">' +
         'もっと見る（あと' + U.num(more) + '人）</a></p>' : '');
   }
@@ -73,7 +76,18 @@
     if (f.cohort && !has(fc.cohorts, f.cohort)) f.cohort = '';
     if (f.faculty && !has(fc.faculties, f.faculty)) f.faculty = '';
     if (f.lv && !has(fc.lvs, f.lv)) f.lv = '';
+    if (f.goal && f.goal !== 'none' && !has(fc.goals || [], f.goal)) f.goal = '';
     return f;
+  }
+  /** やりたいことの絞り込み（R.membersFacets().goals と、選んでいない人 'none'）。押すと URL の ?goal= を替える */
+  function goalChips(f, fc) {
+    var chips = [['', 'すべて', R.members({}).length]]
+      .concat((fc.goals || []).map(function (g) { return [g.value, g.short, g.count]; }))
+      .concat([['none', '未選択', R.members({ goal: 'none' }).length]]);
+    return '<div class="chips mb-goals" role="group" aria-label="やりたいことで絞り込む">' + chips.map(function (c) {
+      return '<button type="button" class="chip" data-mb-goal="' + esc(c[0] || 'all') + '" aria-pressed="' + (c[0] === f.goal) + '">' +
+        esc(c[1]) + '<span class="n num">' + U.num(c[2]) + '</span></button>';
+    }).join('') + '</div>';
   }
   function directory(ctx) {
     var fc = R.membersFacets(), f = known(filtersOf(ctx.query), fc);
@@ -81,7 +95,9 @@
     return '<div class="scr-members">' +
       '<div class="page-head"><h1 class="page-ttl" data-page-title tabindex="-1">会員名簿</h1>' +
         '<p class="page-lead"><span class="num">' + U.num(R.members({}).length) + '</span>人</p></div>' +
+      goalChips(f, fc) +
       '<form class="card mb-filters" data-mb-form role="search" aria-label="会員を探す" novalidate>' +
+        '<input type="hidden" name="goal" value="' + esc(f.goal) + '">' +
         '<div class="mb-filters__top">' +
           '<div class="mb-q">' + icon('search', 'ico-s') +
             '<label class="sr-only" for="mbQ">名前・お仕事・地域で探す</label>' +
@@ -136,6 +152,17 @@
         '<span class="li__ttl mb-post__ttl">' + U.jp(firstLine(p.text)) + '</span><span class="li__sub">' + esc(meta) + '</span></span>' + U.chevron() + '</a>';
     }).join('') + '</div>';
   }
+  /** 表の「やりたいこと」：選んだ項目（名簿で同じ人を見るリンク）と、1行の目標（自分はプロフィールの「ひとことの目標」、ほかの人は自己紹介の投稿から）。
+      自分のページでは、名簿に出していないときにそう書く。何もなければ ''（自分は「まだ選んでいません」） */
+  function goalsCell(p) {
+    var ids = (p.goals || []).map(function (g) { return g.id; });
+    var tags = ids.length ? U.goalTags(ids, { long: true, link: true, cls: 'mb-goaltags' }) : '';
+    var text = p.goal ? '<span class="mb-goaltext">' + U.jp(p.goal) + '</span>' : '';
+    var note = '';
+    if (p.me && p.goalsHidden && ids.length) note = '<span class="mb-goalnote">ほかの会員には出していません（<a href="#/account?focus=goals">アカウントで変えられます</a>）</span>';
+    else if (p.me && !ids.length) note = '<span class="mb-goalnote">' + (R.goals().chosen ? 'まだ決めていません' : 'まだ選んでいません') + '（<a href="#/account?focus=goals">アカウントで選べます</a>）</span>';
+    return tags + text + note;
+  }
   function profile(p) {
     var mu = !p.me && !p.staff && DATA.PEOPLE[p.id] && muted(p.id);
     var canMute = !p.me && !p.staff && !!DATA.PEOPLE[p.id] && !mu;
@@ -163,11 +190,12 @@
       var noArea = p.me && !String(R.me().area || '').trim();
       rows.push(['地域', p.area || (noArea ? '未入力' : p.me ? '出していません（アカウントで変えられます）' : '出していません')]);
       if (p.job || p.me) rows.push(['いまのお仕事', p.job || '未入力']);
-      if (p.goal) rows.push(['やりたいこと', p.goal]);
+      var gc = goalsCell(p);
+      if (gc) rows.push(['やりたいこと', { html: gc }]);
       rows.push(['修了した講座', p.completed ? p.completed + '本' : 'まだありません']);   // 数えるときは「本」（会員証と同じ）
     }
     var kv = rows.length ? '<div class="card card-pad mb-kv"><table class="kv"><tbody>' + rows.map(function (x) {
-      return '<tr><th scope="row">' + esc(x[0]) + '</th><td>' + U.jp(x[1]) + '</td></tr>';
+      return '<tr><th scope="row">' + esc(x[0]) + '</th><td>' + (x[1] && x[1].html ? x[1].html : U.jp(x[1])) + '</td></tr>';
     }).join('') + '</tbody></table></div>' : '';
 
     var hidden = p.me ? myHidden() : [];
@@ -214,7 +242,7 @@
   /* ---------- 押したとき・打ったとき ---------- */
   function readForm(form) {
     var f = {};
-    ['q', 'pref', 'cohort', 'faculty', 'lv', 'sort'].forEach(function (k) { var el = form.elements[k]; f[k] = el ? el.value : ''; });
+    ['q', 'goal', 'pref', 'cohort', 'faculty', 'lv', 'sort'].forEach(function (k) { var el = form.elements[k]; f[k] = el ? el.value : ''; });
     return filtersOf(f);
   }
   /** 名前で探す欄：画面ごと描き直さず、一覧だけ差し替える。URL は履歴を増やさずに書きかえる */
@@ -272,6 +300,16 @@
         liveSearch(form);
       });
       root.addEventListener('click', function (e) {
+        var gc = e.target.closest && e.target.closest('.scr-members [data-mb-goal]');
+        if (gc) {
+          // ほかの絞り込み（探す欄の言葉も）は残したまま、やりたいことだけを替える
+          var form = document.querySelector('.scr-members [data-mb-form]'), f = form ? readForm(form) : filtersOf(cur.query);
+          var v = gc.getAttribute('data-mb-goal');
+          f.goal = v === 'all' ? '' : v;
+          clearTimeout(typing);
+          cur.go(dirHash(f));
+          return;
+        }
         var b = e.target.closest && e.target.closest('.scr-members [data-mb-mute], .scr-members [data-mb-unmute]');
         if (!b) return;
         if (b.hasAttribute('data-mb-unmute')) {

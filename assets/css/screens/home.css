@@ -1,7 +1,7 @@
 /* ============================================================
    ホーム（.scr-home）
    上から「見出し → 今日の会 → 続きから → 未読など → 2段組み」。
-   2段組みは、左に新着・イベント、右に案件と紹介・学びのレベル。
+   2段組みは、左に新着・イベント、右に案件と紹介・学びのレベル。その上に「あなたの道」（.hp。左に講座の順、右に案件・仲間・イベント）。
    本文の組み替えは @container main（本文の幅）で書く。
    ============================================================ */
 
@@ -135,10 +135,109 @@
 /* XPの棒は左の帯（タブレット・パソコン）にもあるので、帯がある幅では出さない */
 @media (min-width: 641px) { .scr-home .home-lv__bar { display: none; } }
 
+/* ---------- あなたの道（.hp）：上にやりたいこと、左に講座の順、右に案件・仲間・イベント ---------- */
+.scr-home .home-path { margin-top: 26px; }
+.scr-home .hp { overflow: hidden; }
+.scr-home .hp__top { padding: 14px var(--inset) 0; }
+.scr-home .hp__goal { font-size: 14.5px; font-weight: 700; line-height: 1.6; }
+.scr-home .hp-seg button { min-width: 96px; }
+.scr-home .hp__cols { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.scr-home .hp__main { padding: 6px 0 8px; min-width: 0; }
+.scr-home .hp__side { padding: 6px 0 8px; min-width: 0; border-left: 1px solid var(--line); }
+.scr-home .hp__blk + .hp__blk { margin-top: 6px; }
+.scr-home .hp__h-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px var(--inset) 4px; }
+.scr-home .hp__h { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.scr-home .hp__more { flex: none; font-size: 13px; font-weight: 600; color: var(--indigo); text-decoration: none; padding: 10px 0 10px 10px; margin: -10px 0; }
+.scr-home .hp__more:hover { text-decoration: underline; }
+.scr-home .hp__done { flex: none; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+.scr-home .hp__done b { font-size: 14px; color: var(--ink); margin-right: 1px; }
+.scr-home .hp-none { padding: 4px var(--inset) 10px; font-size: 13.5px; color: var(--ink-2); }
+/* 中の一覧は面を持たない（カードの中にカードを重ねない） */
+.scr-home .hp .hp-list { background: none; border: 0; border-radius: 0; box-shadow: none; }
+.scr-home .hp .hp-list .li { min-height: 52px; padding-top: 10px; padding-bottom: 10px; }
+.scr-home .hp .li__ttl { font-size: 14.5px; }
+
+/* 講座の順（番号・題・いまの状態） */
+.scr-home .hp-courses { margin: 0; padding: 0; list-style: none; }
+.scr-home .hp-c { position: relative; }
+.scr-home .hp-c + .hp-c::before { content: ""; position: absolute; top: 0; left: calc(var(--inset) + 34px); right: 0; height: 1px; background: var(--line); }
+.scr-home .hp-c__a { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 9px var(--inset); color: inherit; text-decoration: none; }
+.scr-home .hp-c__a:hover { background: var(--surface-2); }
+.scr-home .hp-c__a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-home .hp-c__no {
+  flex: none; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--line-2); font-size: 12px; font-weight: 700; color: var(--ink-2);
+}
+.scr-home .hp-c__body { flex: 1; min-width: 0; }
+.scr-home .hp-c__ttl { display: block; font-size: 14.5px; font-weight: 600; line-height: 1.5; }
+.scr-home .hp-c__sub { display: block; font-size: 12.5px; line-height: 1.6; color: var(--ink-2); overflow-wrap: anywhere; }
+.scr-home .hp-c__end { flex: none; display: flex; align-items: center; color: var(--ink-3); }
+/* 次に見る講座は地の色と太字で（札は付けない） */
+.scr-home .hp-c.is-next .hp-c__a { background: var(--surface-2); }
+.scr-home .hp-c.is-next .hp-c__a:hover { background: var(--line); }
+.scr-home .hp-c.is-next .hp-c__no { background: var(--ink); border-color: var(--ink); color: #fff; }
+.scr-home .hp-c.is-next .hp-c__sub { color: var(--ink); font-weight: 600; }
+.scr-home .hp-c.is-locked .hp-c__ttl { color: var(--ink-2); }
+.scr-home .hp-c.is-done .hp-c__ttl { color: var(--ink-2); }
+
+/* 仲間（顔と名前を横に3人） */
+.scr-home .hp-people { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0 calc(var(--inset) - 8px) 6px; list-style: none; }
+.scr-home .hp-person {
+  display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 8px; border-radius: var(--r-s);
+  color: inherit; text-decoration: none; min-width: 0;
+}
+.scr-home .hp-person:hover { background: var(--surface-2); }
+.scr-home .hp-person:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.scr-home .hp-person .avatar { flex: none; }
+.scr-home .hp-person__txt { min-width: 0; }
+.scr-home .hp-person__name { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scr-home .hp-person__sub { display: block; font-size: 12px; line-height: 1.5; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 近いイベント */
+.scr-home .hp-ev { align-items: flex-start; gap: 12px; }
+.scr-home .hp-ev__when { flex: none; width: 76px; padding-top: 2px; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
+.scr-home .hp-ev__when b { font-size: 14px; color: var(--ink); }
+.scr-home .hp-ev__when span.num { display: block; }
+.scr-home .hp-ev .li__end { align-self: center; }
+
+/* リクエストへの小さなリンク */
+.scr-home .hp__req { padding: 10px var(--inset) 12px; border-top: 1px solid var(--line); font-size: 13px; }
+.scr-home .hp__req a { color: var(--indigo); font-weight: 600; text-decoration: none; }
+.scr-home .hp__req a:hover { text-decoration: underline; }
+
+/* まだ選んでいないとき */
+.scr-home .hp-ask { display: flex; align-items: center; gap: 20px; padding: 16px 22px; }
+.scr-home .hp-ask__txt { flex: 1; min-width: 0; font-size: 14px; line-height: 1.7; color: var(--ink); text-wrap: pretty; word-break: auto-phrase; }
+/* 文の切れ目で折る（収まらない幅では文の中でも折る） */
+.scr-home .hp-sent { display: inline-block; max-width: 100%; }
+.scr-home .hp-ask__btn { flex: none; min-width: 112px; }
+.scr-home .hp-ask__req { margin: 8px 2px 0; font-size: 13px; }
+.scr-home .hp-ask__req a { color: var(--indigo); font-weight: 600; text-decoration: none; }
+.scr-home .hp-ask__req a:hover { text-decoration: underline; }
+.scr-home .home-lvc__trial { margin-top: 0; color: var(--ink-2); }
+
+@media (max-width: 860px) {
+  .scr-home .hp__req a, .scr-home .hp-ask__req a, .scr-home .hp__more { position: relative; display: inline-block; }
+  .scr-home .hp__req a::before, .scr-home .hp-ask__req a::before, .scr-home .hp__more::before { content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
+}
+
 /* ---------- 本文の幅ごと ---------- */
 /* 1段にする（タブレットの縦・左の帯が出ている狭めの画面） */
 @container main (max-width: 740px) {
   .scr-home .home-cols { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  /* あなたの道：講座の順の下に、案件・仲間・イベント */
+  .scr-home .hp__cols { grid-template-columns: minmax(0, 1fr); }
+  .scr-home .hp__side { border-left: 0; border-top: 1px solid var(--line); }
+}
+@container main (max-width: 480px) {
+  /* 仲間は顔の下に名前（3人を横に並べたまま、名前の幅をとる） */
+  .scr-home .hp-people { gap: 2px; padding-left: 8px; padding-right: 8px; }
+  .scr-home .hp-person { flex-direction: column; gap: 4px; padding: 8px 4px; text-align: center; }
+  .scr-home .hp-person__txt { width: 100%; }
+  .scr-home .hp-ask { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
+  .scr-home .hp-ask__btn { width: 100%; }
+  .scr-home .hp-seg { display: flex; width: 100%; }
+  .scr-home .hp-seg button { flex: 1 1 0; min-width: 0; padding: 0 8px; }
 }
 @container main (max-width: 600px) {
   .scr-home .home-step { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }

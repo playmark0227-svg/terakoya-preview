@@ -12,6 +12,7 @@
      返金・ログインの停止・ポイント・記録の申込みは AD.ops（refund / setSuspended / grantPoints / revokePoints / completeDataRequest）を通す。
      デモ会員なら会員ページにも効き（R.refundInvoice・R.setLoginBlocked・R.grantPoints・R.completeDataRequest）、支払いの画面と同じ操作の記録になる。
    - デモ会員が会員ページのアカウントから出した「記録の書き出し・削除」の申込みは、プロフィールのタブに出す（受付中は先頭に「済みにする」）。
+   - プロフィールのタブに、やりたいこと（R.goalsOf。名簿に出していなくても出す）と、出したリクエスト（#/requests/<id> へ）。
    - 役割（設定の「役割でできること」）：メッセージ・連絡・契約・ログイン・メモは members、返金・やり直し・領収書は money、
      ポイントは points。できない操作のボタンは押せないようにする（講師・経理）。
    ============================================================ */
@@ -330,6 +331,8 @@
       ['メール', m.email ? esc(m.email).replace('@', '<wbr>@') + '<button type="button" class="btn btn-text btn-s a-md__copy" data-md-copymail="' + esc(m.no) + '" aria-label="メールアドレスをコピー">' + icon('copy', 'ico-s') + '</button>' : '―', true],
       ['地域', m.area],
       ['いまのお仕事', m.job],
+      // やりたいこと（1つ目が主）。本人が名簿に出していないときも運営には出す
+      ['やりたいこと', goalsHtml(m), true],
       ['入会', U.fmtDate(m.joinedAt) + '（' + m.cohort + '）'],
       ['紹介コード', m.refCode ? '<span class="mono">' + esc(m.refCode) + '</span>' : '―', true],
       ['紹介元', by ? AU.who(by) : '紹介なしで入会', !!by]
@@ -344,7 +347,26 @@
       }).join('') + '</ul>' : AU.empty('まだ記録はありません。') });
     var dr = dataPanel(m), open = dr && /data-md-datadone/.test(dr);
     // 受付中の申込みがあるときは、会員の情報の前に置く（済んだものだけなら、いちばん下）
-    return '<div class="a-md__cols">' + '<div class="a-md__col">' + (open ? dr : '') + info + act + (open ? '' : dr) + '</div>' + '<div class="a-md__col">' + steps + '</div></div>';
+    return '<div class="a-md__cols">' + '<div class="a-md__col">' + (open ? dr : '') + info + act + (open ? '' : dr) + '</div>' + '<div class="a-md__col">' + steps + reqPanel(m) + '</div></div>';
+  }
+  /* やりたいこと：GOALS の名前（長い名前）。未選択は「まだ決めていない」。デモ会員が名簿に出していなければ添える */
+  function goalsHtml(m) {
+    var ids = m.goals || [];
+    if (!ids.length) return '<span class="muted">' + (m.live && m.goalsChosen ? 'まだ決めていない（本人が選んだ）' : '未選択') + '</span>';
+    return U.goalTags(ids, { long: true }) + (m.goalsHidden ? '<span class="a-md__goalnote">名簿には出していません</span>' : '');
+  }
+  /* 出したリクエスト（R.requests。匿名で出したものも運営には名前で出る）。無ければ出さない */
+  function reqPanel(m) {
+    var list = [];
+    try { list = R.requests({ admin: true, sort: 'new' }).filter(function (r) { return r.byNo === m.no; }); } catch (e) { list = []; }
+    if (!list.length) return '';
+    return AU.panel({ title: '出したリクエスト', id: 'mdReq', count: list.length + '件', flush: true,
+      actions: '<a class="ad-panel__link" href="#/requests">リクエスト</a>',
+      body: '<ul class="a-md__feed a-md__req">' + list.map(function (r) {
+        return '<li><time class="num" datetime="' + esc(r.at) + '">' + esc(U.fmtShort(r.at)) + '</time>' +
+          '<span class="a-md__feedt"><a href="#/requests/' + esc(encodeURIComponent(r.id)) + '">' + esc(r.title) + '</a>' +
+            (r.anonymous ? '<span class="a-md__anon nw">（匿名）</span>' : '') + '</span>' + AU.status('request', r.status) + '</li>';
+      }).join('') + '</ul>' });
   }
   /* 記録の書き出し・削除の申込み（デモ会員が会員ページのアカウントから出したもの。AD.ops.dataRequests）。
      受付中のものは「済みにする」→ AD.ops.completeDataRequest（会員にお知らせが届き、会員ページのアカウントも「済み」になる） */

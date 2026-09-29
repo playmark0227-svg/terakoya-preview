@@ -1,6 +1,6 @@
 /* ============================================================
-   運営画面：会員・会員の詳細・新入生の30日・メッセージ（A1 の担当）
-   .a-members / .a-member / .a-onboarding / .a-inbox で閉じる。
+   運営画面：会員・会員の詳細・新入生の30日・メッセージ（A1 の担当）・「あったらいい」リクエスト（requests.js）
+   .a-members / .a-member / .a-onboarding / .a-inbox / .a-requests で閉じる。
    送る文を書く引き出し（AD.people.compose）は body の直下に出るので .a-compose で閉じる。
    色の使い方は会員ページと同じ：朱は「いま見てほしい」、緑は「済んだ」、黄土は「気をつけて」、藍は運営の発言と情報。
    ============================================================ */
@@ -144,6 +144,12 @@
 /* 記録の書き出し・削除の申込み（デモ会員。受付中は「済みにする」、済んだものは日付と状態を文字で） */
 .a-member .a-md__datanew { color: var(--warn-ink); font-weight: 700; }
 .a-member .a-md__datast { flex: none; color: var(--ink-2); font-size: 12.5px; }
+/* やりたいこと・出したリクエスト（プロフィールのタブ） */
+.a-member .a-md__goalnote { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-2); }
+.a-member .a-md__req .a-md__feedt a { color: inherit; font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+.a-member .a-md__req .a-md__feedt a:hover { text-decoration: underline; }
+.a-member .a-md__req .tag { flex: none; }
+.a-member .a-md__anon { color: var(--ink-2); font-size: 12px; }
 
 /* 契約と支払い */
 .a-member [data-md-tab="pay"] .ad-panel__acts .btn { height: 30px; }
@@ -459,3 +465,65 @@
 .a-member .ad-tbl.is-cards td[data-label="操作"]::before, .a-member .ad-tbl.is-cards td[data-label=""]::before { display: none; }
 .a-inbox .a-ib__extext { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 30em; overflow-wrap: anywhere; }
 .a-inbox .a-ib__exwhen { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-3); }
+
+/* ---------- 「あったらいい」リクエスト（#/requests・#/requests/<id>） ----------
+   一覧：上の数字（.a-rq__kpis）→ 表（＋1・題と種類・出した人・出した日・状態・返事）。詳細：左に中身と返事の欄、右に出した人と記録 */
+.a-requests .a-rq__kpis { margin-bottom: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@container adview (max-width: 560px) { .a-requests .a-rq__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.a-requests .ad-tbl td.a-rq__votes b { font-size: 15px; }
+.a-requests .a-rq__ttl { font-weight: 700; color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.a-requests .a-rq__ttl:hover { text-decoration: underline; }
+.a-requests .a-rq__sub { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-3); font-weight: 400; overflow-wrap: anywhere; }
+.a-requests .a-rq__anon, .a-requests .a-rq__live {
+  display: inline-block; margin: 3px 0 0 6px; padding: 1px 6px; border: 1px solid var(--line-2); border-radius: 5px;
+  color: var(--ink-2); font-size: 10.5px; font-weight: 700; line-height: 1.5; white-space: nowrap; vertical-align: 1px;
+}
+.a-requests .a-rq__live { border-color: rgba(39, 72, 104, .35); color: var(--indigo); }
+.a-requests .ad-tbl .ad-who__name { max-width: 9em; }
+.a-requests .a-rq__grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.a-requests .a-rq__grid .ad-panel + .ad-panel { margin-top: 16px; }
+@container adview (max-width: 900px) { .a-requests .a-rq__grid { grid-template-columns: minmax(0, 1fr); } }
+.a-requests .a-rq__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-2); }
+.a-requests .a-rq__detail { font-size: 14.5px; line-height: 1.8; overflow-wrap: anywhere; }
+.a-requests .a-rq__h { margin-bottom: 8px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.a-requests .a-rq__now { margin-bottom: 18px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+.a-requests .a-rq__nowhead { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 6px; font-size: 12.5px; color: var(--ink-2); }
+.a-requests .a-rq__nowtext { font-size: 14px; line-height: 1.75; overflow-wrap: anywhere; }
+.a-requests .a-rq__nowlink { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--indigo); }
+.a-requests .a-rq__nowlink a { color: inherit; text-underline-offset: 3px; }
+@media (max-width: 860px) { .a-requests .a-rq__nowlink a { display: inline-flex; align-items: center; min-height: 40px; } }
+.a-requests .a-rq__now:last-child { margin-bottom: 0; }
+.a-requests .a-rq__none { font-size: 13.5px; color: var(--ink-2); }
+.a-requests .a-rq__form .field { margin-bottom: 16px; }
+.a-requests .a-rq__st { border: 0; padding: 0; min-width: 0; }
+.a-requests .a-rq__st legend { padding: 0; margin-bottom: 6px; }
+.a-requests .a-rq__radios { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.a-requests .a-rq__radios .check { align-items: center; min-height: 36px; }
+.a-requests .a-rq__radios .check input { margin-top: 0; }
+.a-requests .a-rq__presets { margin-bottom: 8px; }
+.a-requests .a-rq__presets .chip { height: auto; min-height: 32px; padding: 6px 12px; white-space: normal; text-align: left; line-height: 1.45; }
+/* ひな形は長い文なので、スマホでも横に流さず折り返す（1つの札が画面より広くならないように） */
+@media (max-width: 640px) {
+  .a-requests .a-rq__presets { flex-wrap: wrap; overflow: visible; margin: 0 0 8px; padding: 0; -webkit-mask-image: none; mask-image: none; }
+  .a-requests .a-rq__presets::after { display: none; }
+  .a-requests .a-rq__presets > .chip { flex: 0 1 auto; max-width: 100%; }
+}
+.a-requests .a-rq__count { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-2); }
+.a-requests .a-rq__acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.a-requests .a-rq__note { font-size: 12.5px; color: var(--ink-2); }
+.a-requests .a-rq__whobox { margin-bottom: 12px; }
+.a-requests .a-rq__side .ad-kv__row { grid-template-columns: 6.8em minmax(0, 1fr); gap: 10px; }
+.a-requests .a-rq__hist li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.a-requests .a-rq__hist li:first-child { border-top: 0; padding-top: 0; }
+.a-requests .a-rq__hist time { font-size: 12px; color: var(--ink-3); }
+.a-requests .a-rq__hist small { grid-column: 2; font-size: 12px; color: var(--ink-3); }
+@media (max-width: 860px) {
+  .a-requests .a-rq__radios .check { min-height: 44px; }
+  .a-requests .a-rq__presets .chip { min-height: 44px; }
+}
+.a-requests .ad-tbl .a-rq__go { height: 30px; padding: 0 11px; font-size: 12.5px; }
+@media (max-width: 860px) { .a-requests .ad-tbl .a-rq__go { height: 40px; } }
+.a-requests .a-rq__linkbox[hidden] { display: none; }
+@media (max-width: 860px) { .a-member .a-md__req .a-md__feedt a { display: inline-flex; align-items: center; min-height: 40px; } }
+.a-members .ad-tbl td.a-mb__goals { min-width: 7.5em; }
+.a-members .ad-tbl td.a-mb__goals .goal-tags { gap: 3px 4px; }

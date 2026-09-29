@@ -11,6 +11,10 @@
    - LINE の連携から戻ってきたときは #/start?line=ok（失敗は ?line=ng）で開く
    - 支払いの猶予切れ・休会のあいだは、止まっている画面（講座・タイムラインなど）へのボタンを押せない形にする（blocked）
    - 横の欄の「9月入会の仲間の自己紹介」は #/feed?kind=intro&cohort=2026-09（同じ月の人がいなければ、しぼらずに自己紹介の一覧）
+   - 1日目の「やりたいことを選ぶ」（data.js の項目 id 'goals'・XP 0）は、項目の行の中に選ぶ欄（U.goalPicker）を出し、
+     R.setGoals → CLG.app.reward。XP の付かない項目は「+0 XP」を出さない。#/start?focus=goals で来たら、済んでいても
+     選び直せる形で開き、その欄へ送る（URL からは目印を外す）。data.js に項目がないときは、一覧の上に同じ欄を出す
+   - 全部済ませたら、進みぐあいの文の横に「シェアする」（U.shareSheet('start30')。XP・ポイントは付かない）
    - いまの項目のボタンには data-st-current（ホームは data-home-next）。LINE の窓で項目が済んでボタンが消えても、
      窓を閉じたら次の項目のボタンへ焦点が戻る。いまの項目より先の LINE・目標を押したときは、押したボタンにも同じ印を付けてから開く
    ============================================================ */
@@ -23,6 +27,8 @@
   var cur = null;                       // mount で受け取った ctx（押したときに使う）
   /* 描き直しても、開いた週・ルールは開いたままにする */
   var openWeeks = {}, rulesOpen = false;
+  /* #/start?focus=goals で来たあと、選び直す欄を開いたままにする（保存・やめる・よその画面へ移ると閉じる） */
+  var goalsEdit = false;
   var STAFF_ID = 'staff2';
   var MEET_KIND = '面談の予約';
 
@@ -108,6 +114,8 @@
   }
   function baseAction(st) {
     if (st.id === 'goal') return { label: '決める', act: 'goal' };
+    // やりたいこと：スタートガイドでは項目の中に選ぶ欄がある。ホームからはその場所へ
+    if (st.id === 'goals') return { label: '選ぶ', href: '#/start?focus=goals' };
     if (st.id === 'line') return { label: R.lineLink().status === 'failed' ? 'もう一度' : '連携する', act: 'line' };
     if (st.id === 'profile') return { label: '入力する', href: '#/account' };
     if (st.id === 'meet') return { label: '予約する', href: '#/messages?kind=' + encodeURIComponent(MEET_KIND) };
@@ -222,11 +230,12 @@
   }
 
   function stepRow(st, ob, ctx) {
+    if (st.id === 'goals' && (!st.done || goalsEdit)) return goalsRow(st, ob);
     if (st.done) {
       var at = validDate(st.doneAt);
       return '<div class="st-step is-done">' +
         '<span class="st-step__mark">' + icon('checkc') + '<span class="sr-only">済み</span></span>' +
-        '<p class="st-step__ttl">' + U.jp(st.baseTitle || st.title) + '</p>' +
+        '<p class="st-step__ttl">' + U.jp(st.baseTitle || st.title) + (st.id === 'goals' ? goalsNow() : '') + '</p>' +
         (at ? '<span class="st-step__when">' + esc(U.fmtShort(at)) + '</span>' : '') +
       '</div>';
     }
@@ -240,8 +249,70 @@
         '<p class="st-step__desc">' + subLine(st, ctx, ob) + '</p>' +
       '</div>' +
       // XP はボタンの下に（題の横に置くと、スマホで題が2行に割れるため）
-      '<div class="st-step__act">' + actionHtml(a, cls, 'data-st', isCur ? 'data-st-current' : '') + '<span class="st-step__xp">+' + esc(st.xp) + ' XP</span></div>' +
+      // XP の付かない項目（やりたいことを選ぶ）は「+0 XP」を出さない
+      '<div class="st-step__act">' + actionHtml(a, cls, 'data-st', isCur ? 'data-st-current' : '') + (st.xp > 0 ? '<span class="st-step__xp">+' + esc(st.xp) + ' XP</span>' : '') + '</div>' +
     '</div>';
+  }
+
+  /* ---------- やりたいことを選ぶ（1日目。R.setGoals） ----------
+     まだの項目は、行の中に選ぶ欄（U.goalPicker）を出す。#/start?focus=goals で来たときは、済んでいても出す（選び直す）。
+     data.js に項目がないとき（古い data.js）は、まだ答えていない人と ?focus=goals のときだけ、一覧の上に同じ欄を出す。 */
+  /* 説明は文ごとに折る（狭い幅で「あとから／変えられます」と割れないように）。esc 済みの HTML */
+  function sentences(text) {
+    return (String(text).match(/[^。]+。?/g) || []).map(function (t) { return '<span class="st-sent">' + U.jp(t) + '</span>'; }).join('');
+  }
+  var GOALS_DESC = sentences('2つまで選べます。あとから変えられます。');
+  function hasGoalsStep() { return (DATA.ONBOARDING || []).some(function (x) { return x.id === 'goals'; }); }
+  /** 済んだ行に添える、いまのやりたいこと（esc 済み） */
+  function goalsNow() {
+    var g = R.goals();
+    if (g.ids.length) return U.goalTags(g.ids, { cls: 'st-goals__now' });
+    return g.chosen ? '<span class="st-goals__none">まだ決めていない</span>' : '';
+  }
+  /** 選ぶ欄と保存のボタン。保存したあと行が済みに替わるので、焦点は次の項目のボタンへ（data-focus-after） */
+  function goalsForm(primary) {
+    var g = R.goals();
+    return '<form class="st-goals" data-st-goals novalidate>' +
+      U.goalPicker(g.ids, { name: 'stGoals', legend: 'やりたいこと', noneChecked: g.chosen && g.undecided }) +
+      '<p class="st-goals__err" data-st-goals-err role="alert"></p>' +
+      '<div class="st-goals__acts">' +
+        '<button type="submit" class="btn ' + (primary ? 'btn-primary' : 'btn-ink') + ' btn-s" data-st-goals-save data-focus-after="[data-st-current]">保存する</button>' +
+        (g.chosen ? '<button type="button" class="btn btn-text btn-s" data-st-goals-cancel data-focus-after="[data-st-current]">やめる</button>' : '') +
+      '</div>' +
+    '</form>';
+  }
+  function goalsRow(st, ob) {
+    var isCur = !!ob.current && ob.current.id === st.id;
+    return '<div class="st-step st-step--goals' + (st.done ? ' is-set' : '') + (isCur ? ' is-current' : '') + '" id="st-goals">' +
+      '<span class="st-step__mark">' + icon(st.done ? 'checkc' : 'circle') + '<span class="sr-only">' + (st.done ? '済み' : 'まだ') + '</span></span>' +
+      '<div class="st-step__body">' +
+        '<p class="st-step__ttl">' + U.jp(st.baseTitle || st.title) + '</p>' +
+        '<p class="st-step__desc">' + (st.desc ? sentences(st.desc) : GOALS_DESC) + '</p>' +
+        goalsForm(isCur) +
+      '</div>' +
+    '</div>';
+  }
+  /** data.js に項目がないときの欄（一覧の上） */
+  function goalsCard() {
+    if (hasGoalsStep() || (R.goals().chosen && !goalsEdit)) return '';
+    return '<section class="card st-goalsbox" id="st-goals" aria-labelledby="st-goals-ttl">' +
+      '<h2 class="st-goalsbox__ttl" id="st-goals-ttl">やりたいことを選ぶ</h2>' +
+      '<p class="st-step__desc">' + GOALS_DESC + '</p>' + goalsForm(false) +
+    '</section>';
+  }
+  function saveGoals(form, ctx) {
+    var picked = U.goalPicked(form), err = form.querySelector('[data-st-goals-err]');
+    if (!picked.count && !picked.none) {
+      err.textContent = '選ぶか、「まだ決めていない」にしてください';
+      var first = form.querySelector('.goal-opt input:not(:disabled)'); if (first) first.focus();
+      return;
+    }
+    var r = R.setGoals(picked.ids);
+    if (!r || !r.ok) { err.textContent = (r && r.error) || '保存できませんでした'; return; }
+    goalsEdit = false;
+    if (r.steps && r.steps.length) CLG.app.reward(r);
+    else U.toast('やりたいことを保存しました', 'ok');
+    ctx.refresh();
   }
 
   /* ---------- まとまり（週ごと・成果発表会） ---------- */
@@ -503,22 +574,45 @@
     ctx.refresh();
   }
 
+  /** #/start?focus=goals：選ぶ欄へ送って、1つ目の選択肢に焦点を置く。描き直しで同じ所へ飛ばないよう、URL から目印を外す */
+  function focusGoals() {
+    try { history.replaceState(history.state, '', '#/start'); } catch (e) {}
+    setTimeout(function () {
+      var el = document.getElementById('st-goals');
+      if (!el || !el.isConnected) return;
+      var first = el.querySelector('.goal-opt input:checked') || el.querySelector('.goal-opt input');
+      U.smoothScroll(el, { block: 'center' });
+      if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
+      el.classList.remove('st-flash'); void el.offsetWidth; el.classList.add('st-flash');
+      setTimeout(function () { el.classList.remove('st-flash'); }, 2400);
+    }, 60);
+  }
+
   CLG.screens = CLG.screens || {};
   CLG.screens.start = {
     title: 'スタートガイド',
     render: function (ctx) {
+      if (ctx.query && ctx.query.focus === 'goals') {
+        goalsEdit = true;
+        // 済んだ週はたたんでいるので、やりたいことの項目がある週を開いておく
+        (DATA.ONBOARDING || []).forEach(function (x) { if (x.id === 'goals') openWeeks[String(x.week)] = true; });
+      }
       var ob = R.onboarding();
       var goal = ctx.state.goal30 && ctx.state.goal30.what ? goalCard(ctx.state.goal30, ob.finished) : '';
+      // 全部済ませたら「シェアする」（R.shareText が null なら出さない。XP・ポイントは付かない）
+      var share = ob.finished && R.shareText && R.shareText('start30')
+        ? '<button type="button" class="btn btn-ghost btn-s st-share" data-st-share="start30">' + icon('share', 'ico-s') + 'シェアする</button>' : '';
       return '<div class="scr-start' + (ob.finished ? ' is-finished' : '') + '">' +
         '<div class="page-head">' +
           '<h1 class="page-ttl" data-page-title tabindex="-1">スタートガイド</h1>' +
-          '<p class="page-lead st-progress">' + progressText(ob) + '</p>' +
+          '<div class="st-lead"><p class="page-lead st-progress">' + progressText(ob) + '</p>' + share + '</div>' +
           '<div class="st-bar">' + U.progressBar(ob.pct, ob.finished ? 'ok' : 'ink',
             { label: 'スタートガイドの進みぐあい', valuetext: ob.total + '項目のうち' + ob.done + '項目済み', cls: 'bar-s' }) + '</div>' +
         '</div>' +
         '<div class="st-cols">' +
           '<div class="st-main">' +
             // 終えたあとは「次にすること」を先に。目標は「やったこと」の中へ
+            goalsCard() +
             (ob.finished ? nextBlock() : goal) +
             '<div class="st-checklist">' +
               (ob.finished ? '<h2 class="st-h2">やったこと</h2>' + goal : '') +
@@ -538,9 +632,26 @@
       var q = ctx.query || {};
       // 描いている途中で描き直さないよう、次の番で開く
       if (q.line === 'ok' || q.line === 'ng') setTimeout(function () { lineReturn(ctx, q.line); }, 0);
+      if (q.focus === 'goals') focusGoals();
       if (root.__boundStart) return;
       root.__boundStart = true;
+      // よその画面へ移ったら、選び直す欄は閉じる
+      window.addEventListener('hashchange', function () { if (!/^#\/start(\?|$)/.test(location.hash)) goalsEdit = false; });
+      root.addEventListener('submit', function (e) {
+        var form = e.target.closest && e.target.closest('.scr-start [data-st-goals]');
+        if (!form) return;
+        e.preventDefault();
+        saveGoals(form, cur);
+      });
+      root.addEventListener('change', function (e) {
+        var f = e.target.closest && e.target.closest('.scr-start [data-st-goals]');
+        var err = f && f.querySelector('[data-st-goals-err]');
+        if (err) err.textContent = '';
+      });
       root.addEventListener('click', function (e) {
+        if (e.target.closest('.scr-start [data-st-goals-cancel]')) { goalsEdit = false; cur.refresh(); return; }
+        var sh = e.target.closest('.scr-start [data-st-share]');
+        if (sh) { U.shareSheet(sh.getAttribute('data-st-share')); return; }
         var b = e.target.closest('.scr-start [data-st]');
         if (!b) return;
         var act = b.getAttribute('data-st');

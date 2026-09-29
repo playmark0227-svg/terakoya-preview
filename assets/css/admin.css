@@ -150,6 +150,13 @@ body.ad-body #toast { left: calc(var(--ad-side) + 16px); }
   .ad-me__caret { display: none; }
   .ad-me__menu { left: calc(100% + 10px); right: auto; bottom: 4px; width: 250px; }
 }
+/* 横長で背の低い画面（1024×768 など）：15項目がレポート・設定まで帯に収まるように詰める。
+   860px 以下（指で押す幅）は 46px のまま（収まらなければ帯を送る） */
+@media (min-width: 861px) and (max-width: 1100px) and (max-height: 820px) {
+  .ad-nav__a { min-height: 38px; gap: 1px; padding: 3px 2px; }
+  .ad-nav__a .ico { width: 18px; height: 18px; }
+  .ad-nav__n { top: 0; }
+}
 
 /* ---------- スマホ：上の帯 ---------- */
 @media (max-width: 640px) {

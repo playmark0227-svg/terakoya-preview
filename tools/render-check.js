@@ -26,7 +26,15 @@
         カードの更新）、修了証が回の追加で消えないこと、オリエンテーションの予約、発表の「決定」、学部・案件の場所・howType・主催。
         ◆ 名前と会員番号（checkBrand）：SITE（TAISEI・合言葉・注記は空）、会員番号の頭 TS-、ログインで前の TK- も通ること、
         前の TK- で保存した記録（会員ページ・運営画面）が読み込みの前に TS- に直ること。
-        state.cms・state.settings・タイムラインの見回りは人を切り替えても残るので、最後に消してから運営画面を確かめる。
+        ▲ 4回目のルール（checkRound4Rules。docs/仕様_やりたいこと・リクエスト・シェア.md）：data.js の GOALS（順・道の講座・案件と
+        イベントがあること・ラベルに収入の言葉がない）・名簿の goals（2つまで）・足した講座2本（Lv1・4回・10〜15分・確認テスト3問・写真）・
+        COUNTS・freeFirst。見る人ごとのやりたいこと・setGoals（3つ以上と知らない id は断る・「まだ決めていない」）・名簿の絞り込みと隠す、
+        お試しの回（Lv1 の人は AI活用の1回目を見られて2回目は見られない・確認テストと修了証は閉じたまま）、ホームの道（pathFor）、
+        リクエスト（＋1の付け外し・自分のものには押せない・運営の返事でお知らせ・「追加しました」で +20pt は1回だけ・直す・消す）、
+        シェア（紹介リンクを付けたときだけ #PR と紹介リンク・文面と画像に金額がない・XP とポイントは増えない）、
+        成果発表会の一般公開（申込みの入力の誤り・同じメール・切り替え）、前の保存に新しい入れ物がないときの移行。
+        state.cms・state.settings・タイムラインの見回り・リクエストの返事・一般公開の申込みは人を切り替えても残るので、
+        最後に消してから運営画面を確かめる。
      4. 運営画面（admin）：admin.html の全画面・タブ・詳細を、運営の役割（代表・運営・講師・経理）×見る人3人で描く。
         デモ会員の記録の申込み（会員の詳細の「済みにする」＝AD.ops.completeDataRequest で会員ページも済みになる）も確かめる。
      5. 言葉（words）：描いた HTML に、使わない言葉（見放題・商材・ヶ月・会員ID・ログインID など）が出ていないか。
@@ -208,6 +216,19 @@ function memberRoutes() {
   add('search?q=' + encodeURIComponent('動画')); add('search?q=' + encodeURIComponent('税金')); add('search?q=zzzzqqq'); add('search?q=%E0%A4%A');
   add('search?q=' + XSS_Q, { xss: true }); add('search?q=' + encodeURIComponent('動画') + '&type=courses');
   add('help?focus=h9'); add('help?focus=h17'); add('help?cat=' + encodeURIComponent('支払い'));
+  // ▲ やりたいこと・お試しの回・リクエスト・シェア（2026-09-28）
+  add('start?focus=goals'); add('account?focus=goals');
+  (D.GOALS || []).forEach(g => { add('members?goal=' + g.id); add('courses?goal=' + g.id); });
+  add('members?goal=none'); add('members?goal=zzz'); add('courses?goal=' + XSS_Q, { xss: true });
+  ['remote-work', 'change-basic', 'ai', 'video'].forEach(id => add('courses/' + id));
+  add('lesson/ai/' + firstLesson(byId('ai'))); add('lesson/ai/' + ((byId('ai') || { lessons: [] }).lessons[1] || {}).id);
+  add('lesson/video/' + firstLesson(byId('video'))); add('lesson/remote-work/' + firstLesson(byId('remote-work'))); add('lesson/change-basic/' + firstLesson(byId('change-basic')));
+  add('courses/remote-work/certificate'); add('courses/remote-work?focus=quiz');
+  add('events/e4'); add('feed?kind=intro');
+  // リクエストの画面（screens/requests.js。無ければ「画面が登録されていない」で失敗）
+  add('requests?tab=new'); add('requests?tab=done'); add('requests?focus=rq1'); add('requests?focus=rq12'); add('requests?focus=nope');
+  D.REQUEST_KINDS.forEach(k => { add('requests?kind=' + k.id); add('requests?new=1&kind=' + k.id); });
+  add('requests?new=1'); add('requests?new=1&kind=zzz'); add('requests?focus=' + XSS_Q, { xss: true }); add('requests?kind=' + XSS_Q, { xss: true });
   // 見つからない（§5-1：render は U.notFound、title は「ページが見つかりません」）
   ['feed/nope', 'gigs/nope', 'members/nope', 'events/nope', 'courses/nope', 'courses/archive/nope', 'courses/nope/certificate', 'lesson/nope/x', 'lesson/sns-basic/nope']
     .forEach(r => add(r, { nf: true }));
@@ -332,6 +353,18 @@ function checkShell() {
       }
     }
   } finally { console.error = origErr; }
+  // ☆ 画面のファイルを HTML が読んでいるか（ここは screens/ を全部読むので、member.html に書き忘れても描けてしまう。
+  //   2026-09-28 に requests.js・requests.css の書き忘れで、ブラウザだけ「ページが見つかりません」になった）
+  const html = f => { try { return fs.readFileSync(path.join(base, f), 'utf8'); } catch (e) { return ''; } };
+  const loads = (page, rel) => new RegExp('(src|href)="' + rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\?v=[^"]*)?"').test(html(page));
+  const lsx = d => { try { return fs.readdirSync(path.join(base, d)).sort(); } catch (e) { return []; } };
+  [['member.html', 'assets/js/screens/', '.js'], ['member.html', 'assets/css/screens/', '.css'], ['admin.html', 'assets/js/admin/', '.js']].forEach(([page, d, ext]) => {
+    if (!html(page)) return;
+    const miss = lsx(d).filter(f => f.endsWith(ext) && !loads(page, d + f));
+    n++; count++;
+    if (miss.length) fail('shell', page + ' が読むファイル', d + ' の ' + miss.join('・') + ' を読んでいない');
+    else ok('shell', page + ' が読むファイル', d + '*' + ext);
+  });
   return n;
 }
 
@@ -399,6 +432,7 @@ function checkRules() {
   checkStaffRules(assert);   // assert が n を数える
   checkRound3Rules(assert);
   checkBrand(assert);
+  checkRound4Rules(assert);
   return n;
 }
 
@@ -848,6 +882,320 @@ function checkBrand(assert) {
   } catch (e) { assert('◆ 前の TK- の記録を TS- に直す', false, '例外 ' + e.stack.split('\n').slice(0, 2).join(' | ')); }
 }
 
+/* ▲ 4回目のルール（2026-09-28。docs/仕様_やりたいこと・リクエスト・シェア.md）
+   やりたいこと（GOALS）・講座を足す（remote-work・change-basic）・お試しの回（freeFirst）・ホームの道（pathFor）・名簿の絞り込み・
+   「あったらいい」リクエスト・シェア・成果発表会の一般公開・前の保存からの移行。
+   リクエストの返事・一般公開の切り替えと申込みは人を切り替えても残るので、最後に消す（運営画面の確かめに持ち込まない） */
+function checkRound4Rules(assert) {
+  const J = x => { try { return JSON.stringify(x).slice(0, 220); } catch (e) { return String(x); } };
+  const t = (label, cond, info) => assert('▲ ' + label, !!cond, info === undefined ? '' : J(info));
+  // 収入・金額の言葉（やりたいことのラベル・シェアの画像と文面・リクエストの見本・一般公開の案内に入れない。仕様 §5）
+  const INCOME = /稼|収入|報酬|月\d+万|\d+万円|\d[\d,]*円|¥/;
+  const byId = id => D.COURSES.find(c => c.id === id);
+  try {
+    /* 0. data.js：やりたいこと・足した講座・お試しの回 */
+    const gids = D.GOALS.map(g => g.id);
+    t('GOALS の順', gids.join(',') === 'sns,remote,aivideo,change', gids);
+    const SPEC = { sns: 'sns-basic,writing,instagram,shortvideo,marketing', remote: 'remote-work,okozukai,writing,design,freelance',
+      aivideo: 'ai,video,shortvideo,nocode', change: 'change-basic,business-basic,money-tax,coaching,startup' };
+    D.GOALS.forEach(g => {
+      t(`GOALS ${g.id} の道の講座（仕様の順）`, g.courses.join(',') === SPEC[g.id] && g.courses.every(id => !!byId(id)), g.courses);
+      t(`GOALS ${g.id} の案件・イベントがある`, (g.gigs || []).every(id => D.GIGS.some(x => x.id === id)) && (g.events || []).every(id => D.EVENTS.some(e => e.id === id)),
+        { gigs: g.gigs, events: g.events });
+      t(`GOALS ${g.id} のラベルに収入の言葉がない`, g.label && g.short && !INCOME.test(g.label + g.short), g.label);
+    });
+    const okGoals = a => Array.isArray(a) && a.length <= 2 && new Set(a).size === a.length && a.every(id => gids.includes(id));
+    t('デモの人のやりたいこと（高橋さくら sns・remote／木村あや sns・aivideo）', J(D.MEMBER.goals) === '["sns","remote"]' && J(D.VETERAN.goals) === '["sns","aivideo"]',
+      [D.MEMBER.goals, D.VETERAN.goals]);
+    const badGoals = Object.keys(D.PEOPLE).filter(k => D.PEOPLE[k].goals !== undefined && !okGoals(D.PEOPLE[k].goals))
+      .concat(D.ROSTER.filter(m => !okGoals(m.goals || [])).map(m => m.no));
+    t('PEOPLE・名簿の goals は2つまで・知らない id がない', !badGoals.length, badGoals.slice(0, 5));
+    t('名簿に未選択の人と2つ選んだ人がいる', D.ROSTER.some(m => !(m.goals || []).length) && D.ROSTER.some(m => (m.goals || []).length === 2), '');
+    const NEWC = { 'remote-work': ['skill', 'course-remote-work.webp'], 'change-basic': ['basic', 'course-change-basic.webp'] };
+    Object.keys(NEWC).forEach(id => {
+      const c = byId(id) || {}, ls = c.lessons || [];
+      t(`講座 ${id}：Lv1・4回・1回10〜15分・中身・確認テスト3問・写真・講師`, c.level === 1 && c.faculty === NEWC[id][0] && ls.length === 4 &&
+        ls.every(l => l.min >= 10 && l.min <= 15 && l.desc && (l.points || []).length === 3 && l.material) && (c.quiz || []).length === 3 &&
+        c.img === 'assets/img/' + NEWC[id][1] && fs.existsSync(path.join(base, c.img)) && !!(D.PEOPLE[c.teacher] || {}).name,
+        { level: c.level, faculty: c.faculty, n: ls.length, quiz: (c.quiz || []).length, img: c.img, teacher: c.teacher });
+    });
+    t('講座の本数・回数は COUNTS から（21本）', D.COUNTS.courses === 21 && D.COUNTS.courses === D.COURSES.length &&
+      D.COUNTS.lessons === D.COURSES.reduce((n, c) => n + c.lessons.length, 0) && D.COUNTS.lv1Courses === D.COURSES.filter(c => c.level === 1).length, D.COUNTS);
+    t('freeFirst は ai・video の1回だけ（Lv2 以上の講座）', J(D.COUNTS.freeFirst) === '["ai","video"]' && D.COURSES.filter(c => c.freeFirst).every(c => c.freeFirst === 1 && c.level > 1),
+      D.COUNTS.freeFirst);
+    const gstep = D.ONBOARDING.find(s => s.id === 'goals');
+    t('スタートガイドの「やりたいことを選ぶ」（1週目の最初・XP 0・auto goals）', gstep && gstep.week === 1 && gstep.xp === 0 && gstep.auto === 'goals' &&
+      D.ONBOARDING.filter(s => s.week === 1)[0].id === 'goals' && gstep.go === '#/start?focus=goals', gstep || 'ONBOARDING に id goals がない');
+    t('お知らせの種類「リクエストへの返事」・貢献ポイント request +20', D.NOTIFY_TYPES.some(x => x.id === 'request' && x.name === 'リクエストへの返事') &&
+      (D.POINT_RULES.find(r => r.id === 'request') || {}).pt === 20, D.POINT_RULES.map(r => r.id));
+    const reqIncome = D.REQUESTS.filter(r => INCOME.test(r.title + r.detail + (r.reply ? r.reply.text : ''))).map(r => r.id);
+    const shIncome = Object.keys(D.SHARE.moments).filter(k => INCOME.test(D.SHARE.moments[k].img + D.SHARE.moments[k].text));
+    t('リクエストの見本・シェアの場面・一般公開の案内に収入や金額の言葉がない', !reqIncome.length && !shIncome.length && !INCOME.test(J(D.PUBLIC_SHOWCASE)),
+      { requests: reqIncome, share: shIncome });
+    t('リクエストの見本（14件ほど・追加しました／検討中／見送りを混ぜる・見送りは理由つき）', D.REQUESTS.length >= 12 &&
+      ['added', 'considering', 'declined', 'open'].every(s => D.REQUESTS.some(r => r.status === s)) &&
+      D.REQUESTS.filter(r => r.status === 'declined').every(r => r.reply && r.reply.text.length >= 20) &&
+      D.REQUESTS.filter(r => r.status === 'added').every(r => r.link && R.request(r.id) && R.request(r.id).link.found !== false), D.REQUESTS.length);
+    // ここから下は scratchpad の check-rules.js・check-rules2.js を移したもの（続きは次の段）
+    checkRound4Goals(t);
+    checkRound4Requests(t);
+    checkRound4Share(t);
+  } catch (e) { t('4回目のルールの途中で例外', false, e.stack.split('\n').slice(0, 3).join(' | ')); }
+  finally {
+    // 人を切り替えても残るもの（リクエストの返事・一般公開の切り替え・申込み）を消して、最初の形に戻す
+    const s = store.state;
+    if (s.settings) delete s.settings.showcasePublic;
+    delete s.showcaseSignups;
+    if (s.requests) s.requests.answers = {};
+    store.resetDemo(true);
+  }
+}
+/* ▲ やりたいこと・お試しの回・ホームの道・名簿の絞り込み */
+function checkRound4Goals(t) {
+  const J = JSON.stringify;
+  const hana = { name: '山田 はな', email: 'hana@example.jp' };
+  /* 見る人ごとのやりたいこと */
+  store.resetDemo(true); store.login();
+  t('在籍24日のやりたいこと sns・remote', J(R.goals().ids) === '["sns","remote"]', R.goals());
+  t('在籍24日の XP は 530 のまま（台本どおり）', R.xp() === 530, R.xp());
+  store.startVeteran(true);
+  t('在籍半年のやりたいこと sns・aivideo', J(R.goals().ids) === '["sns","aivideo"]', R.goals());
+  store.startFresh(hana);
+  t('入会したては未選択', R.goals().ids.length === 0 && !R.goals().chosen);
+  store.startFresh(Object.assign({ goals: ['remote', 'x', 'remote', 'sns', 'change'] }, hana));
+  t('申込みで選んだやりたいこと（知らない id・重なりを除いて2つまで）', J(R.goals().ids) === '["remote","sns"]', R.goals().ids);
+  /* setGoals */
+  store.startFresh(hana); store.login();
+  t('setGoals：3つは断る', R.setGoals(['sns', 'remote', 'change']).ok === false);
+  t('setGoals：知らない id は断る', R.setGoals(['nope']).ok === false);
+  let r = R.setGoals(['change', 'change']);
+  t('setGoals：重なりを除く', r.ok && J(r.goals.ids) === '["change"]', r);
+  t('setGoals の result に XP の数', typeof r.xp === 'number' && r.xp >= 0, r.xp);
+  r = R.setGoals([]);
+  t('「まだ決めていない」も答えたことになる', r.ok && r.goals.undecided && r.goals.chosen, r.goals);
+  t('スタートガイドの goals が済になる', !!store.state.steps.goals);
+  t('名簿に出さない', R.setHideGoals(true).hidden && R.goals().hidden);
+  R.setHideGoals(false);
+  /* お試しの回（freeFirst）：Lv1 の人は AI活用・動画編集の1回目だけ見られる */
+  const ai = R.course('ai'), video = R.course('video');
+  t('入会したては Lv1', R.level().lv === 1);
+  t('AI活用は Lv で閉じているが、お試しの回がある', R.courseState(ai).locked && R.courseState(ai).trial && R.courseState(ai).trialNote === '1回目は入会直後から見られます',
+    R.courseState(ai));
+  t('Lv1 の人が AI活用の1回目を開ける', R.lessonState(ai, ai.lessons[0].id) === 'open');
+  t('Lv1 の人は AI活用の2回目を開けない', R.lessonState(ai, ai.lessons[1].id) === 'locked');
+  t('動画編集の1回目も開ける', R.lessonState(video, video.lessons[0].id) === 'open');
+  t('お試しのない講座（writing）は閉じたまま', !R.courseState('writing').trial && R.lessonState('writing', R.course('writing').lessons[0].id) === 'locked');
+  t('お試し中も確認テストは閉じたまま', R.quiz('ai') ? R.quiz('ai').locked : true);
+  t('閉じた確認テストは出せない', R.submitQuiz('ai', [0, 0, 0]) === null);
+  // 画面でも：回の再生の画面が、1回目は開いていて（is-locked なし）、2回目は閉じている
+  const h1 = renderMember('lesson/ai/' + ai.lessons[0].id).html || '', h2 = renderMember('lesson/ai/' + ai.lessons[1].id).html || '';
+  t('画面：Lv1 の人の AI活用の1回目は再生できる・2回目は閉じている', /class="cr-player[" ]/.test(h1) && !/cr-player is-locked/.test(h1) && /cr-player is-locked/.test(h2),
+    [/cr-player is-locked/.test(h1), /cr-player is-locked/.test(h2)]);
+  const text = r => (renderMember(r).html || '').replace(/<[^>]+>/g, '');   // 文の区切り（<wbr>・nw の span）を外して読む
+  t('画面：講座の一覧と講座の頁に「1回目は入会直後から見られます」', /1回目は入会直後から見られます/.test(text('courses')) && /1回目は入会直後から見られます/.test(text('courses/ai')));
+  const xp0 = R.xp();
+  r = R.completeLesson('ai', ai.lessons[0].id);
+  t('お試しの回を見終える（+20XP）', r && r.xp === 20 && R.xp() === xp0 + 20, r && r.xp);
+  t('お試しの回は済', R.lessonState(ai, ai.lessons[0].id) === 'done');
+  t('2回目は見終えられない', R.lessonState(ai, ai.lessons[1].id) === 'locked' && R.completeLesson('ai', ai.lessons[1].id) === null);
+  t('続きの一覧：次の回が閉じた AI活用は出ない', !R.continueList().some(x => x.c.id === 'ai'));
+  t('続きの一覧：動画編集はお試しとして出る', R.continueList().some(x => x.c.id === 'video' && x.st.trial));
+  t('お試しだけでは修了証は出ない', R.certificate('ai') === null);
+  t('探す：お試しの回は閉じていない', (() => { const g = R.search('AI').groups.find(x => x.key === 'lessons'); return !g || g.items.filter(i => i.id === ai.lessons[0].id).every(i => !i.locked); })());
+  /* ホームの道（pathFor） */
+  store.resetDemo(true); store.login();
+  let p = R.pathFor();
+  t('道：在籍24日は SNS の道・5本', p.goal && p.goal.id === 'sns' && p.courses.length === 5, p.goal);
+  t('道：講座の状態', p.courses.every(c => ['done', 'open', 'locked'].includes(c.state)), p.courses.map(c => c.state));
+  t('道：次に見る回（SNS発信入門の3回目）', p.next && p.next.courseId === 'sns-basic' && p.next.lesson.id === 'sb-3' && /^#\/lesson\//.test(p.next.href),
+    p.next && [p.next.courseId, p.next.lesson.id]);
+  t('道：合う案件は2件まで', p.gigs.length <= 2 && p.gigs.length > 0, p.gigs.map(g => g.gig.id));
+  t('道：同じやりたいことの仲間3人（自分は入らない）', p.people.length === 3 && p.people.every(x => !x.me && x.goals.includes('sns')), p.people.map(x => x.id));
+  t('道：近いイベント', !!p.event, p.event && p.event.id);
+  p = R.pathFor('aivideo');
+  t('道：AI・動画（Lv3 なので AI活用から）', p.next && p.next.courseId === 'ai', p.next && p.next.courseId);
+  t('道：閉じた講座は開く Lv を出す', p.courses.some(c => c.state === 'locked' && /Lv\d/.test(c.lockReason)));
+  p = R.pathFor('zzz');
+  t('道：知らない id は既定の道（オリエンテーションから）', p.goal === null && p.courses[0].id === 'orientation', p.courses.map(c => c.id));
+  store.startFresh(hana); store.login();
+  p = R.pathFor();
+  t('道：入会したては既定の道', p.goal === null && p.courses.length === 5 && p.next && p.next.courseId === 'orientation', p.next);
+  p = R.pathFor('aivideo');
+  t('道：入会したての AI・動画は AI活用のお試しの回から', p.next && p.next.courseId === 'ai' && p.next.trial, p.next);
+  /* 名簿の絞り込み（members?goal=） */
+  store.resetDemo(true); store.login();
+  const all = R.members({}), bySns = R.members({ goal: 'sns' }), none = R.members({ goal: 'none' });
+  t('名簿：やりたいことで絞る', bySns.length > 0 && bySns.length < all.length && bySns.every(m => m.goals.includes('sns')), bySns.length);
+  t('名簿：未選択で絞る', none.every(m => !m.goals.length) && none.length > 0, none.length);
+  t('名簿：絞り込みの候補', R.membersFacets().goals.length === D.GOALS.length);
+  t('名簿：自分の行のやりたいこと', all.find(m => m.me).goals.length === 2);
+  R.setHideGoals(true);
+  t('名簿：隠すと自分の行にも絞り込みにも出ない', R.members({}).find(m => m.me).goals.length === 0 && !R.members({ goal: 'sns' }).some(m => m.me));
+  t('名簿：自分のページには出る（隠している印つき）', R.memberProfile('me').goals.length === 2 && R.memberProfile('me').goalsHidden);
+  R.setHideGoals(false);
+  t('名簿：ほかの会員のページ', Array.isArray(R.memberProfile('m3').goals));
+  t('peopleByGoal に自分は入らない', R.peopleByGoal('remote').every(m => !m.me));
+  const gs = R.goalStats();
+  t('運営の内訳（未選択も）', gs.rows.length === D.GOALS.length + 1 && gs.rows.find(x => x.id === 'none').count >= 0 &&
+    gs.rows.reduce((n, x) => n + x.count, 0) >= gs.total, gs.rows.map(x => x.count));
+}
+/* ▲「あったらいい」リクエスト：一覧・出す・直す・消す・＋1・運営の返事（お知らせ・+20pt は1回だけ） */
+function checkRound4Requests(t) {
+  store.resetDemo(true); store.login();
+  const list = R.requests({ sort: 'popular' });
+  t('リクエスト：見本＋自分の1件', list.length === D.REQUESTS.length + 1, list.length);
+  t('リクエスト：人気順', list.every((x, i) => i === 0 || list[i - 1].votes >= x.votes));
+  const rq1 = R.request('rq1');
+  t('リクエスト：デモ会員の＋1が入る', rq1.voted && rq1.votes === D.REQUESTS.find(q => q.id === 'rq1').votes + 1, rq1.votes);
+  t('リクエスト：追加しました のリンク', rq1.link && rq1.link.type === 'course' && rq1.link.title && rq1.link.href === '#/courses/remote-work', rq1.link);
+  t('リクエスト：見た返事は新しくない', !rq1.updated);
+  t('リクエスト：匿名は名前を出さない（運営画面には出す）', R.request('rq4').who === '匿名' && R.request('rq4').byName === undefined && !!R.request('rq4', { admin: true }).byName);
+  t('リクエスト：自分の1件は直せる', R.requests({ mine: true }).length === 1 && R.requests({ mine: true })[0].canEdit);
+  t('リクエスト：絞り込み active・done・kind', R.requests({ status: 'active' }).every(x => x.status === 'open' || x.status === 'considering') &&
+    R.requests({ status: 'done' }).every(x => x.status === 'added' || x.status === 'declined') && R.requests({ kind: 'gig' }).every(x => x.kind === 'gig'));
+  t('リクエスト：新着順', (() => { const l = R.requests({ sort: 'new' }); return l.every((x, i) => i === 0 || new Date(l[i - 1].at) >= new Date(x.at)); })());
+  // 出す・直す・消す
+  let r = R.addRequest({ kind: 'event', title: '', detail: '' });
+  t('出す：空は断る', !r.ok && r.errors.title && r.errors.detail, r.errors);
+  r = R.addRequest({ kind: 'zzz', title: 'x'.repeat(41), detail: 'y'.repeat(401) });
+  t('出す：種類・題40字・中身400字', !r.ok && r.errors.kind && r.errors.title && r.errors.detail, r.errors);
+  r = R.addRequest({ kind: 'gig', title: '在宅の仕事の探し方を最初に知りたい', detail: 'おなじ' });
+  t('出す：同じ題はそのリクエストを返す', !r.ok && r.duplicate === 'rq1', r);
+  r = R.addRequest({ kind: 'gig', title: 'FXの自動売買の勉強会', detail: '投資の話を聞きたい' });
+  t('出す：投資・勧誘の言葉は断る', !r.ok && /出せません/.test(r.errors.detail || ''), r.errors);
+  r = R.addRequest({ kind: 'course', title: '  写真の整え方の講座  ', detail: 'スマホで撮った商品写真を明るくする方法', anonymous: true });
+  t('出す：匿名で出せる', r.ok && r.request.mine && r.request.title === '写真の整え方の講座' && r.request.who === '匿名' && r.request.votes === 0, r);
+  const myId = r.request && r.request.id;
+  t('＋1：自分のリクエストには押せない', R.toggleVote(myId).ok === false);
+  r = R.editRequest(myId, { title: '商品写真の整え方の講座' });
+  t('直す：自分の・受付中', r.ok && r.request.title === '商品写真の整え方の講座' && r.request.editedAt, r);
+  t('直す：ほかの人のものは断る', R.editRequest('rq8', { title: 'x' }).ok === false);
+  // ＋1 の付け外し（1人1回・押し直すと外れる）。対応が済んだものには押せない
+  const v0 = R.request('rq9').votes;
+  r = R.toggleVote('rq9');
+  t('＋1：付ける', r.ok && r.voted && r.votes === v0 + 1 && R.request('rq9').voted, r);
+  r = R.toggleVote('rq9');
+  t('＋1：押し直すと外れる', r.ok && !r.voted && r.votes === v0 && !R.request('rq9').voted, r);
+  t('＋1：見送りのものには押せない', R.toggleVote('rq12').ok === false);
+  // 運営の返事 → お知らせ。「追加しました」で出した人に +20pt（1回だけ）。＋1や出すだけでは付かない
+  const pts0 = R.points().total, notes0 = R.notices().length;
+  t('＋1や出すだけでは貢献ポイントは付かない', R.points().total === pts0);
+  r = R.answerRequest(myId, { status: 'declined' });
+  t('返事：見送りは理由が要る', !r.ok && r.errors.reply, r);
+  r = R.answerRequest(myId, { status: 'added' });
+  t('返事：追加しました はリンクが要る', !r.ok && r.errors.link, r);
+  t('返事：知らないリンクは断る', !R.answerRequest(myId, { status: 'added', link: 'course:nope' }).ok);
+  r = R.answerRequest(myId, { status: 'considering', reply: '講師と相談しています。', by: 'staff4' });
+  const n1 = R.notices()[0] || {};
+  t('返事：検討中 → 出した人にお知らせ（ポイントなし）', r.ok && r.notified && r.pt === 0 && R.notices().length === notes0 + 1 && n1.type === 'request' &&
+    n1.link === '#/requests?focus=' + myId && R.points().total === pts0, [r, n1.link]);
+  t('返事：まだ見ていない返事の数', R.request(myId).updated && R.requestCounts().updates >= 1);
+  t('返事のあとは直せない・消せない', R.editRequest(myId, { title: 'zz' }).ok === false && R.removeRequest(myId).ok === false);
+  r = R.answerRequest(myId, { status: 'added', reply: '「動画編集」に1回足しました。', link: { type: 'course', id: 'video' }, by: 'staff3' });
+  t('返事：追加しました → 出した人に +20pt', r.ok && r.pt === 20 && R.points().total === pts0 + 20 && /貢献ポイント \+20pt/.test(R.notices()[0].text),
+    [r.pt, R.points().total - pts0]);
+  r = R.answerRequest(myId, { status: 'added', reply: '直しました', link: 'course:video', by: 'staff3' });
+  t('返事：+20pt は1回だけ', r.ok && r.pt === 0 && R.points().total === pts0 + 20, [r.pt, R.points().total - pts0]);
+  t('一覧を開いたら見た印', R.markRequestsSeen() >= 1 && R.requestCounts().updates === 0);
+  // ほかの人のリクエスト（デモ会員が＋1した rq8）を追加 → ＋1した人にお知らせ・出した人は pointGrants（ランキングに入る）
+  const g0 = (store.state.pointGrants || []).length;
+  r = R.answerRequest('rq8', { status: 'added', reply: '22時からのもくもく会を開きます。', link: { type: 'event', id: 'e5' }, by: 'staff2' });
+  t('返事：＋1した人にお知らせ・出した人に +20pt（pointGrants）', r.ok && r.notified && /＋1したリクエスト/.test(R.notices()[0].text) &&
+    store.state.pointGrants.length === g0 + 1, r);
+  t('返事：出した人がランキングに入る', !!R.ranking('points').find(x => x.id === 'm20'));
+  const r2 = R.addRequest({ kind: 'gig', title: '消すためのリクエスト', detail: '消します' });
+  t('消す：自分の・受付中', r2.ok && R.removeRequest(r2.request.id).ok && !R.request(r2.request.id));
+  const c = R.requestCounts();
+  t('数：all・pending', c.all === R.requests().length && c.pending >= 0, c);
+  // 運営の返事は人を切り替えても残る。在籍半年の自分のリクエストは検討中（運営の返事つき）
+  store.startVeteran(true);
+  t('返事は人を切り替えても残る', R.request('rq8').status === 'added');
+  t('在籍半年の自分のリクエストは検討中', R.request('rqm-v1') && R.request('rqm-v1').status === 'considering' && !!R.request('rqm-v1').reply, R.request('rqm-v1'));
+}
+/* ▲ シェア（#PR は紹介リンクを付けたときだけ・金額を入れない・XP とポイントは増えない）・成果発表会の一般公開・移行 */
+function checkRound4Share(t) {
+  const J = JSON.stringify;
+  const MONEY = /稼|収入|月\d+万|\d+万円|\d[\d,]*円|¥/;
+  store.startVeteran(true);
+  let m = R.shareMoments();
+  t('シェアの場面（在籍半年：修了・レベル・発表・30日、最後に誘う）', ['course', 'level', 'showcase', 'start30'].every(k => m.some(x => x.moment === k)) &&
+    m[m.length - 1].moment === 'invite', m.map(x => x.key));
+  // どの場面も：紹介リンクなしなら #PR も紹介のリンクもない。付けたら先頭に #PR・最後に本人の紹介リンク。画像と文面に金額がない
+  const prBad = [], moneyBad = [];
+  m.forEach(x => {
+    const a = R.shareText(x.moment, x.id), b = R.shareText(x.moment, x.id, { withLink: true });
+    if (!a || !b) { prBad.push(x.key + ' null'); return; }
+    if (/#PR/.test(a.text) || a.pr || /[?&]ref=/.test(a.text) || (x.moment !== 'invite' && a.link)) prBad.push(x.key + ' リンクなし');
+    if (!/^#PR/.test(b.text) || !b.link || !/[?&]ref=/.test(b.link) || b.text.indexOf(b.link) < 0) prBad.push(x.key + ' リンクあり');
+    const card = a.card || {};
+    if (MONEY.test([card.headline, card.name, card.dateText, card.hashtag, a.text].join(' '))) moneyBad.push(x.key);
+    if (!/#TAISEI/.test(a.text) || card.hashtag !== '#TAISEI' || !/^\d{4}年\d{1,2}月\d{1,2}日$/.test(card.dateText || '')) moneyBad.push(x.key + ' 形');
+  });
+  t('シェア：#PR と紹介リンクは「紹介リンクを付ける」のときだけ', !prBad.length, prBad);
+  t('シェア：画像と文面に金額・収入がない（#TAISEI・日付）', !moneyBad.length, moneyBad);
+  let s = R.shareText('course', 'sns-basic');
+  t('シェア：修了の文面（仕様の例のとおり）', s && s.text === 'TAISEIで「SNS発信入門」を修了しました。 #TAISEI' && !s.pr && !s.link, s && s.text);
+  t('シェア：修了の画像', s.card.headline === '「SNS発信入門」を修了' && s.card.name && s.card.dateText, s.card);
+  t('シェア：紹介リンクは紹介の画面と同じ', R.shareText('course', 'sns-basic', { withLink: true }).link === R.referral().url, R.referral().url);
+  t('シェア：まだ満たしていない場面は null', R.shareText('course', 'teacher') === null && R.shareText('level', 6) === null);
+  s = R.shareText('invite');
+  t('シェア：誘うは公開の頁（ref も #PR もない）', s && /#\/showcase$/.test(s.link) && !/ref=/.test(s.link) && !/#PR/.test(s.text), s && s.text);
+  s = R.shareText('invite', null, { withLink: true });
+  t('シェア：誘う＋紹介リンク（ref と #PR）', /\?ref=.+#\/showcase$/.test(s.link) && /^#PR/.test(s.text), s.link);
+  let cmp = R.shareCompose('修了しました！', { withLink: true, moment: 'course', id: 'sns-basic' });
+  t('シェア：直した文面でも #PR と紹介リンクは消せない', /^#PR/.test(cmp.text) && /\?ref=/.test(cmp.text) && cmp.fixed, cmp.text);
+  cmp = R.shareCompose('修了しました！ #TAISEI', { withLink: false, moment: 'course', id: 'sns-basic' });
+  t('シェア：紹介リンクなしの文面に #PR を足さない', !/#PR/.test(cmp.text) && !cmp.warnings.length, cmp);
+  cmp = R.shareCompose('月5万円になりました', {});
+  t('シェア：金額を書くと注意が出る', cmp.warnings.length === 1, cmp.warnings);
+  t('シェア：X・LINE の URL', /^https:\/\/x\.com\/intent\/post\?text=/.test(cmp.urls.x) && /^https:\/\/line\.me\/R\/share\?text=/.test(cmp.urls.line), cmp.urls);
+  const xpBefore = R.xp(), ptBefore = R.points().total, logBefore = J(store.state.pointsLog || []).length;
+  R.shareMoments().forEach(x => { R.shareText(x.moment, x.id); R.shareText(x.moment, x.id, { withLink: true }); });
+  R.shareCompose('x', {}); R.shareCompose('x', { withLink: true, moment: 'level' });
+  t('シェアしても XP・貢献ポイントは増えない', R.xp() === xpBefore && R.points().total === ptBefore && J(store.state.pointsLog || []).length === logBefore);
+  // シェアの窓（ui.js の U.shareSheet）が XP・ポイントを付ける関数を呼んでいない
+  const uiSrc = fs.readFileSync(path.join(base, 'assets/js/ui.js'), 'utf8');
+  // function shareSheet( から、次の部品（goalTags の説明の前）まで。drawShareCard も含めて見る
+  const i0 = uiSrc.indexOf('function drawShareCard('), i1 = uiSrc.indexOf('function goalTags(');
+  const body = i0 < 0 ? '' : uiSrc.slice(i0, i1 > i0 ? i1 : i0 + 20000);
+  t('シェアの窓は XP・ポイントの関数を呼ばない', i0 >= 0 && /function shareSheet\(/.test(body) &&
+    !/completeLesson|addXp|grantXp|awardXp|addPoints|grantPoints|pointsLog|pointGrants|stepAt|completeStep|R\.xp\(|R\.points\(/.test(body), i0 < 0 ? 'U.shareSheet がない' : '');
+  store.resetDemo(true); store.login();
+  m = R.shareMoments();
+  t('シェアの場面（在籍24日：発表・30日はまだ）', !m.some(x => x.moment === 'showcase' || x.moment === 'start30') && m.some(x => x.moment === 'level'), m.map(x => x.key));
+  /* 成果発表会の一般公開 */
+  let ps = R.publicShowcase();
+  t('一般公開：成果発表会のはじめの30分', ps && ps.eventId === 'e4' && ps.on && ps.minutes === 30 && ps.signups === 4 && ps.page === 'index.html#/showcase', ps);
+  let r = R.showcaseSignup({ name: '', email: 'bad' });
+  t('一般公開の申込み：名前とメールの誤り', !r.ok && r.errors.name && r.errors.email, r.errors);
+  t('一般公開の申込み：名前は30文字まで', !R.showcaseSignup({ name: 'あ'.repeat(31), email: 'a@example.jp' }).ok);
+  r = R.showcaseSignup({ name: ' 佐野  みく ', email: 'Miku.Sano@Example.jp ' });
+  t('一般公開の申込み：整えて受け付ける', r.ok && r.signup.email === 'miku.sano@example.jp' && r.signup.name === '佐野 みく' && r.showcase.signups === 5, r);
+  r = R.showcaseSignup({ name: '佐野 みく', email: 'miku.sano@example.jp' });
+  t('一般公開の申込み：同じメールは existing', r.ok && r.existing && R.showcaseSignups().length === 5);
+  t('一般公開の申込みの一覧（新しい順・見本の印）', R.showcaseSignups('e4')[0].name === '佐野 みく' && R.showcaseSignups()[4].demo);
+  t('一般公開の枠を切る', R.setShowcasePublic('e4', false).ok && R.publicShowcase() === null && R.publicShowcase('e4').on === false);
+  t('切ったあとは申し込めない', !!R.showcaseSignup({ name: 'a', email: 'a@example.jp' }).error);
+  t('成果発表会でない回は切り替えられない', R.setShowcasePublic('e1', true).ok === false);
+  t('切ったあとは「誘う」が出ない', !R.shareMoments().some(x => x.moment === 'invite') && R.shareText('invite') === null);
+  store.startVeteran(true);
+  t('切り替えと申込みは人を切り替えても残る', R.publicShowcase('e4').on === false && R.showcaseSignups().length === 5);
+  R.setShowcasePublic('e4', true);
+  t('戻すと「誘う」が出る', R.shareMoments().some(x => x.moment === 'invite'));
+  /* 移行（前の保存にこの入れ物がない・壊れている） */
+  store.resetDemo(true);
+  const raw = JSON.parse(J(store.state));
+  ['goals', 'goalsAt', 'hideGoals', 'requests', 'showcaseSignups'].forEach(k => delete raw[k]);
+  const rawF = JSON.parse(J(raw)); rawF.kind = 'fresh';
+  const mig = store.migrate(raw);
+  t('移行：在籍24日の入れ物を埋める', J(mig.goals) === '["sns","remote"]' && mig.requests.votes.rq1 && mig.showcaseSignups.length === 4, mig.goals);
+  const migF = store.migrate(rawF);
+  t('移行：入会したては空', migF.goals.length === 0 && migF.requests.mine.length === 0);
+  const broken = JSON.parse(J(store.state)); broken.goals = 'x'; broken.requests = { mine: 3, votes: [] };
+  const migB = store.migrate(broken);
+  t('移行：壊れた入れ物を直す', Array.isArray(migB.goals) && Array.isArray(migB.requests.mine) && !Array.isArray(migB.requests.votes));
+}
+
 /* ============================================================
    4. 運営画面
    ============================================================ */
@@ -859,18 +1207,20 @@ function checkAdmin() {
   for (const f of order) require(path.join(adir, f + '.js'));
   const AD = CLG.admin;
   const TABS = {
-    members: ['?status=past_due', '?status=canceling', '?status=left', '?q=' + encodeURIComponent('高橋')],
+    members: ['?status=past_due', '?status=canceling', '?status=left', '?q=' + encodeURIComponent('高橋'), '?goal=sns', '?goal=none'],
     onboarding: ['?view=interviews', '?view=contacts'],
     inbox: ['?status=open', '?view=slots', '?view=experts'],
     courses: ['?tab=archive', '?tab=stats'],
     gigs: ['?tab=apps', '?tab=review', '?tab=closed'],
-    events: ['?tab=past', '?tab=proposals'],
+    events: ['?tab=past', '?tab=proposals', '?tab=signups'],
     feed: ['?tab=reports', '?tab=staff', '?tab=notices', '?tab=line'],
     perks: ['?tab=experts', '?tab=pros'],
     payments: ['?tab=failed', '?tab=cancels', '?tab=refunds', '?status=failed', '?month=-1'],
     referrals: ['?tab=rows', '?tab=banks', '?tab=history', '?status=ready'],
     points: ['?tab=close'],
-    settings: ['?tab=referral', '?tab=rules', '?tab=staff', '?tab=audit', '?tab=templates']
+    settings: ['?tab=referral', '?tab=rules', '?tab=staff', '?tab=audit', '?tab=templates'],
+    // ▲ リクエスト（種類・状態の絞り込み・返事を書く1件）
+    requests: ['?kind=gig', '?kind=course', '?kind=event', '?status=open', '?status=considering', '?status=added', '?status=declined', '?status=done', '?focus=rq9', '?kind=' + XSS_Q]
   };
   const MD_TABS = ['profile', 'pay', 'xp', 'courses', 'gigs', 'ref', 'points', 'msg', 'memo'];
   function routes() {
@@ -886,6 +1236,12 @@ function checkAdmin() {
     D.GIGS.slice(0, 3).map(g => g.id).concat((AD.db.state.peerGigs || []).slice(0, 2).map(g => g.id)).forEach(id => list.push('gigs/' + id));
     D.EVENTS.slice(0, 3).forEach(e => list.push('events/' + e.id));
     ['members/TS-999999', 'inbox/nope', 'courses/nope', 'gigs/nope', 'events/nope'].forEach(r => list.push(r + '#nf'));
+    // ▲ リクエストの1件（返事を書く）。見本の状態ごと（追加しました・検討中・受付中・見送り）と、デモ会員の自分のもの。成果発表会のイベント
+    // 画面が無ければ「画面が登録されていない」で失敗する（一覧の requests も、ここで足す）
+    if (!AD.screens.requests) list.push('requests');
+    ['rq1', 'rq2', 'rq9', 'rq12'].concat(R.requests({ mine: true }).map(x => x.id)).forEach(id => list.push('requests/' + id));
+    list.push('requests/nope#nf');
+    list.push('events/e4');
     return list;
   }
   const DETAIL = { members: 'member' };
@@ -940,6 +1296,40 @@ function checkAdmin() {
       else ok('admin', label, 'OK');
     } catch (e) { fail('admin', label, '例外 ' + e.stack.split('\n').slice(0, 3).join(' | ')); }
   }
+  // ▲ リクエストに運営が返事をする（AD.ops.answerRequest）：監査の記録・会員ページのお知らせ・「追加しました」の +20pt は1回だけ。
+  //   成果発表会の一般公開の枠（AD.ops.showcasePublic）：会員ページの R.publicShowcase も変わる。どちらも確かめたら元に戻す
+  if (AD.ops && typeof AD.ops.answerRequest === 'function') {
+    n++; count++;
+    const label = 'リクエストの返事（AD.ops.answerRequest）';
+    try {
+      become('demo', 'active');
+      AD.db.update(s => { s.session = { staffId: roles['運営'] || Object.values(roles)[0], at: CLG.now().toISOString() }; });
+      const mine = R.requests({ mine: true })[0];
+      const nt = R.notices().length, pt0 = R.points().total;
+      const bad = AD.ops.answerRequest(mine.id, { status: 'declined', reply: '' });
+      const res = AD.ops.answerRequest(mine.id, { status: 'added', reply: '「動画編集」に1回足しました。', link: 'course:video' });
+      const again = AD.ops.answerRequest(mine.id, { status: 'added', reply: '直しました。', link: 'course:video' });
+      const row = R.request(mine.id);
+      if (bad && bad.ok) fail('admin', label, '理由のない見送りを受け付けた');
+      else if (!res || !res.ok || !res.audit) fail('admin', label, '返事が付かない・監査の記録がない ' + JSON.stringify(res).slice(0, 160));
+      else if (row.status !== 'added' || !row.reply || R.notices().length < nt + 1 || R.notices()[0].type !== 'request') fail('admin', label, '会員ページに返事とお知らせが出ない');
+      else if (R.points().total !== pt0 + 20 || !again.ok || again.pt) fail('admin', label, `+20pt が1回だけにならない（${pt0} → ${R.points().total}）`);
+      else ok('admin', label, 'OK');
+    } catch (e) { fail('admin', label, '例外 ' + e.stack.split('\n').slice(0, 3).join(' | ')); }
+  } else { n++; count++; fail('admin', 'リクエストの返事', 'AD.ops.answerRequest がない'); }
+  if (AD.ops && typeof AD.ops.showcasePublic === 'function') {
+    n++; count++;
+    const label = '一般公開の枠（AD.ops.showcasePublic）';
+    try {
+      const off = AD.ops.showcasePublic('e4', false), gone = R.publicShowcase();
+      const on = AD.ops.showcasePublic('e4', true), back = R.publicShowcase();
+      if (!off.ok || !off.audit || gone !== null) fail('admin', label, '切っても公開の頁が残る ' + JSON.stringify(off).slice(0, 120));
+      else if (!on.ok || !back || back.eventId !== 'e4') fail('admin', label, '戻しても公開の頁が出ない');
+      else ok('admin', label, 'OK');
+    } catch (e) { fail('admin', label, '例外 ' + e.stack.split('\n').slice(0, 3).join(' | ')); }
+  } else { n++; count++; fail('admin', '一般公開の枠', 'AD.ops.showcasePublic がない'); }
+  // 人を切り替えても残るもの（リクエストの返事・一般公開の切り替え）を消す
+  { const s = store.state; if (s.settings) delete s.settings.showcasePublic; if (s.requests) s.requests.answers = {}; store.resetDemo(true); }
   AD.db.update(s => { s.session = null; });
   return n;
 }

@@ -94,6 +94,11 @@
    ■ そのほかの共通の形
      お知らせの一覧：未読の行は .li.is-unread（題を太字）＋右端に <span class="udot" aria-hidden="true"></span>
      XP の数字：<b class="num xp-num">+20</b>（金の文字）
+     シェアの窓：U.shareSheet(moment, { id }) が組む（.shs-modal ＞ .shs ＞ .shs__media（canvas.shs__img・名前の切り替え）＋ .shs__main
+       （文面・「紹介リンクを付ける」・.shs__acts のボタン4つ・Instagram の案内・.shs__guide））。画面の CSS で上書きしない。画面づくりの約束 §6-17
+     やりたいこと：印は U.goalTags(ids) → .goal-tags ＞ .goal-tag（状態の札 .tag とは別。丸い灰。link で藍のリンク）。
+       選ぶ欄は U.goalPicker(selected) → fieldset.goal-pick ＞ .goal-opt（チェック＋名前＋選んだ順）と .goal-pick__none。§6-18
+     リクエストの状態：U.statusTag(row.tag, row.statusLabel)（受付中・検討中は藍、追加しましたは緑、今回は見送りは線だけ）。新しい札は作らない
      ログイン：パスワード欄は <div class="pw"><input class="input" type="password">
        <button type="button" class="pw__toggle" aria-pressed="false" aria-label="パスワードを表示">icon('eye')</button></div>
        まとめての誤り <p class="form-err" role="alert" id="loginErr">…</p>、ヘルプ <details class="login__help"><summary>…</summary>…</details>、
@@ -255,10 +260,16 @@ html { scroll-padding-top: 56px; }
   .side__link[data-short]::after { content: attr(data-short); content: attr(data-short) / ""; }
   body:has(.protobar__pill) .side { padding-bottom: 46px; }
 }
-/* 1024x768（横向きの iPad）でも、上の「大」の印を足したまま全部の項目が縦に収まるよう、背の低い画面では項目を 40px に詰める */
+/* 1024x768（横向きの iPad）でも、上の「大」の印とリクエストを足したまま全部の項目（探す＋12）が縦に収まるよう、
+   背の低い画面では項目を 40px に、区切りを 4px に詰める。860px より広いときだけ、さらに 38px まで詰める
+   （860px 以下は押しやすさの 40px を守る。収まらない分は帯の中でスクロールする） */
 @media (min-width: 641px) and (max-width: 1100px) and (max-height: 820px) {
   .side__link, .side__search { min-height: 40px; padding-top: 3px; padding-bottom: 2px; }
   .side__brand { margin-bottom: 2px; }
+  .side__group { margin-top: 2px; padding-top: 1px; }
+}
+@media (min-width: 861px) and (max-width: 1100px) and (max-height: 820px) {
+  .side__link, .side__search { min-height: 38px; padding-top: 1px; padding-bottom: 1px; }
 }
 
 /* ---------- スマホ：上の帯と下のタブ ---------- */
@@ -374,7 +385,7 @@ html { scroll-padding-top: 56px; }
    text-wrap（まとめ書き）は折り返すかどうか（text-wrap-mode）まで wrap に戻してしまい、
    white-space: nowrap の <p>（上の帯の題など）が折れてしまう。折り方（text-wrap-style）だけを変える */
 .app-body p, .page-ttl, .page-lead, .h2, .h3, .li__ttl, .li__sub, .modal__ttl, .kv td, .card-ttl, .sec-ttl, .notice, .resume__ttl, .lvup__ttl,
-.field__err, .form-err {
+.field__err, .form-err, .goal-opt__txt, .shs__guide li {
   text-wrap-style: pretty; word-break: auto-phrase;
 }
 .li__body, .kv td, .notice > div { overflow-wrap: anywhere; }
@@ -1003,3 +1014,70 @@ body.app-body:has(.modal-bg) #toast { left: 16px; top: calc(12px + env(safe-area
 .guide-list li { counter-increment: g; position: relative; padding-left: 22px; font-size: 14px; color: var(--ink-2); }
 .guide-list li::before { content: counter(g) "."; position: absolute; left: 0; top: 0; font-family: var(--font-num); font-weight: 700; color: var(--ink-3); }
 .guide-list b { color: var(--ink); }
+
+/* ---------- シェアの窓（U.shareSheet。窓に .shs-modal） ----------
+   左に画像（1080×1080 を縮めて見せる）、右に文面と押すもの。窓の幅が足りないとき（700px 未満）と、
+   下から出る窓（640px 以下）では縦に並べる。画像は生成り（--paper）の地に墨と朱だけ（ui.js の drawShareCard） */
+.shs { display: grid; gap: 16px; }
+.shs__media { display: grid; gap: 6px; justify-items: center; }
+.shs__img { display: block; width: 100%; max-width: 240px; height: auto; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.shs__opt { min-height: 40px; align-items: center; }
+.shs__opt input { margin-top: 0; }
+.shs__field { margin-bottom: 2px; }
+.shs__text { min-height: 136px; font-size: 14px; line-height: 1.7; }
+.shs__pr { margin: -4px 0 2px 28px; font-size: 12.5px; color: var(--ink-2); }
+.shs__acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.shs__acts .btn { width: 100%; min-width: 0; padding: 0 10px; }
+.shs__ig { margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+.shs__guide { display: grid; gap: 2px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.shs__guide li { position: relative; padding-left: 14px; font-size: 12.5px; line-height: 1.7; color: var(--ink-3); }
+.shs__guide li::before { content: ""; position: absolute; left: 3px; top: .8em; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); }
+@media (min-width: 700px) {
+  .shs { grid-template-columns: 264px minmax(0, 1fr); gap: 24px; align-items: start; }
+  .shs__media { justify-items: stretch; }
+  .shs__img { max-width: none; }
+}
+
+/* ---------- やりたいこと（DATA.GOALS） ----------
+   印：U.goalTags(ids) → <span class="goal-tags"><span class="sr-only">やりたいこと：</span><span class="goal-tag">SNS発信</span>…</span>
+     状態の札（.tag）とは別の、丸い灰の印。1人2つまで。link: true なら <a class="goal-tag" href="#/members?goal=sns">（藍の字）。
+   選ぶ欄：U.goalPicker(selected) → <fieldset class="goal-pick" data-goal-pick> の中に .goal-opt（チェック＋名前＋選んだ順の数）と
+     「まだ決めていない」（.goal-pick__none）。2つ選ぶと残りは押せない（ui.js）。読むのは U.goalPicked(root) */
+.goal-tags { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; vertical-align: middle; }
+.goal-tag {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 11px;
+  background: var(--bg); color: var(--ink-2); font-size: 11.5px; font-weight: 600; line-height: 1; white-space: nowrap; text-decoration: none;
+}
+a.goal-tag { position: relative; color: var(--indigo); background: var(--indigo-weak); }
+a.goal-tag:hover { text-decoration: underline; }
+.goal-pick { min-width: 0; margin: 0; padding: 0; border: 0; }
+.goal-pick__lgd { display: flex; align-items: baseline; gap: 8px; padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+.goal-pick__max { font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.goal-pick__opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.goal-opt {
+  position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 12px;
+  border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface);
+  font-size: 14px; font-weight: 600; line-height: 1.5; cursor: pointer;
+}
+.goal-opt:hover { border-color: var(--ink-3); }
+.goal-opt input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--ink); }
+.goal-opt input:focus-visible { outline: none; }
+.goal-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.goal-opt__txt { flex: 1; min-width: 0; }
+.goal-opt__n {
+  flex: none; min-width: 20px; height: 20px; border-radius: 10px; background: var(--ink); color: #fff;
+  font-family: var(--font-num); font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+}
+.goal-opt__n:empty { display: none; }
+.goal-opt:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.goal-opt:has(input:disabled) { cursor: default; background: var(--surface-2); color: var(--ink-3); }
+.goal-opt:has(input:disabled):hover { border-color: var(--line-2); }
+.goal-pick__none { min-height: 40px; align-items: center; margin-top: 8px; }
+.goal-pick__none input { margin-top: 0; }
+.goal-pick__note { margin-top: 2px; font-size: 12.5px; color: var(--ink-2); }
+.goal-pick__note:empty { display: none; }
+@container main (max-width: 520px) { .goal-pick__opts { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) { .modal .goal-pick__opts { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 860px) {
+  a.goal-tag::before { content: ""; position: absolute; left: -3px; right: -3px; top: 50%; height: 44px; transform: translateY(-50%); }
+}
